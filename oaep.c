@@ -41,7 +41,7 @@ int oaep_unpad(char *message, const char *pad, unsigned long label,
 int oaep_encode(char *pad, oaep_context_t *context);
 int oaep_decode(char *pad, oaep_context_t *context); 
 
-const uint8_t *SHA1(const uint8_t *message, int lMsg, oaep_context_t *content);
+const uint8_t *SHA1(const uint8_t *message, int lMsg, oaep_context_t *context);
 
 
 /* 
@@ -440,7 +440,7 @@ int oaep_encode(char *pad, oaep_context_t *context)
  * Function oaep_decode
  *
  * Description
- *   Decode pad as describedin the OAEP spec. 
+ *   Decode pad as described in the OAEP spec. 
  *
  */ 
 int oaep_decode(char *pad, oaep_context_t *context)
@@ -494,16 +494,16 @@ int oaep_decode(char *pad, oaep_context_t *context)
  *    One-call interface for SHA1. 
  *
  */
-const uint8_t *SHA1(const uint8_t *message, int lMsg, oaep_context_t *content) 
+const uint8_t *SHA1(const uint8_t *message, int lMsg, oaep_context_t *context) 
 {
-  int err = SHA1Reset(&(content->sha)); 
+  int err = SHA1Reset(&(context->sha)); 
   if (err)
     return NULL;  
-  err = SHA1Input(&(content->sha), message, lMsg); 
+  err = SHA1Input(&(context->sha), message, lMsg); 
   if (err) 
     return NULL; 
-  err = SHA1Result(&(content->sha), content->hash); 
+  err = SHA1Result(&(context->sha), context->hash); 
   if (err) 
     return NULL; 
-  return content->hash; 
+  return context->hash; 
 }

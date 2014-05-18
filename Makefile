@@ -30,16 +30,16 @@ clean:
 # A couple tests ... 
 do: oaep-rsa
 	./oaep-rsa --gen 1024
-	./oaep-rsa --encrypt -i ref/rfc3447_oaep.html -o cipher
+	./oaep-rsa --encrypt -i papers/rfc3447_oaep.html -o cipher
 	./oaep-rsa --decrypt -i cipher -o message;
-	diff message ref/rfc3447_oaep.html
-	du -h cipher ref/rfc3447_oaep.html
+	diff message papers/rfc3447_oaep.html
+	du -h cipher papers/rfc3447_oaep.html
 
 did: oaep-rsa
 	./oaep-rsa --gen 512
-	./oaep-rsa --encrypt -i ref/message.jpg -o cipher
+	./oaep-rsa --encrypt -i papers/message.jpg -o cipher
 	./oaep-rsa --decrypt -i cipher -o plaintext.jpg
-	du -h cipher plaintext.jpg ref/message.jpg
+	du -h cipher plaintext.jpg papers/message.jpg
 
 oaeptest: oaeptest.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaeptest oaeptest.c oaep.o sha1.o rsa.o util.o -lgmp

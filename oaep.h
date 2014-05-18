@@ -43,9 +43,8 @@ typedef struct Context
    * width of the hash function `H`. */ 
   size_t lSeed; 
 
-  /* Length (in bytes) of the RSA key's modulus N (and therefore the 
-   * size of messages that can be encrypted). */ 
-  size_t lN; 
+  /* Length (in bytes) of the RSA key's modulus N. */
+  size_t lN;
 
   uint8_t hash [OAEP_MAX_HASH_LENGTH], 
           buff [OAEP_BUFF_LENGTH];

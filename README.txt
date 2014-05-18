@@ -14,7 +14,6 @@ oaep.{h,c}
     - Optimize.
     - Push all integrity checks up stream to avoid redundencies.
     - Precompute lMsgBuff, store in oaep_context_t. 
-    - SHA1(): says `content` instead of `context`.
     - `lMsgBuff % lSeed == 0` is a requirement. When producing
       the mask, we do `++(char)seed[0]` for each chunk. Obviously 
       the number of chunks is limited to 256. Maybe this should be
