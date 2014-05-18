@@ -13,9 +13,7 @@ oaep.{h,c}
   
   TODO 
   
-    - Optimize.
     - Push all integrity checks up stream to avoid redundencies.
-    - Precompute lMsgBuff, store in oaep_context_t. 
     - `lMsgBuff % lSeed == 0` is a requirement. When producing
       the mask, we do `++(char)seed[0]` for each chunk. Obviously 
       the number of chunks is limited to 256. Maybe this should be
@@ -37,18 +35,23 @@ rsa.{h,c}
   TODO 
     
     - Format checking in rsa_read_{private,prviate}()
-    - rsa_{enc,dec}(): power function reveals timing information. 
+    - rsa_{enc,dec}(): power function reveals timing information.
+      GMP provides a version that is supposedly resistent to timing
+      attacks. 
+
 
 dh.{h,c} TODO
 
   Implementation Diffie-Hellman authenticated key exchange (AKE). 
 
+
 chacha.{h,c} TODO 
 
   Implementation of the ChaCha streamcipher from Daniel Bernstein. 
   (http://cr.yp.to/chacha.html)
+  
 
 sha1.{h,c} (not my own)
 
   Reference implementation of the SHA-1 cryptographic hash function 
-  provided in RFC3174.  
+  provided freely in the RFC3174 text.  
