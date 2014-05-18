@@ -7,7 +7,9 @@ oaep-rsa.c
 oaep.{h,c}
 
   Implementation of the optimal asymmetric encryption padding 
-  scheme by Bellare and Rogaway (RFC3447).
+  scheme invented by Bellare and Rogaway (RFC3447). This is 
+  meant to provide a realizable RSA-based encryption scheme, 
+  provably secure in the random oracle model. 
   
   TODO 
   
