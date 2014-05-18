@@ -26,8 +26,8 @@
 
 void keygen(uint32_t key[], size_t lKey);
 
-void key_write(const uint32_t key[], size_t lKey, const char *fn); 
+int key_write(const uint32_t key[], size_t lKey, const char *fn); 
 
-void key_read(uint32_t key[], size_t *lKey, const char *fn); 
+int key_read(uint32_t key[], size_t lKey, const char *fn); 
 
 #endif // KEYGEN_H
