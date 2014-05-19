@@ -1,3 +1,8 @@
+This is a collection of cryptographic algorithms and tools
+written in order to deepen my own understanding. They aren't
+intended for use in the wild ( ... yet ;p ). All except the 
+SHA1 implementation (see below) are my own work.   
+
 oaep-rsa.c
 
   Generate RSA keys and encrypt / decrypt files under OAEP-RSA, 
@@ -6,10 +11,10 @@ oaep-rsa.c
 
 oaep.{h,c}
 
-  Implementation of the optimal asymmetric encryption padding 
-  scheme invented by Bellare and Rogaway (RFC3447). This is 
-  meant to provide a realizable RSA-based encryption scheme, 
-  provably secure in the random oracle model. 
+  The optimal asymmetric encryption padding scheme invented by 
+  Bellare and Rogaway (RFC3447). This is meant to provide a 
+  realizable RSA-based encryption scheme, provably secure in the 
+  random oracle model. 
   
   TODO 
   
@@ -22,12 +27,12 @@ oaep.{h,c}
 
 rsa.{h,c}
   
-  Implementation of textbook RSA. It uses the GMP library 
-  (http://gmplib.org) for arithmetic over arbitrary precision 
-  integers. The keys are generated from n-bit primes p and q,
-  where p = q = 2 (mod 3). For e=3, the basic correctness dondition
-  m = m^ed (mod pq) holds. Decryption is rendered efficient via the
-  Chinese Remainder Theorem. 
+  Textbook RSA, using the GMP library (http://gmplib.org) for 
+  arithmetic over arbitrary precision integers. The keys are 
+  generated from n-bit primes p and q, where p = q = 2 (mod 3).
+  For e=3, the basic correctness dondition m = m^ed (mod pq) 
+  holds. Decryption is rendered efficient via the Chinese 
+  Remainder Theorem. 
 
   To build, make sure you have the GMP package. It's called 
   `libgmp3-dev` on Debian-based systems. 
@@ -42,14 +47,22 @@ rsa.{h,c}
 
 dh.{h,c} TODO
 
-  Implementation Diffie-Hellman authenticated key exchange (AKE). 
+  Diffie-Hellman authenticated key exchange (AKE). 
 
 
-chacha.{h,c} TODO 
+chacha.{h,c}
 
-  Implementation of the ChaCha streamcipher from Daniel Bernstein. 
-  (http://cr.yp.to/chacha.html)
+  The ChaCha streamcipher, invented by Daniel Bernstein in 2008. 
+  (http://cr.yp.to/chacha.html) This is the ChaCha16 variant, 
+  meaning it performs 16 quarter-round mixes. 
   
+  TODO
+    
+    - chacha_streamcipher(). 
+    - Is there a rotate instruction on x86? Use architecture-
+      specific QR function if possible. 
+    - Look into SIMD instructions on x86. 
+
 
 sha1.{h,c} (not my own)
 
