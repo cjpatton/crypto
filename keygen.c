@@ -47,7 +47,7 @@ int key_write(const uint32_t key[], size_t lKey, const char *fn)
   uint32_t i; 
   for (i = 0; i < lKey; i++) 
   {
-    fprintf(fd, "%08X", u32_LITTLE(key[i])); 
+    fprintf(fd, "%08X", key[i]); 
     if ((i+1) % 4 == 0) fprintf(fd, "\n"); 
     else fprintf(fd, " "); 
   }
