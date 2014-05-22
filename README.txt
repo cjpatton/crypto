@@ -3,6 +3,13 @@ written in order to deepen my own understanding. They aren't
 intended for use in the wild ( ... yet ;p ). All except the 
 SHA1 implementation (see below) are my own work.   
 
+aez/ TODO 
+
+  Implementation of the AEZ authenticated encryption scheme, due
+  to Rogaway et al. Based on the OpenSSL implementation of AES-128.
+  I would like to try to implement a 256-bit key version based on
+  the ChaCha cipher as well. 
+
 oaep-rsa.c
 
   Generate RSA keys and encrypt / decrypt files under OAEP-RSA, 
@@ -62,6 +69,11 @@ chacha.{h,c}
     - Is there a rotate instruction on x86? Use architecture-
       specific QR function if possible. 
     - Look into SIMD instructions on x86. 
+
+
+aes.{h,c} TODO
+    
+  Implementation of the AES-256 block cipher. 
 
 
 sha1.{h,c} (not my own)
