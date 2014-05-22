@@ -65,6 +65,7 @@ chacha.{h,c}
   
   TODO
     
+    - Fix endianness and test it. 
     - chacha_streamcipher(). 
     - Is there a rotate instruction on x86? Use architecture-
       specific QR function if possible. 

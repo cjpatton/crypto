@@ -28,13 +28,13 @@
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define u32_LITTLE(x) x
 #else 
-#define u32_LITTLE(x) htonl(x)
+#define u32_LITTLE(x) htonl(x) /* FIXME */
 #endif 
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define u32_BIG(x) x
 #else 
-#define u32_BIG(x) htonl(x)
+#define u32_BIG(x) htonl(x) /* FIXME */
 #endif 
 
 /* TODO Does x86 have rotation instructions? 
