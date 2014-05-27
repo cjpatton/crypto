@@ -63,7 +63,7 @@ int main(int argc, const char **argv)
 
   /* Initialize key vector. */ 
   aez_keyvector_t key; 
-  aez_init_keyvector(&key, K, 1 << 5); 
+  aez_init_keyvector(&key, K, 1 << 2); 
   
   dump_keys(&key); 
   

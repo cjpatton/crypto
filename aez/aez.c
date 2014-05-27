@@ -4,6 +4,20 @@
 #include <string.h>
 
 
+/*
+ * Allocsate / free AEZ block arrays. 
+ */
+
+aez_block_t *aez_malloc_block(size_t msg_length)
+{
+  return malloc(msg_length * sizeof(uint8_t) * AEZ_BYTES); 
+}
+
+void aez_free_block(aez_block_t *blocks)
+{
+  free(blocks); 
+}
+
 aez_block4_t *aez_malloc_block4(size_t msg_length)
 {
   return malloc(msg_length * 5 * sizeof(uint8_t) * AEZ_BYTES); 
@@ -16,7 +30,7 @@ void aez_free_block4(aez_block4_t *blocks)
 
 aez_block10_t *aez_malloc_block10(size_t msg_length)
 {
-  return malloc(msg_length * 5 * sizeof(uint8_t) * AEZ_BYTES); 
+  return malloc(msg_length * 11 * sizeof(uint8_t) * AEZ_BYTES); 
 }
 
 void aez_free_block10(aez_block10_t *blocks)
@@ -24,6 +38,9 @@ void aez_free_block10(aez_block10_t *blocks)
   free(blocks); 
 }
 
+/*
+ * Initialize key vector.  
+ */
 void aez_init_keyvector(aez_keyvector_t *key, const aez_block_t K, size_t msg_length)
 {
   int i, j, k;
@@ -40,7 +57,7 @@ void aez_init_keyvector(aez_keyvector_t *key, const aez_block_t K, size_t msg_le
 
   key->msg_length = msg_length; 
   key->Khash = aez_malloc_block4(msg_length); 
-  key->K =     malloc(msg_length * 1 * sizeof(uint8_t) * AEZ_BYTES); 
+  key->K =     aez_malloc_block(msg_length);
   for (i = 0; i < msg_length; i++)
   {
     j = 2 << (((i+1) / 8) + 1);
@@ -53,7 +70,7 @@ void aez_init_keyvector(aez_keyvector_t *key, const aez_block_t K, size_t msg_le
 void aez_free_keyvector(aez_keyvector_t *key)
 {
   aez_free_block4(key->Khash); 
-  free(key->K); 
+  aez_free_block(key->K); 
 }
 
 /*
