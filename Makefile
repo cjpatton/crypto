@@ -1,7 +1,13 @@
 CC_FLAGS=-Wall #-O3
 
+aeztest: aez/aeztest.c aez.o
+	gcc $(CC_FLAGS) -o aeztest aez/aeztest.c aez.o 
+
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
+
+aez.o: aez/aez.h aez/aez.c misc/portable.h 
+	gcc $(CC_FLAGS) -c aez/aez.c 
 
 oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o
 	gcc $(CC_FLAGS) -c asym/oaep.c -lgmp
