@@ -5,7 +5,7 @@
 
 #include "oaep.h"
 #include "rsa.h"
-#include "sha1.h"
+#include "../hash/sha1.h"
 #include <gmp.h>
 #include <stdio.h>
 #include <stdlib.h>

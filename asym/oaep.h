@@ -21,7 +21,7 @@
 #define OAEP_H
 
 #include "rsa.h"
-#include "sha1.h"
+#include "../hash/sha1.h"
 #include <stdio.h>
 
 #define OAEP_BUFF_LENGTH 1 + (sizeof(unsigned long) * 8)

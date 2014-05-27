@@ -19,8 +19,8 @@
 
 #include "oaep.h"
 #include "rsa.h"
-#include "sha1.h"
-#include "util.h"
+#include "../hash/sha1.h"
+#include "../misc/util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

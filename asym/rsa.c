@@ -18,7 +18,7 @@
  */
 
 #include "rsa.h"
-#include "util.h"
+#include "../misc/util.h"
 #include <stdlib.h>
 #include <stdio.h>
 #define BUFFER_LENGTH 4096

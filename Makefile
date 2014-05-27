@@ -1,28 +1,27 @@
 CC_FLAGS=-Wall #-O3
 
-test: chachatest.c chacha.o keygen.o
-	gcc $(CC_FLAGS) -o test chachatest.c chacha.o keygen.o -lgmp
-
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
 
-oaep.o: oaep.h oaep.c rsa.o sha1.o
-	gcc $(CC_FLAGS) -c oaep.c -lgmp
+oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o
+	gcc $(CC_FLAGS) -c asym/oaep.c -lgmp
 
-rsa.o: rsa.h rsa.c util.o
-	gcc $(CC_FLAGS) -c rsa.c -lgmp
+rsa.o: asym/rsa.h asym/rsa.c util.o
+	gcc $(CC_FLAGS) -c asym/rsa.c -lgmp
 
-sha1.o: sha1.h sha1.c
-	gcc $(CC_FLAGS) -c sha1.c
+sha1.o: hash/sha1.h hash/sha1.c
+	gcc $(CC_FLAGS) -c hash/sha1.c
 
-chacha.o: chacha.h chacha.c portable.h
-	gcc $(CC_FLAGS) -c chacha.c
+chacha.o: cipher/chacha.h cipher/chacha.c misc/portable.h
+	gcc $(CC_FLAGS) -c cipher/chacha.c
 
-keygen.o: keygen.h keygen.c portable.h
-	gcc $(CC_FLAGS) -c keygen.c
+keygen.o: misc/keygen.h misc/keygen.c misc/portable.h
+	gcc $(CC_FLAGS) -c misc/keygen.c
 
-util.o: util.h util.c 
-	gcc $(CC_FLAGS) -c util.c
+util.o: misc/util.h misc/util.c 
+	gcc $(CC_FLAGS) -c misc/util.c
+
+all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
 	rm -f *.o *test oaep-rsa
@@ -41,12 +40,15 @@ did: oaep-rsa
 	./oaep-rsa --decrypt -i cipher -o plaintext.jpg
 	du -h cipher plaintext.jpg papers/message.jpg
 
-oaeptest: oaeptest.c oaep.o rsa.o sha1.o util.o 
-	gcc $(CC_FLAGS) -o oaeptest oaeptest.c oaep.o sha1.o rsa.o util.o -lgmp
+oaeptest: asym/oaeptest.c oaep.o rsa.o sha1.o util.o 
+	gcc $(CC_FLAGS) -o oaeptest asym/oaeptest.c oaep.o sha1.o rsa.o util.o -lgmp
 
-rsatest: rsatest.c rsa.o util.o 
-	gcc $(CC_FLAGS) -o rsatest rsatest.c rsa.o util.o -lgmp
+rsatest: asym/rsatest.c rsa.o util.o 
+	gcc $(CC_FLAGS) -o rsatest asym/rsatest.c rsa.o util.o -lgmp
 
-sha1test: sha1test.c sha1.o
-	gcc $(CC_FLAGS) -o sha1test sha1test.c sha1.o 
+chachatest: cipher/chachatest.c chacha.o keygen.o
+	gcc $(CC_FLAGS) -o chachatest cipher/chachatest.c chacha.o keygen.o -lgmp
+
+sha1test: hash/sha1test.c sha1.o
+	gcc $(CC_FLAGS) -o sha1test hash/sha1test.c sha1.o 
 

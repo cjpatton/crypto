@@ -5,7 +5,7 @@
  */
 
 #include "chacha.h"
-#include "keygen.h"
+#include "../misc/keygen.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

@@ -17,9 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */ 
 
-#include "oaep.h"
-#include "rsa.h"
-#include "sha1.h"
+#include "asym/oaep.h"
+#include "asym/rsa.h"
+#include "hash/sha1.h"
 #include <gmp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,12 +155,10 @@ int main(int argc, const char **argv)
   else if (options.encrypt) 
   {
     rsa_public_t pk;
-
     strcat(options.fn_key, ".pub"); 
     if (!rsa_read_public(&pk, options.fn_key))
     {
       fprintf(stderr, "oaep-rsa: error: couldn't read key file.\n");  
-      rsa_free_public(&pk); 
       return 1; 
     }
 
@@ -173,6 +171,13 @@ int main(int argc, const char **argv)
     }
 
     FILE *fd_out = fopen(options.fn_out, "wb"); 
+    if (!fd_out)
+    {
+      fprintf(stderr, "oaep-rsa: error: couldn't open file for writing.\n"); 
+      rsa_free_public(&pk); 
+      fclose(fd_in);
+      return 1; 
+    }
 
     err = oaep_encrypt_stream(fd_out, fd_in, 0, &pk); 
     if (err == oaepModulusTooSmall)
@@ -195,7 +200,6 @@ int main(int argc, const char **argv)
     if (!rsa_read_private(&sk, options.fn_key))
     {
       fprintf(stderr, "oaep-rsa: error: couldn't read key file.\n");  
-      rsa_free_private(&sk); 
       return 1; 
     }
 
@@ -208,6 +212,13 @@ int main(int argc, const char **argv)
     }
 
     FILE *fd_out = fopen(options.fn_out, "wb"); 
+    if (!fd_out)
+    {
+      fprintf(stderr, "oaep-rsa: error: couldn't open file for writing.\n"); 
+      rsa_free_private(&sk); 
+      fclose(fd_in);
+      return 1; 
+    }
 
     err = oaep_decrypt_stream(fd_out, fd_in, 0, &sk); 
     
