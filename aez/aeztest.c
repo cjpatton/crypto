@@ -1,10 +1,60 @@
 #include "aez.h"
 #include <stdio.h>
 
+void dump_keys(aez_keyvector_t *key)
+{
+  int j, i;
+  printf("Kecb "); 
+  aez_print_key(key->Kecb[0], 0); 
+  for (i = 1; i < 11; i++)
+    aez_print_key(key->Kecb[i], 5); 
+  
+  printf("\nKff0 ");
+  aez_print_key(key->Kff0[0], 0);
+  for (i = 1; i < 5; i++)
+    aez_print_key(key->Kff0[i], 5);
+  
+  printf("\nKone "); 
+  aez_print_key(key->Kone[0], 0); 
+  for (i = 1; i < 11; i++)
+    aez_print_key(key->Kone[i], 5); 
+
+  for (j = 0; j < 4; j++) 
+  {
+    printf("\n Kmac[%d] ", j);
+    aez_print_key(key->Kmac[j][0], 0); 
+    for (i = 1; i < 11; i++)
+      aez_print_key(key->Kmac[j][i], 9); 
+  }
+  
+  for (j = 0; j < 4; j++) 
+  {
+    printf("\n Kmac'[%d] ", j);
+    aez_print_key(key->Kmac1[j][0], 0); 
+    for (i = 1; i < 11; i++)
+      aez_print_key(key->Kmac1[j][i], 10); 
+  }
+
+  printf("\n\nVectors\n\n"); 
+  for (j = 0; j < key->msg_length; j++) 
+  {
+    printf(" K[%-4d] ", j);
+    aez_print_key(key->K[j], 0); 
+  }
+
+  for (j = 0; j < key->msg_length; j++) 
+  {
+    printf("\n Khash[%-4d] ", j);
+    aez_print_key(key->Khash[j][0], 0); 
+    for (i = 1; i < 5; i++)
+      aez_print_key(key->Khash[j][i], 13); 
+  }
+}
+
 int main(int argc, const char **argv)
 {
   /* Fake key to start. */ 
-  aez_key_t K; 
+  aez_block_t K; 
   int i; 
   for (i = 0; i < AEZ_BYTES; i += 4)
   {
@@ -13,23 +63,21 @@ int main(int argc, const char **argv)
 
   /* Initialize key vector. */ 
   aez_keyvector_t key; 
-  aez_init_keyvector(&key, K, 1 << 4); 
+  aez_init_keyvector(&key, K, 1 << 5); 
   
-  aez_print_key(key.Kecb); 
-  aez_print_key(key.Kff0); 
-  aez_print_key(key.Kone); 
+  dump_keys(&key); 
   
-  for (i = 0; i < 4; i++)
-  {
-    aez_print_key(key.Kmac[i]);
-    aez_print_key(key.Kmac1[i]);
-  }
-
-  for (i = 0; i < key.msg_length; i++)
-  {
-    aez_print_key(key.K[i]);
-    aez_print_key(key.Khash[i]);
-  }
+//  for (i = 0; i < 4; i++)
+//  {
+//    aez_print_key(key.Kmac[i]);
+//    aez_print_key(key.Kmac1[i]);
+//  }
+//
+//  for (i = 0; i < key.msg_length; i++)
+//  {
+//    aez_print_key(key.K[i]);
+//    aez_print_key(key.Khash[i]);
+//  }
 
 
   /* Destroy key vector. */ 
