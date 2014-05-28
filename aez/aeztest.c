@@ -1,4 +1,5 @@
 #include "aez.h"
+#include <openssl/aes.h>
 #include <stdio.h>
 
 void dump_keys(aez_keyvector_t *key)
@@ -65,7 +66,7 @@ int main(int argc, const char **argv)
   aez_keyvector_t key; 
   aez_init_keyvector(&key, K, 1 << 2); 
   
-  dump_keys(&key); 
+  //dump_keys(&key); 
   
 //  for (i = 0; i < 4; i++)
 //  {

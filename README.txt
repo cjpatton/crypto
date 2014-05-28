@@ -3,12 +3,17 @@ written in order to deepen my own understanding. They aren't
 intended for use in the wild ( ... yet ;p ). All except the 
 SHA1 implementation (see below) are my own work.   
 
-aez/ TODO 
+aez/ INCOMPLETE
 
   Implementation of the AEZ authenticated encryption scheme, due
   to Rogaway et al. Based on the OpenSSL implementation of AES-128.
-  I would like to try to implement a 256-bit key version based on
-  the ChaCha cipher as well. 
+
+  TODO 
+    - Tweakable AES, based on OpenSSL. The tweak is introuced 
+      as an alternative ``AddRoundKey`` at each round.  
+    - How do the tweaks work? Read XE,XEX paper.
+    - Implement MakeAESSubKeys(K) -> K^11. 
+    - dot() function. 
 
 oaep-rsa.c
 

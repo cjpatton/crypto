@@ -40,7 +40,6 @@ typedef struct {
   aez_block_t Kmac  [4][11], 
               Kmac1 [4][11]; // Kmac'
 
-  // Initialize to max number of 128-bit blocks. 
   aez_block_t  *K;
   aez_block4_t *Khash; 
 
