@@ -1,6 +1,7 @@
 #include "aez.h"
 #include <openssl/aes.h>
 #include <stdio.h>
+#include <string.h>
 
 void dump_keys(aez_keyvector_t *key)
 {
@@ -68,6 +69,32 @@ int main(int argc, const char **argv)
   
   //dump_keys(&key); 
   
+  /* Destroy key vector. */ 
+  aez_free_keyvector(&key); 
+
+
+  /* Test AES. */ 
+  uint8_t message [32]; 
+  uint8_t ciphertext [32]; 
+  uint8_t plaintext [32]; 
+  memset(message, 0, 32 * sizeof(uint8_t)); 
+  strcpy((char*)message, "Find your bliss."); 
+  memset(plaintext, 0, 32 * sizeof(uint8_t)); 
+  memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
+
+  AES_KEY aes_key; 
+  
+  AES_set_encrypt_key(K, 128, &aes_key); 
+  AES_encrypt(message, ciphertext, &aes_key); 
+  AES_set_decrypt_key(K, 128, &aes_key); 
+  
+  AES_decrypt(ciphertext, plaintext, &aes_key);
+  printf("plaintext: %s\n", plaintext); 
+  
+
+
+
+
 //  for (i = 0; i < 4; i++)
 //  {
 //    aez_print_key(key.Kmac[i]);
@@ -80,9 +107,6 @@ int main(int argc, const char **argv)
 //    aez_print_key(key.Khash[i]);
 //  }
 
-
-  /* Destroy key vector. */ 
-  aez_free_keyvector(&key); 
 
   return 0; 
 }
