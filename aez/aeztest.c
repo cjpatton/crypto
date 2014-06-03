@@ -1,5 +1,6 @@
 #include "aez.h"
 #include <openssl/aes.h>
+#include "../cipher/aes.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -84,6 +85,18 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
+  aes_KEY aes_key2; 
+  
+  aes_set_encrypt_key(K, 128, &aes_key2); 
+  aes_encrypt(message, ciphertext, &aes_key2); 
+  aes_set_decrypt_key(K, 128, &aes_key2); 
+  
+  aes_decrypt(ciphertext, plaintext, &aes_key2);
+  printf("ciphertext: ");
+  aez_print_block(ciphertext, 0);
+  printf("plaintext:  "); 
+  aez_print_block(plaintext, 0);
+  printf("message:    %s\n", plaintext); 
   
 
   printf("\n ... and them.\n");
