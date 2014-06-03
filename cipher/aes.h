@@ -74,22 +74,17 @@ extern "C" {
 #endif
 
 /* This should be a hidden type, but EVP requires that the size be known */
-typedef struct {
-    uint32_t rd_key[4 *(AES_MAXNR + 1)];
-    int rounds;
-} aes_key_t;
+typedef uint32_t aes_key_t;
 
-const char *aes_options(void);
-
-int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
-	aes_key_t *key);
-int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
-	aes_key_t *key);
+int aes_set_encrypt_key(const unsigned char *userKey, 
+	aes_key_t *key, int rounds);
+int aes_set_decrypt_key(const unsigned char *userKey, 
+	aes_key_t *key, int rounds);
 
 void aes_encrypt(const unsigned char *in, unsigned char *out,
-	const aes_key_t *key);
+	const aes_key_t *key, int rounds);
 void aes_decrypt(const unsigned char *in, unsigned char *out,
-	const aes_key_t *key);
+	const aes_key_t *key, int rounds);
 
 
 

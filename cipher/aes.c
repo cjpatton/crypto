@@ -461,10 +461,11 @@ static const u32 rcon[] = {
 };
 
 /**
- * Expand the cipher key into the encryption key schedule.
+ * Expand the cipher key into the encryption key schedule. 
+ * Fixed tfor 128-bit keys. 
  */
-int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
-			aes_key_t *key) {
+int aes_set_encrypt_key(const unsigned char *userKey, aes_key_t *key, int rounds)
+{
 
   u32 *rk;
   int i = 0;
@@ -472,17 +473,14 @@ int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
 
   if (!userKey || !key)
           return -1;
-  if (bits != 128)
-          return -2;
 
-  rk = key->rd_key;
-  key->rounds = 10; 
+  rk = key;
 
   rk[0] = GETU32(userKey     );
   rk[1] = GETU32(userKey +  4);
   rk[2] = GETU32(userKey +  8);
   rk[3] = GETU32(userKey + 12);
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < rounds; i++)
   {
     temp  = rk[3];
     rk[4] = rk[0] ^
@@ -502,29 +500,28 @@ int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
 /**
  * Expand the cipher key into the decryption key schedule.
  */
-int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
-			 aes_key_t *key) {
+int aes_set_decrypt_key(const unsigned char *userKey, aes_key_t *key, int rounds) {
 
         u32 *rk;
 	int i, j, status;
 	u32 temp;
 
 	/* first, start with an encryption schedule */
-	status = aes_set_encrypt_key(userKey, bits, key);
+	status = aes_set_encrypt_key(userKey, key, rounds);
 	if (status < 0)
 		return status;
 
-	rk = key->rd_key;
+	rk = key;
 
 	/* invert the order of the round keys: */
-	for (i = 0, j = 4*(key->rounds); i < j; i += 4, j -= 4) {
+	for (i = 0, j = 4*rounds; i < j; i += 4, j -= 4) {
 		temp = rk[i    ]; rk[i    ] = rk[j    ]; rk[j    ] = temp;
 		temp = rk[i + 1]; rk[i + 1] = rk[j + 1]; rk[j + 1] = temp;
 		temp = rk[i + 2]; rk[i + 2] = rk[j + 2]; rk[j + 2] = temp;
 		temp = rk[i + 3]; rk[i + 3] = rk[j + 3]; rk[j + 3] = temp;
 	}
 	/* apply the inverse MixColumn transform to all round keys but the first and the last: */
-	for (i = 1; i < (key->rounds); i++) {
+	for (i = 1; i < rounds; i++) {
 		rk += 4;
 #if 1
 		for (j = 0; j < 4; j++) {
@@ -584,14 +581,14 @@ int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
  * in and out can overlap
  */
 void aes_encrypt(const unsigned char *in, unsigned char *out,
-		 const aes_key_t *key) {
+		 const aes_key_t *key, int rounds) {
 
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t[4];
 	int r;
 
 	assert(in && out && key);
-	rk = key->rd_key;
+	rk = key;
 
 	/*
 	 * map byte array block to cipher state
@@ -669,7 +666,7 @@ void aes_encrypt(const unsigned char *in, unsigned char *out,
     /*
      * Nr - 2 full rounds:
      */
-    for (rk+=8,r=key->rounds-2; r>0; rk+=4,r--) {
+    for (rk+=8,r=rounds-2; r>0; rk+=4,r--) {
 #if defined(AES_COMPACT_IN_INNER_ROUNDS)
 	t[0] =	Te4[(s0      ) & 0xff]       ^
 		Te4[(s1 >>  8) & 0xff] <<  8 ^
@@ -796,14 +793,14 @@ void aes_encrypt(const unsigned char *in, unsigned char *out,
  * in and out can overlap
  */
 void aes_decrypt(const unsigned char *in, unsigned char *out,
-		 const aes_key_t *key) {
+		 const aes_key_t *key, int rounds) {
 
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t[4];
 	int r;
 
 	assert(in && out && key);
-	rk = key->rd_key;
+	rk = key;
 
 	/*
 	 * map byte array block to cipher state
@@ -891,7 +888,7 @@ void aes_decrypt(const unsigned char *in, unsigned char *out,
     /*
      * Nr - 2 full rounds:
      */
-    for (rk+=8,r=key->rounds-2; r>0; rk+=4,r--) {
+    for (rk+=8,r=rounds-2; r>0; rk+=4,r--) {
 #if defined(AES_COMPACT_IN_INNER_ROUNDS)
         t[0] =	Td4[(s0      ) & 0xff]       ^
 		Td4[(s3 >>  8) & 0xff] <<  8 ^

@@ -95,12 +95,13 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
-  aes_key_t aes_key2; 
+  aez_block10_t aes_key2; 
   
-  aes_set_encrypt_key(K, AEZ_BITS, &aes_key2); 
-  aes_encrypt(message, ciphertext, &aes_key2); 
-  aes_set_decrypt_key(K, AEZ_BITS, &aes_key2); 
-  aes_decrypt(ciphertext, plaintext, &aes_key2);
+  int rounds = 10; 
+  aes_set_encrypt_key(K, (uint32_t *)aes_key2, rounds); 
+  aes_encrypt(message, ciphertext, (uint32_t *)aes_key2, rounds); 
+  aes_set_decrypt_key(K, (uint32_t *)aes_key2, rounds); 
+  aes_decrypt(ciphertext, plaintext, (uint32_t *)aes_key2, rounds);
   
   printf("ciphertext: ");
   dump_block(ciphertext, 0);
