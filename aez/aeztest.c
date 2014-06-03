@@ -79,7 +79,7 @@ int main(int argc, const char **argv)
   aez_keyvector_t key; 
   aez_init_keyvector(&key, K, 1 << 2); 
   
-  dump_keys(&key); 
+  //dump_keys(&key); 
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
@@ -97,11 +97,11 @@ int main(int argc, const char **argv)
   printf("Us ... \n"); 
   aes_key_t aes_key2; 
   
-  aes_set_encrypt_key((uint8_t *)K, 128, &aes_key2); 
+  aes_set_encrypt_key(K, AEZ_BITS, &aes_key2); 
   aes_encrypt(message, ciphertext, &aes_key2); 
-  aes_set_decrypt_key((uint8_t *)K, 128, &aes_key2); 
-  
+  aes_set_decrypt_key(K, AEZ_BITS, &aes_key2); 
   aes_decrypt(ciphertext, plaintext, &aes_key2);
+  
   printf("ciphertext: ");
   dump_block(ciphertext, 0);
   printf("plaintext:  "); 
@@ -112,11 +112,11 @@ int main(int argc, const char **argv)
   printf("\n ... and them.\n");
   AES_KEY aes_key; 
   
-  AES_set_encrypt_key((uint8_t *)K, 128, &aes_key); 
+  AES_set_encrypt_key(K, AEZ_BITS, &aes_key); 
   AES_encrypt(message, ciphertext, &aes_key); 
-  AES_set_decrypt_key((uint8_t *)K, 128, &aes_key); 
-  
+  AES_set_decrypt_key(K, AEZ_BITS, &aes_key); 
   AES_decrypt(ciphertext, plaintext, &aes_key);
+
   printf("ciphertext: ");
   dump_block(ciphertext, 0);
   printf("plaintext:  "); 
