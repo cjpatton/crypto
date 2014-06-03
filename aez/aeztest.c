@@ -3,53 +3,54 @@
 #include <stdio.h>
 #include <string.h>
 
+
 void dump_keys(aez_keyvector_t *key)
 {
   int j, i;
   printf("Kecb "); 
-  aez_print_key(key->Kecb[0], 0); 
+  aez_print_block(key->Kecb[0], 0); 
   for (i = 1; i < 11; i++)
-    aez_print_key(key->Kecb[i], 5); 
+    aez_print_block(key->Kecb[i], 5); 
   
   printf("\nKff0 ");
-  aez_print_key(key->Kff0[0], 0);
+  aez_print_block(key->Kff0[0], 0);
   for (i = 1; i < 5; i++)
-    aez_print_key(key->Kff0[i], 5);
+    aez_print_block(key->Kff0[i], 5);
   
   printf("\nKone "); 
-  aez_print_key(key->Kone[0], 0); 
+  aez_print_block(key->Kone[0], 0); 
   for (i = 1; i < 11; i++)
-    aez_print_key(key->Kone[i], 5); 
+    aez_print_block(key->Kone[i], 5); 
 
   for (j = 0; j < 4; j++) 
   {
     printf("\n Kmac[%d] ", j);
-    aez_print_key(key->Kmac[j][0], 0); 
+    aez_print_block(key->Kmac[j][0], 0); 
     for (i = 1; i < 11; i++)
-      aez_print_key(key->Kmac[j][i], 9); 
+      aez_print_block(key->Kmac[j][i], 9); 
   }
   
   for (j = 0; j < 4; j++) 
   {
     printf("\n Kmac'[%d] ", j);
-    aez_print_key(key->Kmac1[j][0], 0); 
+    aez_print_block(key->Kmac1[j][0], 0); 
     for (i = 1; i < 11; i++)
-      aez_print_key(key->Kmac1[j][i], 10); 
+      aez_print_block(key->Kmac1[j][i], 10); 
   }
 
   printf("\n\nVectors\n\n"); 
   for (j = 0; j < key->msg_length; j++) 
   {
     printf(" K[%-4d] ", j);
-    aez_print_key(key->K[j], 0); 
+    aez_print_block(key->K[j], 0); 
   }
 
   for (j = 0; j < key->msg_length; j++) 
   {
     printf("\n Khash[%-4d] ", j);
-    aez_print_key(key->Khash[j][0], 0); 
+    aez_print_block(key->Khash[j][0], 0); 
     for (i = 1; i < 5; i++)
-      aez_print_key(key->Khash[j][i], 13); 
+      aez_print_block(key->Khash[j][i], 13); 
   }
 }
 
@@ -82,6 +83,10 @@ int main(int argc, const char **argv)
   memset(plaintext, 0, 32 * sizeof(uint8_t)); 
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
+  printf("Us ... \n"); 
+  
+
+  printf("\n ... and them.\n");
   AES_KEY aes_key; 
   
   AES_set_encrypt_key(K, 128, &aes_key); 
@@ -89,11 +94,11 @@ int main(int argc, const char **argv)
   AES_set_decrypt_key(K, 128, &aes_key); 
   
   AES_decrypt(ciphertext, plaintext, &aes_key);
-  printf("plaintext: %s\n", plaintext); 
-  
-
-
-
+  printf("ciphertext: ");
+  aez_print_block(ciphertext, 0);
+  printf("plaintext:  "); 
+  aez_print_block(plaintext, 0);
+  printf("message:    %s\n", plaintext); 
 
 //  for (i = 0; i < 4; i++)
 //  {
@@ -106,7 +111,6 @@ int main(int argc, const char **argv)
 //    aez_print_key(key.K[i]);
 //    aez_print_key(key.Khash[i]);
 //  }
-
 
   return 0; 
 }

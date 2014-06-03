@@ -7,6 +7,7 @@
 
 #define AEZ_BITS  128
 #define AEZ_BYTES 16
+#define AEZ_WORDS 4
 
 /*
  * Block types for key vectors. Careful - these are really of 
@@ -52,6 +53,6 @@ void aez_free_keyvector(aez_keyvector_t *key);
 void aez_key_variant(aez_block_t *Kout, const aez_block_t Kin,
                      int j, int i, int l, int k);
 
-void aez_print_key(const aez_block_t K, int margin);
+void aez_print_block(const aez_block_t X, int margin);
 
 #endif // AEZ_H

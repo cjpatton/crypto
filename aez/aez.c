@@ -86,7 +86,7 @@ void aez_key_variant(aez_block_t *Kout, const aez_block_t Kin,
 }
 
 
-void aez_print_key(const aez_block_t K, int margin)
+void aez_print_block(const aez_block_t X, int margin)
 {
   int i;
   while (margin--)
@@ -94,8 +94,9 @@ void aez_print_key(const aez_block_t K, int margin)
 
   for (i = AEZ_BYTES - 4; i >= 0; i -= 4)
   { 
-    printf("0x%02x%02x%02x%02x ", K[i+3], K[i+2], K[i+1], K[i]); 
-    //printf("0x%08x ", *(uint32_t*)(&K[i])); 
+    printf("0x%02x%02x%02x%02x ", X[i+3], X[i+2], X[i+1], X[i]); 
   }
+  //for (i = AEZ_WORDS-1; i >= 0; i--) 
+  //  printf("0x%08x ", ((uint32_t*)X)[i]); 
   printf("\n"); 
 }
