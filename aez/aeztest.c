@@ -5,6 +5,16 @@
 #include <string.h>
 
 
+void dump_block(const uint8_t *X, int margin)
+{
+  int i;
+  while (margin--)
+    printf(" ");
+  for (i = AEZ_BYTES - 4; i >= 0; i -= 4)
+    printf("0x%02x%02x%02x%02x ", X[i+3], X[i+2], X[i+1], X[i]); 
+  printf("\n"); 
+}
+
 void dump_keys(aez_keyvector_t *key)
 {
   int j, i;
@@ -58,7 +68,7 @@ void dump_keys(aez_keyvector_t *key)
 int main(int argc, const char **argv)
 {
   /* Fake key to start. */ 
-  aez_block_t K; 
+  uint8_t K [AEZ_BYTES]; 
   int i; 
   for (i = 0; i < AEZ_BYTES; i += 4)
   {
@@ -69,7 +79,7 @@ int main(int argc, const char **argv)
   aez_keyvector_t key; 
   aez_init_keyvector(&key, K, 1 << 2); 
   
-  //dump_keys(&key); 
+  dump_keys(&key); 
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
@@ -87,30 +97,30 @@ int main(int argc, const char **argv)
   printf("Us ... \n"); 
   aes_key_t aes_key2; 
   
-  aes_set_encrypt_key(K, 128, &aes_key2); 
+  aes_set_encrypt_key((uint8_t *)K, 128, &aes_key2); 
   aes_encrypt(message, ciphertext, &aes_key2); 
-  aes_set_decrypt_key(K, 128, &aes_key2); 
+  aes_set_decrypt_key((uint8_t *)K, 128, &aes_key2); 
   
   aes_decrypt(ciphertext, plaintext, &aes_key2);
   printf("ciphertext: ");
-  aez_print_block(ciphertext, 0);
+  dump_block(ciphertext, 0);
   printf("plaintext:  "); 
-  aez_print_block(plaintext, 0);
+  dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
   
 
   printf("\n ... and them.\n");
   AES_KEY aes_key; 
   
-  AES_set_encrypt_key(K, 128, &aes_key); 
+  AES_set_encrypt_key((uint8_t *)K, 128, &aes_key); 
   AES_encrypt(message, ciphertext, &aes_key); 
-  AES_set_decrypt_key(K, 128, &aes_key); 
+  AES_set_decrypt_key((uint8_t *)K, 128, &aes_key); 
   
   AES_decrypt(ciphertext, plaintext, &aes_key);
   printf("ciphertext: ");
-  aez_print_block(ciphertext, 0);
+  dump_block(ciphertext, 0);
   printf("plaintext:  "); 
-  aez_print_block(plaintext, 0);
+  dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
 
 //  for (i = 0; i < 4; i++)

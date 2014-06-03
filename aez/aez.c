@@ -10,7 +10,7 @@
 
 aez_block_t *aez_malloc_block(size_t msg_length)
 {
-  return malloc(msg_length * sizeof(uint8_t) * AEZ_BYTES); 
+  return malloc(msg_length * sizeof(uint32_t) * AEZ_WORDS); 
 }
 
 void aez_free_block(aez_block_t *blocks)
@@ -20,7 +20,7 @@ void aez_free_block(aez_block_t *blocks)
 
 aez_block4_t *aez_malloc_block4(size_t msg_length)
 {
-  return malloc(msg_length * 5 * sizeof(uint8_t) * AEZ_BYTES); 
+  return malloc(msg_length * 5 * sizeof(uint32_t) * AEZ_WORDS); 
 }
 
 void aez_free_block4(aez_block4_t *blocks)
@@ -30,7 +30,7 @@ void aez_free_block4(aez_block4_t *blocks)
 
 aez_block10_t *aez_malloc_block10(size_t msg_length)
 {
-  return malloc(msg_length * 11 * sizeof(uint8_t) * AEZ_BYTES); 
+  return malloc(msg_length * 11 * sizeof(uint32_t) * AEZ_WORDS); 
 }
 
 void aez_free_block10(aez_block10_t *blocks)
@@ -41,7 +41,7 @@ void aez_free_block10(aez_block10_t *blocks)
 /*
  * Initialize key vector.  
  */
-void aez_init_keyvector(aez_keyvector_t *key, const aez_block_t K, size_t msg_length)
+void aez_init_keyvector(aez_keyvector_t *key, const uint8_t *K, size_t msg_length)
 {
   int i, j, k;
   
@@ -76,7 +76,7 @@ void aez_free_keyvector(aez_keyvector_t *key)
 /*
  * k is the number of AES rounds; j, i, and l are tweaks. 
  */
-void aez_key_variant(aez_block_t *Kout, const aez_block_t Kin, 
+void aez_key_variant(aez_block_t *Kout, const uint8_t *Kin, 
                      int j, int i, int l, int k)
 {
   // TODO
@@ -89,14 +89,12 @@ void aez_key_variant(aez_block_t *Kout, const aez_block_t Kin,
 void aez_print_block(const aez_block_t X, int margin)
 {
   int i;
+  //uint8_t *p = X; 
   while (margin--)
-    printf(" "); 
-
-  for (i = AEZ_BYTES - 4; i >= 0; i -= 4)
-  { 
-    printf("0x%02x%02x%02x%02x ", X[i+3], X[i+2], X[i+1], X[i]); 
-  }
-  //for (i = AEZ_WORDS-1; i >= 0; i--) 
-  //  printf("0x%08x ", ((uint32_t*)X)[i]); 
+    printf(" ");
+  //for (i = AEZ_BYTES - 4; i >= 0; i -= 4)
+  //  printf("0x%02x%02x%02x%02x ", p[i+3], p[i+2], p[i+1], p[i]); 
+  for (i = AEZ_WORDS-1; i >= 0; i--) 
+    printf("0x%08x ", ((uint32_t*)X)[i]); 
   printf("\n"); 
 }

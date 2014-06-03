@@ -25,17 +25,8 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-#define ARCH_WORD64 /* This should be undef'ed if the system is 32-bit. */ 
-
-#ifdef ARCH_WORD64
-#define WORD_BITS 64
-typedef uint64_t word_t; 
-#else
-#define WORD_BITS 32
-typedef uint32_t word_t; 
-#endif
-
-/* TODO generic lttle endian conversion for word_t. */
+/* TODO generic little endian conversion for u32 and u64. Operate on a
+ * byte array. */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define u32_LITTLE(x) x
 #else 

@@ -2,19 +2,20 @@
 #ifndef AEZ_H
 #define AEZ_H
 
+#include "../portable.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 #define AEZ_BITS  128
 #define AEZ_BYTES 16
-#define AEZ_WORDS 4
+#define AEZ_WORDS 4 
 
 /*
  * Block types for key vectors. Careful - these are really of 
- * type (uint8_t*), i.e., sizeof(aez_block_t) == sizeof(void*). 
+ * type (uint32_t*), i.e., sizeof(aez_block_t) == sizeof(void*). 
  * For this reason, we provide routines for instantiating them. 
  */ 
-typedef uint8_t aez_block_t [AEZ_BYTES];
+typedef uint32_t aez_block_t [AEZ_WORDS];
 
 typedef aez_block_t aez_block4_t [5]; 
 
@@ -46,11 +47,11 @@ typedef struct {
 
 } aez_keyvector_t; 
 
-void aez_init_keyvector(aez_keyvector_t *key, const aez_block_t K, size_t msg_length);
+void aez_init_keyvector(aez_keyvector_t *key, const uint8_t *K, size_t msg_length);
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
-void aez_key_variant(aez_block_t *Kout, const aez_block_t Kin,
+void aez_key_variant(aez_block_t *Kout, const uint8_t *Kin,
                      int j, int i, int l, int k);
 
 void aez_print_block(const aez_block_t X, int margin);

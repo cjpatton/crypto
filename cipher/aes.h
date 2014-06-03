@@ -59,6 +59,7 @@
 //#endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define AES_ENCRYPT	1
 #define AES_DECRYPT	0
@@ -74,11 +75,7 @@ extern "C" {
 
 /* This should be a hidden type, but EVP requires that the size be known */
 typedef struct {
-#ifdef AES_LONG
-    unsigned long rd_key[4 *(AES_MAXNR + 1)];
-#else
-    unsigned int rd_key[4 *(AES_MAXNR + 1)];
-#endif
+    uint32_t rd_key[4 *(AES_MAXNR + 1)];
     int rounds;
 } aes_key_t;
 
