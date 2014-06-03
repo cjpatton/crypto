@@ -29,31 +29,20 @@
 
 #ifdef ARCH_WORD64
 #define WORD_BITS 64
-typedef uint64_t uint_t; 
+typedef uint64_t word_t; 
 #else
 #define WORD_BITS 32
-typedef uint32_t uint_t; 
+typedef uint32_t word_t; 
 #endif
 
+/* TODO generic lttle endian conversion for word_t. */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define u32_LITTLE(x) x
 #else 
 #define u32_LITTLE(x) htonl(x) /* FIXME */
 #endif 
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#define u32_BIG(x) x
-#else 
-#define u32_BIG(x) htonl(x) /* FIXME */
-#endif 
-
-/* TODO Does x86 have rotation instructions? 
- * Replace rotation in quarter round functions 
- * with architecture specific instructions. */ 
-#define U32_ROTL(x, n) \
-  ((x << n) | (x >> (32 - n)))
-
-#define U32_ROTR(x, n) \
-  ((x >> n) | (x << (32 - n)))
+/* TODO Rotate left/right instructions, using the one defined
+ * in aex.c for x86 architecture. */ 
 
 #endif // PORTABLE_H
