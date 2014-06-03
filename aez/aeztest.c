@@ -85,7 +85,7 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
-  aes_KEY aes_key2; 
+  aes_key_t aes_key2; 
   
   aes_set_encrypt_key(K, 128, &aes_key2); 
   aes_encrypt(message, ciphertext, &aes_key2); 

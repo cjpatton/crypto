@@ -1,11 +1,11 @@
 #include "aez.h"
-#include "../misc/portable.h"
+#include "../portable.h"
 #include <stdio.h>
 #include <string.h>
 
 
 /*
- * Allocsate / free AEZ block arrays. 
+ * Allocate / free AEZ block arrays. 
  */
 
 aez_block_t *aez_malloc_block(size_t msg_length)

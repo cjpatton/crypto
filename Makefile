@@ -6,7 +6,7 @@ aeztest: aez/aeztest.c aez.o aes.o
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
 
-aez.o: aez/aez.h aez/aez.c misc/portable.h 
+aez.o: aez/aez.h aez/aez.c portable.h 
 	gcc $(CC_FLAGS) -c aez/aez.c -lcrypto -lssl 
 
 oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o
@@ -21,10 +21,10 @@ aes.o: cipher/aes.h cipher/aes.c cipher/aes_locl.h
 sha1.o: hash/sha1.h hash/sha1.c
 	gcc $(CC_FLAGS) -c hash/sha1.c
 
-chacha.o: cipher/chacha.h cipher/chacha.c misc/portable.h
+chacha.o: cipher/chacha.h cipher/chacha.c portable.h
 	gcc $(CC_FLAGS) -c cipher/chacha.c
 
-keygen.o: misc/keygen.h misc/keygen.c misc/portable.h
+keygen.o: misc/keygen.h misc/keygen.c portable.h
 	gcc $(CC_FLAGS) -c misc/keygen.c
 
 util.o: misc/util.h misc/util.c 

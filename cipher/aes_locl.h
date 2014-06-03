@@ -52,12 +52,6 @@
 #ifndef MY_AES_LOCL_H
 #define MY_AES_LOCL_H
 
-//#include <openssl/e_os2.h>
-
-#ifdef OPENSSL_NO_AES
-#error AES is disabled.
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

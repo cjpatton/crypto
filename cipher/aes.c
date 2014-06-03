@@ -35,11 +35,6 @@
  */
 
 
-#ifndef AES_DEBUG
-# ifndef NDEBUG
-#  define NDEBUG
-# endif
-#endif
 #include <assert.h>
 
 #include <stdlib.h>
@@ -469,7 +464,7 @@ static const u32 rcon[] = {
  * Expand the cipher key into the encryption key schedule.
  */
 int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
-			aes_KEY *key) {
+			aes_key_t *key) {
 
 	u32 *rk;
    	int i = 0;
@@ -570,7 +565,7 @@ int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
  * Expand the cipher key into the decryption key schedule.
  */
 int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
-			 aes_KEY *key) {
+			 aes_key_t *key) {
 
         u32 *rk;
 	int i, j, status;
@@ -651,7 +646,7 @@ int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
  * in and out can overlap
  */
 void aes_encrypt(const unsigned char *in, unsigned char *out,
-		 const aes_KEY *key) {
+		 const aes_key_t *key) {
 
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t[4];
@@ -863,7 +858,7 @@ void aes_encrypt(const unsigned char *in, unsigned char *out,
  * in and out can overlap
  */
 void aes_decrypt(const unsigned char *in, unsigned char *out,
-		 const aes_KEY *key) {
+		 const aes_key_t *key) {
 
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t[4];

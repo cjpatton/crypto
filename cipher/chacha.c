@@ -20,7 +20,7 @@
 
 
 #include "chacha.h"
-#include "../misc/portable.h"
+#include "../portable.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
