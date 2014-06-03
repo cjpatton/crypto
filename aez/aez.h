@@ -30,6 +30,7 @@ void aez_free_block4(aez_block4_t *blocks);
 aez_block10_t *aez_malloc_block10(size_t msg_length); 
 void aez_free_block10(aez_block10_t *blocks); 
 
+
 /*
  * Key space for AEZ. 
  */
@@ -47,12 +48,45 @@ typedef struct {
 
 } aez_keyvector_t; 
 
-void aez_init_keyvector(aez_keyvector_t *key, const uint8_t *K, size_t msg_length);
+
+/*
+ * Intermediate data structure for key tweak_stateing. 
+ */
+typedef struct {
+  aez_block_t I, J, L, zero;
+  aez_block10_t Klong; 
+  aez_block4_t  Kshort; 
+} aez_tweak_state_t;
+
+
+typedef enum {
+  aez_SUCCESS, 
+  aez_INVALID_KEY
+} aez_err_t; 
+
+
+/*
+ * Mode for key vector. AES sets up the key schedule
+ * somewhat differently in the case of decryption. 
+ */
+typedef enum {
+  ENCRYPT = 0, DECRYPT
+} aez_mode_t;
+
+
+
+void aez_init_keyvector(aez_keyvector_t *key, 
+                        const uint8_t *K, 
+                        aez_mode_t mode,
+                        size_t msg_length);  
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
-void aez_key_variant(aez_block_t *Kout, const uint8_t *Kin,
-                     int j, int i, int l, int k);
+void aez_init_tweak_state(aez_tweak_state_t *tweak_state, const uint8_t *K, aez_mode_t mode); 
+
+int aez_key_variant(aez_block_t *Kout, 
+                    const aez_tweak_state_t *tweak_state,
+                    int j, int i, int l, int k);
 
 void aez_print_block(const aez_block_t X, int margin);
 

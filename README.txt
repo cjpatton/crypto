@@ -9,10 +9,6 @@ aez/ INCOMPLETE
   to Rogaway et al. Based on the OpenSSL implementation of AES-128.
 
   TODO 
-    - Tweakable AES, based on OpenSSL. The tweak is introuced 
-      as an alternative ``AddRoundKey`` at each round.  
-    - How do the tweaks work? Read XE,XEX paper.
-    - Implement MakeAESSubKeys(K) -> K^11. 
     - dot() function. 
 
 oaep-rsa.c
