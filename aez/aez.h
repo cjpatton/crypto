@@ -50,15 +50,23 @@ typedef struct {
 
 
 /*
- * Intermediate data structure for key tweak_stateing. 
+ * Intermediate data structure for key tweaking. A tweak is of a key K is 
+ * defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L). The
+ * *-operator defines a recursive relation, instantiated as dot_inc(). We
+ * precompute these values for valid (j, i, l) domain points. In the AEZ 
+ * definition, j actually increments by doubling; in this case, it isn't 
+ * necessary to precompute intermediate values. 
  */
 typedef struct {
-  aez_block_t I, J, L, zero;
+  aez_block_t zero, J, I [8], L [16];
   aez_block10_t Klong; 
   aez_block4_t  Kshort; 
 } aez_tweak_state_t;
 
 
+/*
+ * Return status of AEZ routines. 
+ */
 typedef enum {
   aez_SUCCESS, 
   aez_INVALID_KEY
@@ -74,6 +82,9 @@ typedef enum {
 } aez_mode_t;
 
 
+/*
+ * Key initialization routines. 
+ */
 
 void aez_init_keyvector(aez_keyvector_t *key, 
                         const uint8_t *K, 

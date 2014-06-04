@@ -9,7 +9,9 @@ aez/ INCOMPLETE
   to Rogaway et al. Based on the OpenSSL implementation of AES-128.
 
   TODO 
-    - dot() function. 
+    - AHash(), AMAC()
+    - Encipher*(), Decipher*()
+    - More efficient key set up? (Avoid cash misses.) 
 
 oaep-rsa.c
 

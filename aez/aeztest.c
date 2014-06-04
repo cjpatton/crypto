@@ -78,9 +78,9 @@ int main(int argc, const char **argv)
 
   /* Initialize key vector. */ 
   aez_keyvector_t key; 
-  aez_init_keyvector(&key, K, ENCRYPT, 1 << 6); 
+  aez_init_keyvector(&key, K, ENCRYPT, 32); 
   
-  //dump_keys(&key); 
+  dump_keys(&key); 
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
