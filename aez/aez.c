@@ -22,12 +22,16 @@
   dst[2] = 0; \
   dst[3] = 0; 
 
+#define BLOCK_MSB(X) (X[3] >> 31)
 
 
+/*
+ * Some local function declearations. 
+ */
 
-void aez_dot(int n, aez_block_t X); 
-
-
+void dot2(aez_block_t X);
+void dot_inc(aez_tweak_state_t *tweak_state, aez_block_t X, int n);
+void dot_doubling(aez_tweak_state_t *tweak_state, aez_block_t X, int n);
 
 
 /*
@@ -182,14 +186,14 @@ int aez_key_variant(aez_block_t *Kout,
   CP_BLOCK(J, tweak_state->J); 
   CP_BLOCK(I, tweak_state->I); 
   CP_BLOCK(L, tweak_state->L); 
-  aez_dot(j, J); 
-  aez_dot(i, I); 
-  aez_dot(l, L);
+  dot_inc(tweak_state, j, J); 
+  dot_inc(tweak_state, i, I); 
+  dot_inc(tweak_state, l, L);
   CP_BLOCK(offset, J); 
   XOR_BLOCK(offset, I); 
   XOR_BLOCK(offset, L);
 
-  aez_print_block(offset, 0); 
+  //aez_print_block(offset, 0); 
   switch (k) 
   {
     case 0:
@@ -210,10 +214,41 @@ int aez_key_variant(aez_block_t *Kout,
   return (int)aez_INVALID_KEY; 
 }
 
-void aez_dot(int n, aez_block_t X)
+
+void dot2(aez_block_t X)
 {
-  
+  unsigned b = BLOCK_MSB(X);
+  X[3] = (X[3] << 1) ^ (X[2] >> 31);
+  X[2] = (X[2] << 1) ^ (X[1] >> 31);
+  X[1] = (X[1] << 1) ^ (X[0] >> 31);
+  X[0] = (X[0] << 1);
+  if (b) 
+    X[0] ^= 135;
 }
+
+/*
+ * In psuedocode: 
+ * def dot(X, n):
+ *   if n == 0: return [0]
+ *   elif n == 1: return X
+ *   elif n == 2: return dot2(X)
+ *   elif is_odd(n): return X ^ dot(X, n -1)
+ *   elif is_even(n): return dot2(X, n/2)
+ *
+ * Precompute array of values for incrementing tweak (i ++) and 
+ * doubling tweak (i *= 2). 
+ * 
+ */
+void dot_inc(aez_tweak_state_t *tweak_state, aez_block_t X, int n)
+{
+  // TODO dynamic programming solution will be required. 
+}
+
+void dot_doubling(aez_tweak_state_t *tweak_state, aez_block_t X, int n)
+{
+  // TODO 
+}
+
 
 void aez_print_block(const aez_block_t X, int margin)
 {

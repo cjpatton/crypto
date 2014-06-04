@@ -74,6 +74,7 @@ int main(int argc, const char **argv)
   {
     *(uint32_t*)(&K[i]) = 1 << i;
   }
+  K[15] ^= 0x80;
 
   /* Initialize key vector. */ 
   aez_keyvector_t key; 
@@ -83,7 +84,6 @@ int main(int argc, const char **argv)
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
-
 
   /* Test AES. */ 
   uint8_t message [32]; 
