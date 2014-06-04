@@ -126,19 +126,23 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
                           const uint8_t *K, 
                           aez_mode_t mode)
 {
-  aez_block_t tmp;
   int n; 
+  aez_block_t tmp;
+
+  aez_block10_t encrypt_key; 
+  aes_set_encrypt_key(K, (uint32_t *)encrypt_key, 10); 
 
   /* Klong */ 
   switch(mode) 
   {
     case ENCRYPT: 
-      aes_set_encrypt_key(K, (uint32_t *)tweak_state->Klong, 10);
+      memcpy(tweak_state->Klong, encrypt_key, sizeof(uint32_t) * AEZ_WORDS * 11); 
       break;
     case DECRYPT: 
       aes_set_decrypt_key(K, (uint32_t *)tweak_state->Klong, 10);
       break;
   }
+
 
   /* Kshort */
   ZERO_BLOCK(tweak_state->Kshort[0]); 
@@ -155,14 +159,14 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
   tmp[0] = 1; 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->J, 
-              (uint32_t *)tweak_state->Klong, 10); 
+              (uint32_t *)encrypt_key, 10); 
   
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
   tmp[0] = 0; 
   ZERO_BLOCK(tweak_state->I[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->I[1], 
-              (uint32_t *)tweak_state->Klong, 10); 
+              (uint32_t *)encrypt_key, 10); 
   for (n = 0; n < 8; n++)
   {
     dot_inc(tweak_state->I, n);  
@@ -174,7 +178,7 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
   ZERO_BLOCK(tweak_state->L[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->L[1], 
-              (uint32_t *)tweak_state->Klong, 10); 
+              (uint32_t *)encrypt_key, 10); 
   for (n = 0; n < 16; n++)
   {
     dot_inc(tweak_state->L, n);  
