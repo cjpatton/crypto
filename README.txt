@@ -11,7 +11,10 @@ aez/ INCOMPLETE
   TODO 
     - AHash(), AMAC()
     - Encipher*(), Decipher*()
-    - More efficient key set up? (Avoid cash misses.) 
+    - More efficient key set up; avoid cash misses. One alternative
+      is to save the the just the offsets. XOR them into the key 
+      schedule before encrypting/decrypting, then XOR them out after.  
+
 
 oaep-rsa.c
 

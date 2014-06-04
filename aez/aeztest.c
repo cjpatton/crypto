@@ -18,6 +18,7 @@ void dump_block(const uint8_t *X, int margin)
 void dump_keys(aez_keyvector_t *key)
 {
   int j, i;
+  printf("Key schedules (AES round keys)\n\n"); 
   printf("Kecb "); 
   aez_print_block(key->Kecb[0], 0); 
   for (i = 1; i < 11; i++)
@@ -77,15 +78,12 @@ int main(int argc, const char **argv)
   K[15] ^= 0x80;
 
   /* Initialize key vector. */ 
-  aez_keyvector_t key; 
-  aez_init_keyvector(&key, K, ENCRYPT, 32); 
+  aez_keyvector_t encrypt_key, decrypt_key; 
+  aez_init_keyvector(&encrypt_key, K, ENCRYPT, 32); 
+  aez_init_keyvector(&decrypt_key, K, DECRYPT, 32); 
   
-  dump_keys(&key); 
+  //dump_keys(&encrypt_key); 
   
-  /* Destroy key vector. */ 
-  aez_free_keyvector(&key); 
-
-  /* Test AES. */ 
   uint8_t message [32]; 
   uint8_t ciphertext [32]; 
   uint8_t plaintext [32]; 
@@ -95,19 +93,23 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
-  aez_block10_t aes_key2; 
   
   int rounds = 10; 
-  aes_set_encrypt_key(K, (uint32_t *)aes_key2, rounds); 
-  aes_encrypt(message, ciphertext, (uint32_t *)aes_key2, rounds); 
-  aes_set_decrypt_key(K, (uint32_t *)aes_key2, rounds); 
-  aes_decrypt(ciphertext, plaintext, (uint32_t *)aes_key2, rounds);
+  aes_encrypt(message, ciphertext, (uint32_t *)(encrypt_key.Kone), rounds); 
+  aes_decrypt(ciphertext, plaintext, (uint32_t *)(decrypt_key.Kone), rounds);
   
   printf("ciphertext: ");
   dump_block(ciphertext, 0);
   printf("plaintext:  "); 
   dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
+  
+
+
+  /* Destroy key vector. */ 
+  aez_free_keyvector(&encrypt_key); 
+  aez_free_keyvector(&decrypt_key); 
+
   
 
   printf("\n ... and them.\n");

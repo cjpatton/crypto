@@ -5,23 +5,23 @@
 #include <string.h>
 
 #define CP_BLOCK(dst, src) \
-  dst[0] = src[0]; \
-  dst[1] = src[1]; \
-  dst[2] = src[2]; \
-  dst[3] = src[3]; 
+  { dst[0] = src[0]; \
+    dst[1] = src[1]; \
+    dst[2] = src[2]; \
+    dst[3] = src[3]; } 
   //memcpy(dst, src, sizeof(uint32_t) * AEZ_WORDS); 
 
 #define XOR_BLOCK(dst, src) \
-  dst[0] ^= src[0]; \
-  dst[1] ^= src[1]; \
-  dst[2] ^= src[2]; \
-  dst[3] ^= src[3]; 
+  { dst[0] ^= src[0]; \
+    dst[1] ^= src[1]; \
+    dst[2] ^= src[2]; \
+    dst[3] ^= src[3]; }  
 
 #define ZERO_BLOCK(dst) \
-  dst[0] = 0; \
-  dst[1] = 0; \
-  dst[2] = 0; \
-  dst[3] = 0; 
+  { dst[0] = 0; \
+    dst[1] = 0; \
+    dst[2] = 0; \
+    dst[3] = 0; }
 
 #define BLOCK_MSB(X) (X[3] >> 31)
 
@@ -77,7 +77,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
                         size_t msg_length)
 {
   aez_tweak_state_t *tweak_state = malloc(sizeof(aez_tweak_state_t)); ;
-  int n, i, j = 0, k;
+  int n, i, j = 0;
   
   aez_init_tweak_state(tweak_state, K, mode); 
 
@@ -108,6 +108,10 @@ void aez_init_keyvector(aez_keyvector_t *key,
   free(tweak_state); 
 }
 
+
+/*
+ * Free key vector. 
+ */
 void aez_free_keyvector(aez_keyvector_t *key)
 {
   aez_free_block4(key->Khash); 
@@ -116,9 +120,11 @@ void aez_free_keyvector(aez_keyvector_t *key)
 
 
 /*
- *
+ * Initialize state for key tweaking (called by aez_init_keyvector()).  
  */
-void aez_init_tweak_state(aez_tweak_state_t *tweak_state, const uint8_t *K, aez_mode_t mode)
+void aez_init_tweak_state(aez_tweak_state_t *tweak_state, 
+                          const uint8_t *K, 
+                          aez_mode_t mode)
 {
   aez_block_t tmp;
   int n; 
@@ -178,27 +184,11 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state, const uint8_t *K, aez_
   /* A zero-block. */ 
   ZERO_BLOCK(tweak_state->zero); 
 
-//  int i;
-//  printf("Klong\n"); 
-//  for (i = 0; i < 11; i++) 
-//    aez_print_block(tweak_state->Klong[i], 0); 
-//
-//  printf("Kshort\n"); 
-//  for (i = 0; i < 5; i++) 
-//    aez_print_block(tweak_state->Kshort[i], 0); 
-//
-//  printf("I "); 
-//  aez_print_block(tweak_state->I, 0); 
-//  printf("J "); 
-//  aez_print_block(tweak_state->J, 0); 
-//  printf("L "); 
-//  aez_print_block(tweak_state->L, 0); 
-
 }
 
 
 /*
- * k is the number of AES rounds; j, i, and l are tweak_states. 
+ * k is the number of AES rounds; j, i, and l are tweaks. 
  */
 int aez_key_variant(aez_block_t *Kout, 
                     const aez_tweak_state_t *tweak_state,
@@ -209,11 +199,12 @@ int aez_key_variant(aez_block_t *Kout,
 
   if (j == 0) {
     ZERO_BLOCK(offset); 
-  } else { 
+  } else { // Iterative doubling handled in aez_init_keyvector(). 
     CP_BLOCK(offset, tweak_state->J); 
   }
-  XOR_BLOCK(offset, tweak_state->I[i]); 
-  XOR_BLOCK(offset, tweak_state->L[l]);
+
+  XOR_BLOCK(offset, tweak_state->I[i]); // I[j] = i * J.
+  XOR_BLOCK(offset, tweak_state->L[l]); // L[l] = l * L. 
 
   switch (k) 
   {
