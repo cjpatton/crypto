@@ -101,4 +101,28 @@ int aez_key_variant(aez_block_t *Kout,
 
 void aez_print_block(const aez_block_t X, int margin);
 
+
+/*
+ * 
+ */
+
+void aez_amac(aez_block_t mac, 
+              const uint8_t *plaintext, 
+              const aez_keyvector_t *key, 
+              int i); 
+
+void aez_ahash(aez_block_t hash, 
+               const uint8_t *plaintext, 
+               const aez_keyvector_t *key); 
+
+void aez_encipher(uint8_t *ciphertext, 
+                  const uint8_t *plaintext, 
+                  const uint8_t *tag, 
+                  const aez_keyvector_t *key); 
+
+void aez_decipher(uint8_t *plaintext, 
+                  const uint8_t *ciphertext, 
+                  const uint8_t *tag, 
+                  const aez_keyvector_t *key); 
+
 #endif // AEZ_H
