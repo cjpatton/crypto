@@ -134,7 +134,8 @@ void aez_amac(aez_block_t mac,
               int i); 
 
 void aez_ahash(aez_block_t hash, 
-               const uint8_t *plaintext, 
+               const uint8_t *plaintext,
+               size_t msg_length, 
                const aez_keyvector_t *key); 
 
 /*
