@@ -10,6 +10,28 @@
 #define AEZ_BYTES 16
 #define AEZ_WORDS 4 
 
+#define CP_BLOCK(dst, src) \
+  { dst[0] = src[0]; \
+    dst[1] = src[1]; \
+    dst[2] = src[2]; \
+    dst[3] = src[3]; } 
+  //memcpy(dst, src, sizeof(uint32_t) * AEZ_WORDS); 
+
+#define XOR_BLOCK(dst, src) \
+  { dst[0] ^= src[0]; \
+    dst[1] ^= src[1]; \
+    dst[2] ^= src[2]; \
+    dst[3] ^= src[3]; }  
+
+#define ZERO_BLOCK(dst) \
+  { dst[0] = 0; \
+    dst[1] = 0; \
+    dst[2] = 0; \
+    dst[3] = 0; }
+
+#define BLOCK_MSB(X) (X[3] >> 31)
+
+
 /*
  * Block types for key vectors. Careful - these are really of 
  * type (uint32_t*), i.e., sizeof(aez_block_t) == sizeof(void*). 
@@ -58,7 +80,7 @@ typedef struct {
  * necessary to precompute intermediate values. 
  */
 typedef struct {
-  aez_block_t zero, J, I [8], L [16];
+  aez_block_t J, I [8], L [16];
   aez_block10_t Klong; 
   aez_block4_t  Kshort; 
 } aez_tweak_state_t;
@@ -103,7 +125,7 @@ void aez_print_block(const aez_block_t X, int margin);
 
 
 /*
- * 
+ * Implemented in aez-mac.c
  */
 
 void aez_amac(aez_block_t mac, 
@@ -114,6 +136,10 @@ void aez_amac(aez_block_t mac,
 void aez_ahash(aez_block_t hash, 
                const uint8_t *plaintext, 
                const aez_keyvector_t *key); 
+
+/*
+ * TODO 
+ */
 
 void aez_encipher(uint8_t *ciphertext, 
                   const uint8_t *plaintext, 

@@ -82,7 +82,7 @@ int main(int argc, const char **argv)
   aez_init_keyvector(&encrypt_key, K, ENCRYPT, 32); 
   aez_init_keyvector(&decrypt_key, K, DECRYPT, 32); 
   
-  //dump_keys(&encrypt_key); 
+  dump_keys(&encrypt_key); 
   
   uint8_t message [32]; 
   uint8_t ciphertext [32]; 

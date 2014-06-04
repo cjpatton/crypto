@@ -4,28 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define CP_BLOCK(dst, src) \
-  { dst[0] = src[0]; \
-    dst[1] = src[1]; \
-    dst[2] = src[2]; \
-    dst[3] = src[3]; } 
-  //memcpy(dst, src, sizeof(uint32_t) * AEZ_WORDS); 
-
-#define XOR_BLOCK(dst, src) \
-  { dst[0] ^= src[0]; \
-    dst[1] ^= src[1]; \
-    dst[2] ^= src[2]; \
-    dst[3] ^= src[3]; }  
-
-#define ZERO_BLOCK(dst) \
-  { dst[0] = 0; \
-    dst[1] = 0; \
-    dst[2] = 0; \
-    dst[3] = 0; }
-
-#define BLOCK_MSB(X) (X[3] >> 31)
-
-
 /*
  * Some local function declearations. 
  */
@@ -99,8 +77,8 @@ void aez_init_keyvector(aez_keyvector_t *key,
     i = (n % 8);
     if (i == 0) // iterate by doubling
       dot2(tweak_state->J);
-    j++; // Bit of a nothing variable.  
-    //aez_print_block(tweak_state->J, 0); 
+
+    ++j; // Bit of a nothing variable.  
     aez_key_variant(&(key->K[n]),  tweak_state, j, i, 0, 0);
     aez_key_variant(key->Khash[n], tweak_state, j, i, 0, 4);
   }
@@ -143,7 +121,6 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
       break;
   }
 
-
   /* Kshort */
   ZERO_BLOCK(tweak_state->Kshort[0]); 
   CP_BLOCK(tweak_state->Kshort[1], tweak_state->Klong[2]);
@@ -185,9 +162,6 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
     //aez_print_block(tweak_state->L[n], 0); 
   }
 
-  /* A zero-block. */ 
-  ZERO_BLOCK(tweak_state->zero); 
-
 }
 
 
@@ -199,7 +173,6 @@ int aez_key_variant(aez_block_t *Kout,
                     int j, int i, int l, int k)
 {
   aez_block_t offset;
-  int n;
 
   if (j == 0) {
     ZERO_BLOCK(offset); 
@@ -208,6 +181,7 @@ int aez_key_variant(aez_block_t *Kout,
   }
 
   XOR_BLOCK(offset, tweak_state->I[i]); // I[j] = i * J.
+  
   XOR_BLOCK(offset, tweak_state->L[l]); // L[l] = l * L. 
 
   switch (k) 
@@ -216,13 +190,11 @@ int aez_key_variant(aez_block_t *Kout,
       memcpy(*Kout, offset, sizeof(uint32_t) * AEZ_WORDS); 
       return (int)aez_SUCCESS; 
     case 4:
-      for (n = 0; n < 5; n++)
-        memcpy(Kout[n], tweak_state->Kshort[n], sizeof(uint32_t) * AEZ_WORDS); 
+      memcpy(Kout, tweak_state->Kshort, 5 * sizeof(uint32_t) * AEZ_WORDS); 
       XOR_BLOCK(Kout[0], offset); 
       return (int)aez_SUCCESS; 
     case 10:
-      for (n = 0; n < 11; n++)
-        memcpy(Kout[n], tweak_state->Klong[n], sizeof(uint32_t) * AEZ_WORDS); 
+      memcpy(Kout, tweak_state->Klong, 11 * sizeof(uint32_t) * AEZ_WORDS); 
       XOR_BLOCK(Kout[0], offset); 
       XOR_BLOCK(Kout[10], offset); 
       return (int)aez_SUCCESS; 
@@ -288,36 +260,3 @@ void aez_print_block(const aez_block_t X, int margin)
     printf("0x%08x ", ((uint32_t*)X)[i]); 
   printf("\n"); 
 }
-
-
-/*
- * 
- */
-
-void aez_amac(aez_block_t mac, 
-              const uint8_t *plaintext, 
-              const aez_keyvector_t *key, 
-              int i)
-{
-}
-
-void aez_ahash(aez_block_t hash, 
-               const uint8_t *plaintext, 
-               const aez_keyvector_t *key)
-{
-}
-
-void aez_encipher(uint8_t *ciphertext, 
-                  const uint8_t *plaintext, 
-                  const uint8_t *tag, 
-                  const aez_keyvector_t *key)
-{
-}
-
-void aez_decipher(uint8_t *plaintext, 
-                  const uint8_t *ciphertext, 
-                  const uint8_t *tag, 
-                  const aez_keyvector_t *key)
-{
-}
-
