@@ -20,34 +20,52 @@ void dump_keys(aez_keyvector_t *key)
   int j, i;
   printf("Key schedules (AES round keys)\n\n"); 
   printf("Kecb "); 
-  aez_print_block(key->Kecb[0], 0); 
+  XOR_BLOCK(key->enc.Klong[0], key->Kecb); 
+  XOR_BLOCK(key->enc.Klong[10], key->Kecb); 
+  aez_print_block(key->enc.Klong[0], 0); 
   for (i = 1; i < 11; i++)
-    aez_print_block(key->Kecb[i], 5); 
+    aez_print_block(key->enc.Klong[i], 5); 
+  XOR_BLOCK(key->enc.Klong[0], key->Kecb); 
+  XOR_BLOCK(key->enc.Klong[10], key->Kecb); 
   
   printf("\nKff0 ");
-  aez_print_block(key->Kff0[0], 0);
+  XOR_BLOCK(key->enc.Kshort[0], key->Kff0); 
+  aez_print_block(key->enc.Kshort[0], 0);
   for (i = 1; i < 5; i++)
-    aez_print_block(key->Kff0[i], 5);
+    aez_print_block(key->enc.Kshort[i], 5);
+  XOR_BLOCK(key->enc.Kshort[0], key->Kff0); 
   
   printf("\nKone "); 
-  aez_print_block(key->Kone[0], 0); 
+  XOR_BLOCK(key->enc.Klong[0], key->Kone); 
+  XOR_BLOCK(key->enc.Klong[10], key->Kone); 
+  aez_print_block(key->enc.Klong[0], 0); 
   for (i = 1; i < 11; i++)
-    aez_print_block(key->Kone[i], 5); 
+    aez_print_block(key->enc.Klong[i], 5); 
+  XOR_BLOCK(key->enc.Klong[0], key->Kone); 
+  XOR_BLOCK(key->enc.Klong[10], key->Kone); 
 
   for (j = 0; j < 4; j++) 
   {
     printf("\n Kmac[%d] ", j);
-    aez_print_block(key->Kmac[j][0], 0); 
+    XOR_BLOCK(key->enc.Klong[0], key->Kmac[j]); 
+    XOR_BLOCK(key->enc.Klong[10], key->Kmac[j]); 
+    aez_print_block(key->enc.Klong[0], 0); 
     for (i = 1; i < 11; i++)
-      aez_print_block(key->Kmac[j][i], 9); 
+      aez_print_block(key->enc.Klong[i], 9); 
+    XOR_BLOCK(key->enc.Klong[0], key->Kmac[j]); 
+    XOR_BLOCK(key->enc.Klong[10], key->Kmac[j]); 
   }
   
   for (j = 0; j < 4; j++) 
   {
     printf("\n Kmac'[%d] ", j);
-    aez_print_block(key->Kmac1[j][0], 0); 
+    XOR_BLOCK(key->enc.Klong[0], key->Kmac1[j]); 
+    XOR_BLOCK(key->enc.Klong[10], key->Kmac1[j]); 
+    aez_print_block(key->enc.Klong[0], 0); 
     for (i = 1; i < 11; i++)
-      aez_print_block(key->Kmac1[j][i], 10); 
+      aez_print_block(key->enc.Klong[i], 10); 
+    XOR_BLOCK(key->enc.Klong[0], key->Kmac1[j]); 
+    XOR_BLOCK(key->enc.Klong[10], key->Kmac1[j]); 
   }
 
   printf("\n\nVectors\n\n"); 
@@ -60,9 +78,11 @@ void dump_keys(aez_keyvector_t *key)
   for (j = 0; j < key->msg_length; j++) 
   {
     printf("\n Khash[%-4d] ", j);
-    aez_print_block(key->Khash[j][0], 0); 
+    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
+    aez_print_block(key->enc.Kshort[0], 0);
     for (i = 1; i < 5; i++)
-      aez_print_block(key->Khash[j][i], 13); 
+      aez_print_block(key->enc.Kshort[i], 13);
+    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
   }
 }
 
@@ -78,11 +98,10 @@ int main(int argc, const char **argv)
   K[15] ^= 0x80;
 
   /* Initialize key vector. */ 
-  aez_keyvector_t encrypt_key, decrypt_key; 
-  aez_init_keyvector(&encrypt_key, K, ENCRYPT, 32); 
-  aez_init_keyvector(&decrypt_key, K, DECRYPT, 32); 
+  aez_keyvector_t key; 
+  aez_init_keyvector(&key, K, ENCRYPT, 32); 
   
-  dump_keys(&encrypt_key); 
+  dump_keys(&key); 
   
   uint8_t message [32]; 
   uint8_t ciphertext [32]; 
@@ -93,25 +112,18 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
-  
-  int rounds = 10; 
-  aes_encrypt(message, ciphertext, (uint32_t *)(encrypt_key.Kone), rounds); 
-  aes_decrypt(ciphertext, plaintext, (uint32_t *)(decrypt_key.Kone), rounds);
+  aez_cipher(ciphertext, message, key.Kone, &key, ENCRYPT, 10); 
+  aez_cipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, 10); 
   
   printf("ciphertext: ");
   dump_block(ciphertext, 0);
   printf("plaintext:  "); 
   dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
-  
-
 
   /* Destroy key vector. */ 
-  aez_free_keyvector(&encrypt_key); 
-  aez_free_keyvector(&decrypt_key); 
-
+  aez_free_keyvector(&key); 
   
-
   printf("\n ... and them.\n");
   AES_KEY aes_key; 
   

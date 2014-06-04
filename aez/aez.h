@@ -56,17 +56,31 @@ void aez_free_block10(aez_block10_t *blocks);
 /*
  * Key space for AEZ. 
  */
+
+struct key_schedule {
+  aez_block4_t Kshort; 
+  aez_block10_t Klong; 
+};
+
 typedef struct {
 
   size_t msg_length; // In 128-bit blocks. 
 
-  aez_block_t Kecb[11], Kone [11], Kff0[5]; 
+  /* Key schedules */ 
 
-  aez_block_t Kmac  [4][11], 
-              Kmac1 [4][11]; // Kmac'
+  struct key_schedule enc, dec; 
 
-  aez_block_t  *K;
-  aez_block4_t *Khash; 
+  /* Offsets */ 
+
+  aez_block_t Kecb, // 11
+              Kone, // 11
+              Kff0; // 5 
+
+  aez_block_t Kmac  [4], // 11
+              Kmac1 [4]; // 11, Kmac'
+
+  aez_block_t *K;     // 1
+  aez_block_t *Khash; // 5
 
 } aez_keyvector_t; 
 
@@ -91,7 +105,9 @@ typedef struct {
  */
 typedef enum {
   aez_SUCCESS, 
-  aez_INVALID_KEY
+  aez_INVALID_KEY,
+  aez_INVALID_ROUNDS,
+  aez_INVALID_MODE
 } aez_err_t; 
 
 
@@ -115,14 +131,27 @@ void aez_init_keyvector(aez_keyvector_t *key,
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
-void aez_init_tweak_state(aez_tweak_state_t *tweak_state, const uint8_t *K, aez_mode_t mode); 
+void aez_init_tweak_state(aez_tweak_state_t *tweak_state, 
+                          aez_keyvector_t *key,
+                          const uint8_t *K, 
+                          aez_mode_t mode); 
 
-int aez_key_variant(aez_block_t *Kout, 
+int aez_key_variant(aez_block_t offset, 
                     const aez_tweak_state_t *tweak_state,
                     int j, int i, int l, int k);
 
 void aez_print_block(const aez_block_t X, int margin);
 
+/*
+ * Basic tweaked blockcipher. 
+ */
+
+int aez_cipher(uint8_t *out, 
+               const uint8_t *in, 
+               const aez_block_t offset, 
+               aez_keyvector_t *key,
+               aez_mode_t mode,
+               int rounds); 
 
 /*
  * Implemented in aez-mac.c

@@ -57,7 +57,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
   aez_tweak_state_t *tweak_state = malloc(sizeof(aez_tweak_state_t)); ;
   int n, i, j = 0;
   
-  aez_init_tweak_state(tweak_state, K, mode); 
+  aez_init_tweak_state(tweak_state, key, K, mode); 
 
   aez_key_variant(key->Kecb, tweak_state, 0, 0, 1, 10); 
   aez_key_variant(key->Kff0, tweak_state, 0, 0, 2, 4);
@@ -70,7 +70,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
   }
 
   key->msg_length = msg_length; 
-  key->Khash = aez_malloc_block4(msg_length); 
+  key->Khash = aez_malloc_block(msg_length); 
   key->K =     aez_malloc_block(msg_length);
   for (n = 0; n < msg_length; n++) 
   {
@@ -79,7 +79,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
       dot2(tweak_state->J);
 
     ++j; // Bit of a nothing variable.  
-    aez_key_variant(&(key->K[n]),  tweak_state, j, i, 0, 0);
+    aez_key_variant(key->K[n],  tweak_state, j, i, 0, 0);
     aez_key_variant(key->Khash[n], tweak_state, j, i, 0, 4);
   }
 
@@ -92,7 +92,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
  */
 void aez_free_keyvector(aez_keyvector_t *key)
 {
-  aez_free_block4(key->Khash); 
+  aez_free_block(key->Khash); 
   aez_free_block(key->K); 
 }
 
@@ -101,32 +101,30 @@ void aez_free_keyvector(aez_keyvector_t *key)
  * Initialize state for key tweaking (called by aez_init_keyvector()).  
  */
 void aez_init_tweak_state(aez_tweak_state_t *tweak_state, 
+                          aez_keyvector_t *key,
                           const uint8_t *K, 
                           aez_mode_t mode)
 {
   int n; 
   aez_block_t tmp;
 
-  aez_block10_t encrypt_key; 
-  aes_set_encrypt_key(K, (uint32_t *)encrypt_key, 10); 
-
   /* Klong */ 
-  switch(mode) 
-  {
-    case ENCRYPT: 
-      memcpy(tweak_state->Klong, encrypt_key, sizeof(uint32_t) * AEZ_WORDS * 11); 
-      break;
-    case DECRYPT: 
-      aes_set_decrypt_key(K, (uint32_t *)tweak_state->Klong, 10);
-      break;
-  }
+  aes_set_encrypt_key(K, (uint32_t *)key->enc.Klong, 10); 
+  
+  aes_set_decrypt_key(K, (uint32_t *)key->dec.Klong, 10); 
 
   /* Kshort */
-  ZERO_BLOCK(tweak_state->Kshort[0]); 
-  CP_BLOCK(tweak_state->Kshort[1], tweak_state->Klong[2]);
-  CP_BLOCK(tweak_state->Kshort[2], tweak_state->Klong[5]);
-  CP_BLOCK(tweak_state->Kshort[3], tweak_state->Klong[8]);
-  ZERO_BLOCK(tweak_state->Kshort[4]); 
+  ZERO_BLOCK(key->enc.Kshort[0]); 
+  CP_BLOCK(key->enc.Kshort[1], key->enc.Klong[2]);
+  CP_BLOCK(key->enc.Kshort[2], key->enc.Klong[5]);
+  CP_BLOCK(key->enc.Kshort[3], key->enc.Klong[8]);
+  ZERO_BLOCK(key->enc.Kshort[4]); 
+  
+  ZERO_BLOCK(key->dec.Kshort[0]); 
+  CP_BLOCK(key->dec.Kshort[1], key->dec.Klong[2]);
+  CP_BLOCK(key->dec.Kshort[2], key->dec.Klong[5]);
+  CP_BLOCK(key->dec.Kshort[3], key->dec.Klong[8]);
+  ZERO_BLOCK(key->dec.Kshort[4]); 
 
   /* I, J, L */ 
   ZERO_BLOCK(tmp); 
@@ -136,14 +134,14 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
   tmp[0] = 1; 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->J, 
-              (uint32_t *)encrypt_key, 10); 
+              (uint32_t *)key->enc.Klong, 10); 
   
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
   tmp[0] = 0; 
   ZERO_BLOCK(tweak_state->I[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->I[1], 
-              (uint32_t *)encrypt_key, 10); 
+              (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 8; n++)
   {
     dot_inc(tweak_state->I, n);  
@@ -155,7 +153,7 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
   ZERO_BLOCK(tweak_state->L[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->L[1], 
-              (uint32_t *)encrypt_key, 10); 
+              (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 16; n++)
   {
     dot_inc(tweak_state->L, n);  
@@ -168,12 +166,10 @@ void aez_init_tweak_state(aez_tweak_state_t *tweak_state,
 /*
  * k is the number of AES rounds; j, i, and l are tweaks. 
  */
-int aez_key_variant(aez_block_t *Kout, 
+int aez_key_variant(aez_block_t offset, 
                     const aez_tweak_state_t *tweak_state,
                     int j, int i, int l, int k)
 {
-  aez_block_t offset;
-
   if (j == 0) {
     ZERO_BLOCK(offset); 
   } else { // Iterative doubling handled in aez_init_keyvector(). 
@@ -187,16 +183,10 @@ int aez_key_variant(aez_block_t *Kout,
   switch (k) 
   {
     case 0:
-      memcpy(*Kout, offset, sizeof(uint32_t) * AEZ_WORDS); 
       return (int)aez_SUCCESS; 
     case 4:
-      memcpy(Kout, tweak_state->Kshort, 5 * sizeof(uint32_t) * AEZ_WORDS); 
-      XOR_BLOCK(Kout[0], offset); 
       return (int)aez_SUCCESS; 
     case 10:
-      memcpy(Kout, tweak_state->Klong, 11 * sizeof(uint32_t) * AEZ_WORDS); 
-      XOR_BLOCK(Kout[0], offset); 
-      XOR_BLOCK(Kout[10], offset); 
       return (int)aez_SUCCESS; 
   }
   return (int)aez_INVALID_KEY; 
@@ -259,4 +249,53 @@ void aez_print_block(const aez_block_t X, int margin)
   for (i = AEZ_WORDS-1; i >= 0; i--) 
     printf("0x%08x ", ((uint32_t*)X)[i]); 
   printf("\n"); 
+}
+
+
+
+
+int aez_cipher(uint8_t *out, 
+               const uint8_t *in, 
+               const aez_block_t offset, 
+               aez_keyvector_t *key,
+               aez_mode_t mode,
+               int rounds)
+{
+  
+  void (*cipher)(const uint8_t *, uint8_t *, const aes_key_t *, int); 
+  struct key_schedule *sched; 
+
+  if (mode == ENCRYPT)
+  {
+    cipher = aes_encrypt;
+    sched = &(key->enc);
+  }
+  else if (mode == DECRYPT)
+  {
+    cipher = aes_decrypt; 
+    sched = &(key->dec);
+  }
+  else
+    return (int)aez_INVALID_MODE; 
+
+  if (rounds == 10)
+  {
+    XOR_BLOCK(sched->Klong[0], offset);    
+    XOR_BLOCK(sched->Klong[10], offset);    
+    cipher(in, out, (uint32_t *)sched->Klong, rounds);
+    XOR_BLOCK(sched->Klong[0], offset);    
+    XOR_BLOCK(sched->Klong[10], offset);    
+  }
+
+  else if (rounds == 4)
+  {
+    XOR_BLOCK(sched->Kshort[0], offset); 
+    cipher(in, out, (uint32_t *)sched->Kshort, rounds);
+    XOR_BLOCK(sched->Kshort[0], offset); 
+  }
+
+  else
+    return (int)aez_INVALID_ROUNDS; 
+
+  return (int)aez_SUCCESS;
 }
