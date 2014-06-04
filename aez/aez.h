@@ -84,7 +84,6 @@ typedef struct {
 
 } aez_keyvector_t; 
 
-
 /*
  * Intermediate data structure for key tweaking. A tweak is of a key K is 
  * defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L). The
@@ -93,11 +92,9 @@ typedef struct {
  * definition, j actually increments by doubling; in this case, it isn't 
  * necessary to precompute intermediate values. 
  */
-typedef struct {
+struct tweak_state {
   aez_block_t J, I [8], L [16];
-  aez_block10_t Klong; 
-  aez_block4_t  Kshort; 
-} aez_tweak_state_t;
+};
 
 
 /*
@@ -131,17 +128,6 @@ void aez_init_keyvector(aez_keyvector_t *key,
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
-void aez_init_tweak_state(aez_tweak_state_t *tweak_state, 
-                          aez_keyvector_t *key,
-                          const uint8_t *K, 
-                          aez_mode_t mode); 
-
-int aez_key_variant(aez_block_t offset, 
-                    const aez_tweak_state_t *tweak_state,
-                    int j, int i, int l, int k);
-
-void aez_print_block(const aez_block_t X, int margin);
-
 /*
  * Basic tweaked blockcipher. 
  */
@@ -156,6 +142,8 @@ int aez_cipher(uint8_t *out,
 /*
  * Implemented in aez-mac.c
  */
+
+void aez_print_block(const aez_block_t X, int margin);
 
 void aez_amac(aez_block_t mac, 
               const uint8_t *plaintext, 
