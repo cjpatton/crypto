@@ -101,7 +101,7 @@ int main(int argc, const char **argv)
   aez_keyvector_t key; 
   aez_init_keyvector(&key, K, ENCRYPT, 32); 
   
-  dump_keys(&key); 
+  //dump_keys(&key); 
   
   uint8_t message [32]; 
   uint8_t ciphertext [32]; 
@@ -112,8 +112,9 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   printf("Us ... \n"); 
-  aez_cipher(ciphertext, message, key.Kone, &key, ENCRYPT, 10); 
-  aez_cipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, 10); 
+  int rounds = 10; 
+  aez_cipher(ciphertext, message, key.Kone, &key, ENCRYPT, rounds); 
+  aez_cipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, rounds); 
   
   printf("ciphertext: ");
   dump_block(ciphertext, 0);

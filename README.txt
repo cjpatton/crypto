@@ -9,16 +9,12 @@ aez/ INCOMPLETE
   to Rogaway et al. Based on the OpenSSL implementation of AES-128.
 
   TODO 
-    - Working on Ahash(), I realized that the decrypter needs to 
-      have encryption keys in order to compute it correctly. 
-      Modify key setup as described below and have the key vector
-      contain both encryption and decryption keys schedules. 
     - AHash(), AMAC()
     - Encipher*(), Decipher*()
-    - More efficient key set up; avoid cash misses. One alternative
-      is to save the the just the offsets. XOR them into the key 
-      schedule before encrypting/decrypting, then XOR them out after.  
   
+  NOTES
+
+    - AES4 doesn't appear to be invertible ? 
 
 
 
