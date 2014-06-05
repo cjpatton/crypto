@@ -130,7 +130,7 @@ int main(int argc, const char **argv)
   printf("Hash:    "); 
   dump_block((uint8_t *)hash, 0);
   
-  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshi"); 
+  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshit_"); 
   aez_ahash(hash, message, strlen((char *)message), &key); 
   printf("Message: %s\n", message); 
   printf("Hash:    "); 

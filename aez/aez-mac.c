@@ -8,6 +8,18 @@
 
 /*
  *
+ */
+void aez_amac(uint8_t *mac, 
+              const uint8_t *plaintext, 
+              aez_keyvector_t *key, 
+              int i)
+{
+  // TODO 
+}
+
+
+/*
+ *
  */ 
 void aez_ahash(int8_t *hash, 
                const uint8_t *plaintext,
@@ -36,7 +48,4 @@ void aez_ahash(int8_t *hash,
     aez_cipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4); 
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
-
 }
-
-
