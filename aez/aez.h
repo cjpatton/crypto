@@ -11,23 +11,23 @@
 #define AEZ_WORDS 4 
 
 #define CP_BLOCK(dst, src) \
-  { dst[0] = src[0]; \
-    dst[1] = src[1]; \
-    dst[2] = src[2]; \
-    dst[3] = src[3]; } 
-  //memcpy(dst, src, sizeof(uint32_t) * AEZ_WORDS); 
+  { (dst)[0] = (src)[0]; \
+    (dst)[1] = (src)[1]; \
+    (dst)[2] = (src)[2]; \
+    (dst)[3] = (src)[3]; } 
+  //memcpy((dst), (src), sizeof(uint32_t) * AEZ_WORDS); 
 
 #define XOR_BLOCK(dst, src) \
-  { dst[0] ^= src[0]; \
-    dst[1] ^= src[1]; \
-    dst[2] ^= src[2]; \
-    dst[3] ^= src[3]; }  
+  { (dst)[0] ^= (src)[0]; \
+    (dst)[1] ^= (src)[1]; \
+    (dst)[2] ^= (src)[2]; \
+    (dst)[3] ^= (src)[3]; }  
 
 #define ZERO_BLOCK(dst) \
-  { dst[0] = 0; \
-    dst[1] = 0; \
-    dst[2] = 0; \
-    dst[3] = 0; }
+  { (dst)[0] = 0; \
+    (dst)[1] = 0; \
+    (dst)[2] = 0; \
+    (dst)[3] = 0; }
 
 #define BLOCK_MSB(X) (X[3] >> 31)
 
@@ -145,15 +145,15 @@ int aez_cipher(uint8_t *out,
 
 void aez_print_block(const aez_block_t X, int margin);
 
-void aez_amac(aez_block_t mac, 
+void aez_amac(uint8_t *mac, 
               const uint8_t *plaintext, 
               const aez_keyvector_t *key, 
               int i); 
 
-void aez_ahash(aez_block_t hash, 
+void aez_ahash(int8_t *hash, 
                const uint8_t *plaintext,
-               size_t msg_length, 
-               const aez_keyvector_t *key); 
+               size_t msg_bytes, 
+               aez_keyvector_t *key); 
 
 /*
  * TODO 

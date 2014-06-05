@@ -63,7 +63,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
                         aez_mode_t mode, 
                         size_t msg_length)
 {
-  struct tweak_state *tweak_state = malloc(sizeof(struct tweak_state)); ;
+  struct tweak_state *tweak_state = malloc(sizeof(struct tweak_state));
   int n, i, j = 0;
   
   /* Set up key schedules - Klong. */ 
@@ -107,7 +107,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
       dot2(tweak_state->J);
 
     ++j; // Bit of a nothing variable.  
-    key_variant(key->K[n],  tweak_state, j, i, 0, 0);
+    key_variant(key->K[n],     tweak_state, j, i, 0, 0);
     key_variant(key->Khash[n], tweak_state, j, i, 0, 4);
   }
 

@@ -14,7 +14,10 @@ aez/ INCOMPLETE
   
   NOTES
 
-    - AES4 doesn't appear to be invertible ? 
+    - AES4 doesn't appear to be invertible? Well, it is if the 
+      key schedule is set up in the proper way. Kshort in the 
+      keyvector is formed from Klong, the complete schedule for
+      10-round AES.  
 
 
 

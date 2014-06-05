@@ -99,11 +99,11 @@ int main(int argc, const char **argv)
 
   /* Initialize key vector. */ 
   aez_keyvector_t key; 
-  aez_init_keyvector(&key, K, ENCRYPT, 32); 
-  
+  aez_init_keyvector(&key, K, ENCRYPT, 64); 
   //dump_keys(&key); 
-  
-  uint8_t message [32]; 
+ 
+  /* Test cipher ... */
+  uint8_t message [512]; 
   uint8_t ciphertext [32]; 
   uint8_t plaintext [32]; 
   memset(message, 0, 32 * sizeof(uint8_t)); 
@@ -111,7 +111,6 @@ int main(int argc, const char **argv)
   memset(plaintext, 0, 32 * sizeof(uint8_t)); 
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
-  printf("Us ... \n"); 
   int rounds = 10; 
   aez_cipher(ciphertext, message, key.Kone, &key, ENCRYPT, rounds); 
   aez_cipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, rounds); 
@@ -122,34 +121,26 @@ int main(int argc, const char **argv)
   dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
 
+  /* Test hash. */ 
+  printf("\nTest AHash() ... \n"); 
+  uint8_t hash [16]; 
+  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshit"); 
+  aez_ahash(hash, message, strlen((char *)message), &key); 
+  printf("Message: %s\n", message); 
+  printf("Hash:    "); 
+  dump_block((uint8_t *)hash, 0);
+  
+  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshi"); 
+  aez_ahash(hash, message, strlen((char *)message), &key); 
+  printf("Message: %s\n", message); 
+  printf("Hash:    "); 
+  dump_block((uint8_t *)hash, 0);
+
+
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
   
-  printf("\n ... and them.\n");
-  AES_KEY aes_key; 
   
-  AES_set_encrypt_key(K, AEZ_BITS, &aes_key); 
-  AES_encrypt(message, ciphertext, &aes_key); 
-  AES_set_decrypt_key(K, AEZ_BITS, &aes_key); 
-  AES_decrypt(ciphertext, plaintext, &aes_key);
-
-  printf("ciphertext: ");
-  dump_block(ciphertext, 0);
-  printf("plaintext:  "); 
-  dump_block(plaintext, 0);
-  printf("message:    %s\n", plaintext); 
-
-//  for (i = 0; i < 4; i++)
-//  {
-//    aez_print_key(key.Kmac[i]);
-//    aez_print_key(key.Kmac1[i]);
-//  }
-//
-//  for (i = 0; i < key.msg_length; i++)
-//  {
-//    aez_print_key(key.K[i]);
-//    aez_print_key(key.Khash[i]);
-//  }
 
   return 0; 
 }
