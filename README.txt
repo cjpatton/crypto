@@ -9,7 +9,6 @@ aez/ INCOMPLETE
   to Rogaway et al. Based on the OpenSSL implementation of AES-128.
 
   TODO 
-    - AHash(), AMAC()
     - Encipher*(), Decipher*()
   
   NOTES
@@ -19,6 +18,8 @@ aez/ INCOMPLETE
       keyvector is formed from Klong, the complete schedule for
       10-round AES.  
 
+    - It looks safe to pass in the same memory reference for `in` 
+      and `out` for the AES cipher. 
 
 
 oaep-rsa.c

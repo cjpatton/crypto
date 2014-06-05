@@ -76,7 +76,7 @@ void aez_ahash(uint8_t *hash,
     j -= AEZ_BYTES; 
     memcpy(tmp, plaintext + j, sizeof(uint8_t) * (msg_bytes - j));
     tmp[msg_bytes - j] = 128; 
-    aez_cipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4); // TODO Make sure this is ok. 
+    aez_cipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4);  
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
 }
