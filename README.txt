@@ -1,17 +1,19 @@
 This is a collection of cryptographic algorithms and tools
 written in order to deepen my own understanding. They aren't
-intended for use in the wild ( ... yet ;p ). All except the 
-SHA1 implementation (see below) are my own work.   
+intended for use in the wild. All except the SHA1 and AES 
+implementations (see below) are my own work.   
 
 aez/ INCOMPLETE
 
-  Implementation of the AEZ authenticated encryption scheme, due
-  to Rogaway et al. Based on the OpenSSL implementation of AES-128.
+  Implementation of the AEZ authenticated encryption scheme, based 
+  on the x86-optimized implementation of AES-128 from OpenSSL.
 
   TODO 
     - Encipher*(), Decipher*()
   
   NOTES
+  
+    - BSD copyright? 
 
     - AES4 doesn't appear to be invertible? Well, it is if the 
       key schedule is set up in the proper way. Kshort in the 
@@ -20,6 +22,11 @@ aez/ INCOMPLETE
 
     - It looks safe to pass in the same memory reference for `in` 
       and `out` for the AES cipher. 
+      
+    - Wouild it be better to compute vector offsets (K and Khash) 
+      on the fly? 
+      
+    - Preprocessor and '{', '}' tokens.
 
 
 oaep-rsa.c
@@ -84,10 +91,10 @@ chacha.{h,c}
     - Look into SIMD instructions on x86. 
 
 
-aes.{h,c} TODO
+aes.{h,c}
     
-  Implementation of the AES-256 block cipher. 
-
+  Public domain implementation of the AES-128 blockcipher, optimized
+  for x86. Modified to be used as the base cipher for AEZ. 
 
 sha1.{h,c} (not my own)
 

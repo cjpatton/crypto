@@ -58,7 +58,7 @@ void aez_free_block10(aez_block10_t *blocks);
  */
 
 struct key_schedule {
-  aez_block4_t Kshort; 
+  aez_block4_t  Kshort; 
   aez_block10_t Klong; 
 };
 
@@ -85,9 +85,9 @@ typedef struct {
 } aez_keyvector_t; 
 
 /*
- * Intermediate data structure for key tweaking. A tweak is of a key K is 
- * defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L). The
- * *-operator defines a recursive relation, instantiated as dot_inc(). We
+ * Intermediate data structure for key tweaking. A tweak of an AES round 
+ * key K is defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L).
+ * The operator defines a recursive relation, instantiated as dot_inc(). We
  * precompute these values for valid (j, i, l) domain points. In the AEZ 
  * definition, j actually increments by doubling; in this case, it isn't 
  * necessary to precompute intermediate values. 
