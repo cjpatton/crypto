@@ -147,10 +147,11 @@ void aez_print_block(const aez_block_t X, int margin);
 
 void aez_amac(uint8_t *mac, 
               const uint8_t *plaintext, 
+              size_t msg_bytes, 
               aez_keyvector_t *key, 
               int i); 
 
-void aez_ahash(int8_t *hash, 
+void aez_ahash(uint8_t *hash, 
                const uint8_t *plaintext,
                size_t msg_bytes, 
                aez_keyvector_t *key); 

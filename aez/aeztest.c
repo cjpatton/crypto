@@ -121,20 +121,20 @@ int main(int argc, const char **argv)
   dump_block(plaintext, 0);
   printf("message:    %s\n", plaintext); 
 
-  /* Test hash. */ 
-  printf("\nTest AHash() ... \n"); 
-  uint8_t hash [16]; 
-  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshit"); 
-  aez_ahash(hash, message, strlen((char *)message), &key); 
+  /* Test mac. */ 
+  printf("\nTest aez_amac() ... \n"); 
+  uint8_t mac [16]; 
+  strcpy((char *)message, "0123456789abcdef000000000.00000000000000"); 
+  aez_amac(mac, message, strlen((char *)message), &key, 3); 
   printf("Message: %s\n", message); 
-  printf("Hash:    "); 
-  dump_block((uint8_t *)hash, 0);
+  printf("MAC:     "); 
+  dump_block((uint8_t *)mac, 0);
   
-  strcpy((char *)message, "0123456789abcdefhellopoopfffffffffffffffffffffffshit_"); 
-  aez_ahash(hash, message, strlen((char *)message), &key); 
+  strcpy((char *)message, "0123456789abcdef000000000000000000000000"); 
+  aez_amac(mac, message, strlen((char *)message), &key, 3); 
   printf("Message: %s\n", message); 
-  printf("Hash:    "); 
-  dump_block((uint8_t *)hash, 0);
+  printf("MAC:     "); 
+  dump_block((uint8_t *)mac, 0);
 
 
   /* Destroy key vector. */ 
