@@ -141,13 +141,13 @@ void init_tweak_state(struct tweak_state *tweak_state,
   
   /* j * J, where j iterates by doubling. Since this operation is 
    * closed, we don't need to compute intermediate values. */ 
-  tmp[0] = 1; 
+  tmp[0] = 1; /* TODO byte order */ 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->J, 
               (uint32_t *)key->enc.Klong, 10); 
   
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
-  tmp[0] = 0; 
+  tmp[0] = 0; /* TODO byte order */ 
   ZERO_BLOCK(tweak_state->I[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->I[1], 
@@ -159,7 +159,7 @@ void init_tweak_state(struct tweak_state *tweak_state,
   }
   
   /* l * L, where l \in [0 .. 16]. Precompute these values. */ 
-  tmp[0] = 2;
+  tmp[0] = 2; /* TODO byte order */ 
   ZERO_BLOCK(tweak_state->L[0]); 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)tweak_state->L[1], 

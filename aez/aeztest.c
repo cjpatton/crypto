@@ -93,7 +93,7 @@ int main(int argc, const char **argv)
   int i; 
   for (i = 0; i < AEZ_BYTES; i += 4)
   {
-    *(uint32_t*)(&K[i]) = 1 << i;
+    *(uint32_t*)(&K[i]) = 1 << i; /* TODO byte order */ 
   }
   K[15] ^= 0x80;
 
