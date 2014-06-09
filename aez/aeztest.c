@@ -112,8 +112,8 @@ int main(int argc, const char **argv)
   memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
 
   int rounds = 10; 
-  aez_cipher(ciphertext, message, key.Kone, &key, ENCRYPT, rounds); 
-  aez_cipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, rounds); 
+  aez_blockcipher(ciphertext, message, key.Kone, &key, ENCRYPT, rounds); 
+  aez_blockcipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, rounds); 
   
   printf("ciphertext: ");
   dump_block(ciphertext, 0);

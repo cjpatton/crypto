@@ -104,7 +104,8 @@ typedef enum {
   aez_SUCCESS, 
   aez_INVALID_KEY,
   aez_INVALID_ROUNDS,
-  aez_INVALID_MODE
+  aez_INVALID_MODE,
+  aez_NOT_IMPLEMENTED
 } aez_err_t; 
 
 
@@ -132,12 +133,12 @@ void aez_free_keyvector(aez_keyvector_t *key);
  * Basic tweaked blockcipher. 
  */
 
-int aez_cipher(uint8_t *out, 
-               const uint8_t *in, 
-               const aez_block_t offset, 
-               aez_keyvector_t *key,
-               aez_mode_t mode,
-               int rounds); 
+int aez_blockcipher(uint8_t *out, 
+                    const uint8_t *in, 
+                    const aez_block_t offset, 
+                    aez_keyvector_t *key,
+                    aez_mode_t mode,
+                    int rounds); 
 
 /*
  * Implemented in aez-mac.c
@@ -157,17 +158,17 @@ void aez_ahash(uint8_t *hash,
                aez_keyvector_t *key); 
 
 /*
- * TODO 
+ * aez-cipher.c 
  */
 
-void aez_encipher(uint8_t *ciphertext, 
-                  const uint8_t *plaintext, 
-                  const uint8_t *tag, 
-                  const aez_keyvector_t *key); 
+int aez_encipher(uint8_t *ciphertext, 
+                 const uint8_t *plaintext, 
+                 const uint8_t *tag, 
+                 const aez_keyvector_t *key); 
 
-void aez_decipher(uint8_t *plaintext, 
-                  const uint8_t *ciphertext, 
-                  const uint8_t *tag, 
-                  const aez_keyvector_t *key); 
+int aez_decipher(uint8_t *plaintext, 
+                 const uint8_t *ciphertext, 
+                 const uint8_t *tag, 
+                 const aez_keyvector_t *key); 
 
 #endif // AEZ_H

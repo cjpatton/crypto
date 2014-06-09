@@ -241,12 +241,12 @@ void dot_inc(aez_block_t *Xs, int n)
 
 
 
-int aez_cipher(uint8_t *out, 
-               const uint8_t *in, 
-               const aez_block_t offset, 
-               aez_keyvector_t *key,
-               aez_mode_t mode,
-               int rounds)
+int aez_blockcipher(uint8_t *out, 
+                    const uint8_t *in, 
+                    const aez_block_t offset, 
+                    aez_keyvector_t *key,
+                    aez_mode_t mode,
+                    int rounds)
 {
   
   void (*cipher)(const uint8_t *, uint8_t *, const aes_key_t *, int); 

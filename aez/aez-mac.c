@@ -23,27 +23,27 @@ void aez_amac(uint8_t *mac,
   if (msg_bytes < AEZ_BYTES) // E(Kmac1[i], M)
   {
     memcpy(tmp, plaintext, sizeof(uint8_t) * msg_bytes);
-    tmp[msg_bytes] = 128; 
-    aez_cipher(mac, tmp, key->Kmac1[i], key, ENCRYPT, 10); 
+    tmp[msg_bytes] = 1; 
+    aez_blockcipher(mac, tmp, key->Kmac1[i], key, ENCRYPT, 10); 
   }
 
   else if (msg_bytes == AEZ_BYTES) // E(Kmac[i], M)
   {
-    aez_cipher(mac, plaintext, key->Kmac[i], key, ENCRYPT, 10); 
+    aez_blockcipher(mac, plaintext, key->Kmac[i], key, ENCRYPT, 10); 
   }
 
   else if ((msg_bytes % 16) == 0) // E(Kmac[i], M0 ^ AHash(K, M1 ... Mm)) 
   {
     aez_ahash(tmp, plaintext + AEZ_BYTES, msg_bytes - AEZ_BYTES, key); 
     XOR_BLOCK((uint32_t *)tmp, (uint32_t *)plaintext); 
-    aez_cipher(mac, tmp, key->Kmac[i], key, ENCRYPT, 10); 
+    aez_blockcipher(mac, tmp, key->Kmac[i], key, ENCRYPT, 10); 
   }
 
   else // E(Kmac1[i], M0 ^ AHash(K, M1 ... Mm)) 
   {
     aez_ahash(tmp, plaintext + AEZ_BYTES, msg_bytes - AEZ_BYTES, key); 
     XOR_BLOCK((uint32_t *)tmp, (uint32_t *)plaintext); 
-    aez_cipher(mac, tmp, key->Kmac1[i], key, ENCRYPT, 10); 
+    aez_blockcipher(mac, tmp, key->Kmac1[i], key, ENCRYPT, 10); 
   }
 }
 
@@ -65,7 +65,7 @@ void aez_ahash(uint8_t *hash,
   /* Apply AES4 to each block and XOR them together. */ 
   for (j = 0; j < msg_bytes; j += AEZ_BYTES) 
   {
-    aez_cipher(tmp, plaintext + j, key->Khash[i++], key, ENCRYPT, 4); 
+    aez_blockcipher(tmp, plaintext + j, key->Khash[i++], key, ENCRYPT, 4); 
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
 
@@ -75,8 +75,8 @@ void aez_ahash(uint8_t *hash,
     ZERO_BLOCK((uint32_t *)tmp); 
     j -= AEZ_BYTES; 
     memcpy(tmp, plaintext + j, sizeof(uint8_t) * (msg_bytes - j));
-    tmp[msg_bytes - j] = 128; 
-    aez_cipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4);  
+    tmp[msg_bytes - j] = 1; 
+    aez_blockcipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4);  
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
 }
