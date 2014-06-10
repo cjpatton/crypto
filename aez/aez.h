@@ -101,11 +101,11 @@ struct tweak_state {
  * Return status of AEZ routines. 
  */
 typedef enum {
-  aez_SUCCESS, 
-  aez_INVALID_KEY,
-  aez_INVALID_ROUNDS,
-  aez_INVALID_MODE,
-  aez_NOT_IMPLEMENTED
+  aez_SUCCESS = 0, 
+  aez_INVALID_KEY = -1,
+  aez_INVALID_ROUNDS = -2,
+  aez_INVALID_MODE = -3,
+  aez_NOT_IMPLEMENTED = -4
 } aez_err_t; 
 
 
@@ -164,11 +164,13 @@ void aez_ahash(uint8_t *hash,
 int aez_encipher(uint8_t *ciphertext, 
                  const uint8_t *plaintext, 
                  const uint8_t *tag, 
-                 const aez_keyvector_t *key); 
+                 size_t msg_bytes,
+                 aez_keyvector_t *key); 
 
 int aez_decipher(uint8_t *plaintext, 
                  const uint8_t *ciphertext, 
                  const uint8_t *tag, 
-                 const aez_keyvector_t *key); 
+                 size_t msg_bytes,
+                 aez_keyvector_t *key); 
 
 #endif // AEZ_H

@@ -38,8 +38,8 @@ int decipher_mem(uint8_t *ciphertext,
 int aez_encipher(uint8_t *ciphertext, 
                  const uint8_t *plaintext, 
                  const uint8_t *tag, 
-                 size_t *msg_bytes,
-                 const aez_keyvector_t *key)
+                 size_t msg_bytes,
+                 aez_keyvector_t *key)
 {
   if (msg_bytes < AEZ_BYTES) // FF0
     return (int)aez_NOT_IMPLEMENTED; 
@@ -47,8 +47,12 @@ int aez_encipher(uint8_t *ciphertext,
   else if (msg_bytes == AEZ_BYTES)
   {
     uint8_t tweak [AEZ_BYTES]; 
-    aez_amac(tweak, tag, 32, key, 3);
-    // TODO ... 
+    aez_amac(tweak, tag, 256, key, 3);
+    CP_BLOCK(ciphertext, plaintext);
+    XOR_BLOCK(ciphertext, tweak); 
+    aez_blockcipher(ciphertext, plaintext, key->Kone, key, ENCRYPT, 10); 
+    XOR_BLOCK(ciphertext, tweak); 
+    return AEZ_BYTES; 
   }
 
   else 
@@ -62,8 +66,24 @@ int aez_encipher(uint8_t *ciphertext,
 int aez_decipher(uint8_t *plaintext, 
                  const uint8_t *ciphertext, 
                  const uint8_t *tag, 
-                 const aez_keyvector_t *key)
+                 size_t msg_bytes,
+                 aez_keyvector_t *key)
 {
-  return (int)aez_NOT_IMPLEMENTED; 
+  if (msg_bytes < AEZ_BYTES) // FF0
+    return (int)aez_NOT_IMPLEMENTED; 
+
+  else if (msg_bytes == AEZ_BYTES)
+  {
+    uint8_t tweak [AEZ_BYTES]; 
+    aez_amac(tweak, tag, 256, key, 3);
+    CP_BLOCK(plaintext, ciphertext);
+    XOR_BLOCK(plaintext, tweak); 
+    aez_blockcipher(plaintext, ciphertext, key->Kone, key, DECRYPT, 10); 
+    XOR_BLOCK(plaintext, tweak); 
+    return AEZ_BYTES; 
+  }
+
+  else 
+    return (int)aez_NOT_IMPLEMENTED; 
 }
 

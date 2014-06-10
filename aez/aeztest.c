@@ -104,26 +104,17 @@ int main(int argc, const char **argv)
  
   /* Test cipher ... */
   uint8_t message [512]; 
-  uint8_t ciphertext [32]; 
-  uint8_t plaintext [32]; 
-  memset(message, 0, 32 * sizeof(uint8_t)); 
-  strcpy((char*)message, "Find your bliss."); 
-  memset(plaintext, 0, 32 * sizeof(uint8_t)); 
-  memset(ciphertext, 0, 32 * sizeof(uint8_t)); 
-
-  int rounds = 10; 
-  aez_blockcipher(ciphertext, message, key.Kone, &key, ENCRYPT, rounds); 
-  aez_blockcipher(plaintext, ciphertext,  key.Kone, &key, DECRYPT, rounds); 
-  
-  printf("ciphertext: ");
-  dump_block(ciphertext, 0);
-  printf("plaintext:  "); 
-  dump_block(plaintext, 0);
-  printf("message:    %s\n", plaintext); 
+  uint8_t mac [16]; 
+  uint8_t ciphertext [512]; 
+  uint8_t plaintext [512]; 
+  uint8_t tag [512]; 
+  memset(plaintext, 0, 512 * sizeof(uint8_t)); 
+  memset(ciphertext, 0, 512 * sizeof(uint8_t)); 
+  memset(message, 0, 512 * sizeof(uint8_t)); 
+  memset(tag, 0, 512 * sizeof(uint8_t)); 
 
   /* Test mac. */ 
   printf("\nTest aez_amac() ... \n"); 
-  uint8_t mac [16]; 
   strcpy((char *)message, "0123456789abcdef000000000.00000000000000"); 
   aez_amac(mac, message, strlen((char *)message), &key, 3); 
   printf("Message: %s\n", message); 
@@ -136,6 +127,14 @@ int main(int argc, const char **argv)
   printf("MAC:     "); 
   dump_block((uint8_t *)mac, 0);
 
+  /* Test encipher. */
+  strcpy((char *)tag, "This is a tag, don't you know? AD, N."); 
+  strcpy((char *)message, "0123456789abcdef");
+  int bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
+  aez_decipher(plaintext, ciphertext, tag, bytes, &key); 
+  printf("Ciphertext: "); 
+  dump_block(ciphertext, 0); 
+  printf("Plaintext:  %s\n", plaintext); 
 
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
