@@ -11,23 +11,23 @@
 #define AEZ_WORDS 4 
 
 #define CP_BLOCK(dst, src) \
-  { (dst)[0] = (src)[0]; \
-    (dst)[1] = (src)[1]; \
-    (dst)[2] = (src)[2]; \
-    (dst)[3] = (src)[3]; } 
+  { ((uint32_t *)dst)[0] = ((uint32_t *)src)[0]; \
+    ((uint32_t *)dst)[1] = ((uint32_t *)src)[1]; \
+    ((uint32_t *)dst)[2] = ((uint32_t *)src)[2]; \
+    ((uint32_t *)dst)[3] = ((uint32_t *)src)[3]; } 
   //memcpy((dst), (src), sizeof(uint32_t) * AEZ_WORDS); 
 
 #define XOR_BLOCK(dst, src) \
-  { (dst)[0] ^= (src)[0]; \
-    (dst)[1] ^= (src)[1]; \
-    (dst)[2] ^= (src)[2]; \
-    (dst)[3] ^= (src)[3]; }  
+  { ((uint32_t *)dst)[0] ^= ((uint32_t *)src)[0]; \
+    ((uint32_t *)dst)[1] ^= ((uint32_t *)src)[1]; \
+    ((uint32_t *)dst)[2] ^= ((uint32_t *)src)[2]; \
+    ((uint32_t *)dst)[3] ^= ((uint32_t *)src)[3]; }  
 
 #define ZERO_BLOCK(dst) \
-  { (dst)[0] = 0; \
-    (dst)[1] = 0; \
-    (dst)[2] = 0; \
-    (dst)[3] = 0; }
+  { ((uint32_t *)dst)[0] = 0; \
+    ((uint32_t *)dst)[1] = 0; \
+    ((uint32_t *)dst)[2] = 0; \
+    ((uint32_t *)dst)[3] = 0; }
 
 #define BLOCK_MSB(X) (X[3] >> 31)
 
@@ -161,14 +161,14 @@ void aez_ahash(uint8_t *hash,
  * aez-cipher.c 
  */
 
-int aez_encipher(uint8_t *ciphertext, 
-                 const uint8_t *plaintext, 
+int aez_encipher(uint8_t *out, 
+                 const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
                  aez_keyvector_t *key); 
 
-int aez_decipher(uint8_t *plaintext, 
-                 const uint8_t *ciphertext, 
+int aez_decipher(uint8_t *out, 
+                 const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
                  aez_keyvector_t *key); 

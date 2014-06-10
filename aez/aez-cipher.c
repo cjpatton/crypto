@@ -35,8 +35,8 @@ int decipher_mem(uint8_t *ciphertext,
 /*
  * tag_bytes == 32. 
  */
-int aez_encipher(uint8_t *ciphertext, 
-                 const uint8_t *plaintext, 
+int aez_encipher(uint8_t *out, 
+                 const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
                  aez_keyvector_t *key)
@@ -48,10 +48,10 @@ int aez_encipher(uint8_t *ciphertext,
   {
     uint8_t tweak [AEZ_BYTES]; 
     aez_amac(tweak, tag, 256, key, 3);
-    CP_BLOCK(ciphertext, plaintext);
-    XOR_BLOCK(ciphertext, tweak); 
-    aez_blockcipher(ciphertext, plaintext, key->Kone, key, ENCRYPT, 10); 
-    XOR_BLOCK(ciphertext, tweak); 
+    CP_BLOCK(out, in);
+    XOR_BLOCK(out, tweak); 
+    aez_blockcipher(out, out, key->Kone, key, ENCRYPT, 10); 
+    XOR_BLOCK(out, tweak); 
     return AEZ_BYTES; 
   }
 
@@ -63,8 +63,8 @@ int aez_encipher(uint8_t *ciphertext,
 /*
  *
  */
-int aez_decipher(uint8_t *plaintext, 
-                 const uint8_t *ciphertext, 
+int aez_decipher(uint8_t *out, 
+                 const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
                  aez_keyvector_t *key)
@@ -76,10 +76,10 @@ int aez_decipher(uint8_t *plaintext,
   {
     uint8_t tweak [AEZ_BYTES]; 
     aez_amac(tweak, tag, 256, key, 3);
-    CP_BLOCK(plaintext, ciphertext);
-    XOR_BLOCK(plaintext, tweak); 
-    aez_blockcipher(plaintext, ciphertext, key->Kone, key, DECRYPT, 10); 
-    XOR_BLOCK(plaintext, tweak); 
+    CP_BLOCK(out, in);
+    XOR_BLOCK(out, tweak); 
+    aez_blockcipher(out, out, key->Kone, key, DECRYPT, 10); 
+    XOR_BLOCK(out, tweak); 
     return AEZ_BYTES; 
   }
 
