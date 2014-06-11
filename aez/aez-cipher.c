@@ -91,7 +91,7 @@ int aez_decipher(uint8_t *out,
 }
 
 /*
- * TODO Check that message is shorter than vector. 
+ * TODO Check that message is shorter than vector.
  */
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -100,7 +100,8 @@ int encipher_mem(uint8_t *out,
                  aez_keyvector_t *key)
 {
   int i, j=0;  
-  aez_block_t tweak, tmp, X0, Y0; 
+  aez_block_t tweak, X0, Y0;
+  uint32_t *offset; 
   
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
@@ -116,20 +117,35 @@ int encipher_mem(uint8_t *out,
   /* Y0 */ 
   aez_blockcipher((uint8_t *)Y0, (uint8_t *)X0, key->Kecb, key, ENCRYPT, 10);
 
-  /* TODO fragmented last block */ 
-  for (i = AEZ_BYTES; i < msg_bytes; i += AEZ_BYTES)
+  for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
     XOR_BLOCK(&out[i], X0); 
     XOR_BLOCK(&out[i], key->K[j]); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
     XOR_BLOCK(&out[i], Y0); 
-
+    XOR_BLOCK(&out[i], key->K[j]); 
     ++j; 
   }
 
+  if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
+  {
+    XOR_BLOCK(&out[i], X0); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+    aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
+    XOR_BLOCK(&out[i], Y0); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+    printf("got here!\n"); 
+    offset = key->Kmac[1]; 
+  }
+
+  else /* Fragmented last block */ 
+  {
+    printf("uh oh!\n"); 
+    offset = key->Kmac1[1]; 
+  }
   
   /* Apply AMAC in reverse on C0. */ 
-  aez_blockcipher((uint8_t *)Y0, (const uint8_t *)Y0, key->Kmac[1], key, DECRYPT, 10); 
+  aez_blockcipher((uint8_t *)Y0, (const uint8_t *)Y0, offset, key, DECRYPT, 10); 
   aez_ahash((uint8_t *)out, &out[AEZ_BYTES], msg_bytes - AEZ_BYTES, key);
   XOR_BLOCK(out, Y0); 
 
@@ -139,7 +155,7 @@ int encipher_mem(uint8_t *out,
 }
 
 /*
- *
+ * 
  */
 int decipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -148,7 +164,8 @@ int decipher_mem(uint8_t *out,
                  aez_keyvector_t *key)
 {
   int i, j=0;
-  aez_block_t tweak, tmp, Y0, X0; 
+  aez_block_t  tweak, Y0, X0;
+  uint32_t *offset; 
   
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
@@ -164,20 +181,35 @@ int decipher_mem(uint8_t *out,
   /* X0 */ 
   aez_blockcipher((uint8_t *)X0, (uint8_t *)Y0, key->Kecb, key, DECRYPT, 10);
 
-  /* TODO fragmented last block */ 
-  for (i = AEZ_BYTES; i < msg_bytes; i += AEZ_BYTES)
+  for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
+    XOR_BLOCK(&out[i], key->K[j]); 
     XOR_BLOCK(&out[i], Y0); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
     XOR_BLOCK(&out[i], key->K[j]); 
     XOR_BLOCK(&out[i], X0); 
-
     ++j; 
   }
 
+  if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
+  {
+    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], Y0); 
+    aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], X0); 
+    printf("got here!\n"); 
+    offset = key->Kmac[1]; 
+  }
+
+  else /* Fragmented last block */ 
+  {
+    printf("uh oh!\n"); 
+    offset = key->Kmac1[1]; 
+  }
   
   /* Apply AMAC in reverse on M0. */ 
-  aez_blockcipher((uint8_t *)X0, (const uint8_t *)X0, key->Kmac[1], key, DECRYPT, 10); 
+  aez_blockcipher((uint8_t *)X0, (const uint8_t *)X0, offset, key, DECRYPT, 10); 
   aez_ahash((uint8_t *)out, &out[AEZ_BYTES], msg_bytes - AEZ_BYTES, key);
   XOR_BLOCK(out, X0); 
 

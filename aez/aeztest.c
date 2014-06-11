@@ -108,9 +108,9 @@ int main(int argc, const char **argv)
   uint8_t ciphertext [512]; 
   uint8_t plaintext [512]; 
   uint8_t tag [512]; 
-  memset(plaintext, 0, 512 * sizeof(uint8_t)); 
-  memset(ciphertext, 0, 512 * sizeof(uint8_t)); 
-  memset(message, 0, 512 * sizeof(uint8_t)); 
+  memset(plaintext, 0, 1024 * sizeof(uint8_t)); 
+  memset(ciphertext, 0, 1024 * sizeof(uint8_t)); 
+  memset(message, 0,1024 * sizeof(uint8_t)); 
   memset(tag, 0, 512 * sizeof(uint8_t)); 
 
   /* Test mac. */ 
@@ -129,7 +129,7 @@ int main(int argc, const char **argv)
 
   /* Test encipher. */
   strcpy((char *)tag, "This is a tag, don't you know? AD, N."); 
-  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
   //strcpy((char *)message, "0123456789abcdef");
   bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
   printf("bytes %d\n", bytes); 
