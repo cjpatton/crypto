@@ -92,6 +92,7 @@ int aez_decipher(uint8_t *out,
 
 /*
  * TODO Check that message is shorter than vector.
+ * TODO Check that message is greather than 16 bytes. 
  */
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -100,7 +101,7 @@ int encipher_mem(uint8_t *out,
                  aez_keyvector_t *key)
 {
   int i, j=0;  
-  aez_block_t tweak, X0, Y0;
+  aez_block_t tweak, prev, X0, Y0;
   uint32_t *offset; 
   
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
@@ -129,18 +130,50 @@ int encipher_mem(uint8_t *out,
 
   if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
   {
+    printf("got here!\n"); 
     XOR_BLOCK(&out[i], X0); 
     XOR_BLOCK(&out[i], key->K[j]); 
-    aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
+    aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10);
+    CP_BLOCK(prev, &out[i]); 
     XOR_BLOCK(&out[i], Y0); 
     XOR_BLOCK(&out[i], key->K[j]); 
-    printf("got here!\n"); 
+
     offset = key->Kmac[1]; 
   }
 
   else /* Fragmented last block */ 
   {
-    printf("uh oh!\n"); 
+    int m = i;
+    printf("uh oh! %d\n", (int)msg_bytes - m); 
+    uint8_t tmp; 
+
+    /* 0, 1 - Swap bytes in buffer with Ym-1, get input 
+     * block ready for ciphering. */ 
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      tmp = ((uint8_t *)prev)[i]; 
+      ((uint8_t *)prev)[i]  = out[i + m];
+      ((uint8_t *)prev)[i] ^= ((uint8_t *)X0)[i];
+      ((uint8_t *)prev)[i] ^= ((uint8_t *)key->K[j])[i];
+      out[i + m] = tmp; 
+    }
+
+    /* 2 - Cipher block formed in step 1. */ 
+    aez_blockcipher((uint8_t *)prev, (uint8_t *)prev, key->Kecb, key, ENCRYPT, 10); 
+    
+    /* 3 - Mix in Y0 and offset to new Ym-1. */ 
+    i = m - AEZ_BYTES; 
+    CP_BLOCK(&out[i], prev); 
+    XOR_BLOCK(&out[i], Y0); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+  
+    /* Mix in Y0 and offset to Ym. */ 
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      out[i + m] ^= ((uint8_t *)Y0)[i]; 
+      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+    }
+
     offset = key->Kmac1[1]; 
   }
   
@@ -151,11 +184,12 @@ int encipher_mem(uint8_t *out,
 
   /* Unmix tweak. */ 
   XOR_BLOCK(out, tweak); 
-  return msg_bytes; /* TODO frgmented last block */ 
+  return msg_bytes;  
 }
 
 /*
- * 
+ * TODO Check that message is shorter than vector.
+ * TODO Check that message is greather than 16 bytes. 
  */
 int decipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -202,9 +236,12 @@ int decipher_mem(uint8_t *out,
     offset = key->Kmac[1]; 
   }
 
-  else /* Fragmented last block */ 
+  else /* TODO Fragmented last block */ 
   {
+    int m = i;
     printf("uh oh!\n"); 
+
+
     offset = key->Kmac1[1]; 
   }
   
@@ -215,7 +252,7 @@ int decipher_mem(uint8_t *out,
 
   /* Unmix tweak. */ 
   XOR_BLOCK(out, tweak); 
-  return msg_bytes; /* TODO frgmented last block */ 
+  return msg_bytes; 
 }
 
                      
