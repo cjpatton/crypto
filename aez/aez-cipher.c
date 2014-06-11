@@ -99,7 +99,43 @@ int encipher_mem(uint8_t *out,
                  size_t msg_bytes,
                  aez_keyvector_t *key)
 {
-  return msg_bytes;
+  int i, j=0;  
+  aez_block_t tweak, tmp, X0, Y0; 
+  
+  memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
+  
+  /* Mix tweak into first block. */ 
+  aez_amac((uint8_t *)tweak, tag, 255, key, 0); // FIXME tag length
+  XOR_BLOCK(out, tweak); 
+  
+  /* X0 - AMAC() is a PRF taken over the whole message. When tweaked with 
+   * the offset Ki, each AES call on the message blocks is an independent
+   * PSRP. */ 
+  aez_amac((uint8_t *)X0, out, msg_bytes, key, 1);
+
+  /* Y0 */ 
+  aez_blockcipher((uint8_t *)Y0, (uint8_t *)X0, key->Kecb, key, ENCRYPT, 10);
+
+  /* TODO fragmented last block */ 
+  for (i = AEZ_BYTES; i < msg_bytes; i += AEZ_BYTES)
+  {
+    XOR_BLOCK(&out[i], X0); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+    aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
+    XOR_BLOCK(&out[i], Y0); 
+
+    ++j; 
+  }
+
+  
+  /* Apply AMAC in reverse on C0. */ 
+  aez_blockcipher((uint8_t *)Y0, (const uint8_t *)Y0, key->Kmac[1], key, DECRYPT, 10); 
+  aez_ahash((uint8_t *)out, &out[AEZ_BYTES], msg_bytes - AEZ_BYTES, key);
+  XOR_BLOCK(out, Y0); 
+
+  /* Unmix tweak. */ 
+  XOR_BLOCK(out, tweak); 
+  return msg_bytes; /* TODO frgmented last block */ 
 }
 
 /*
@@ -111,7 +147,43 @@ int decipher_mem(uint8_t *out,
                  size_t msg_bytes,
                  aez_keyvector_t *key)
 {
-  return msg_bytes; 
+  int i, j=0;
+  aez_block_t tweak, tmp, Y0, X0; 
+  
+  memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
+  
+  /* Mix tweak into first block. */ 
+  aez_amac((uint8_t *)tweak, tag, 255, key, 0); // FIXME tag length
+  XOR_BLOCK(out, tweak); 
+  
+  /* Y0 - AMAC() is a PRF taken over the whole message. When tweaked with 
+   * the offset Ki, each AES call on the message blocks is an independent
+   * PSRP. */ 
+  aez_amac((uint8_t *)Y0, out, msg_bytes, key, 1);
+
+  /* X0 */ 
+  aez_blockcipher((uint8_t *)X0, (uint8_t *)Y0, key->Kecb, key, DECRYPT, 10);
+
+  /* TODO fragmented last block */ 
+  for (i = AEZ_BYTES; i < msg_bytes; i += AEZ_BYTES)
+  {
+    XOR_BLOCK(&out[i], Y0); 
+    aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
+    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], X0); 
+
+    ++j; 
+  }
+
+  
+  /* Apply AMAC in reverse on M0. */ 
+  aez_blockcipher((uint8_t *)X0, (const uint8_t *)X0, key->Kmac[1], key, DECRYPT, 10); 
+  aez_ahash((uint8_t *)out, &out[AEZ_BYTES], msg_bytes - AEZ_BYTES, key);
+  XOR_BLOCK(out, X0); 
+
+  /* Unmix tweak. */ 
+  XOR_BLOCK(out, tweak); 
+  return msg_bytes; /* TODO frgmented last block */ 
 }
 
                      
