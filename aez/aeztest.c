@@ -90,7 +90,7 @@ int main(int argc, const char **argv)
 {
   /* Fake key to start. */ 
   uint8_t K [AEZ_BYTES]; 
-  int i; 
+  int i, bytes; 
   for (i = 0; i < AEZ_BYTES; i += 4)
   {
     *(uint32_t*)(&K[i]) = 1 << i; /* TODO byte order */ 
@@ -104,7 +104,7 @@ int main(int argc, const char **argv)
  
   /* Test cipher ... */
   uint8_t message [512]; 
-  uint8_t mac [16]; 
+//  uint8_t mac [16]; 
   uint8_t ciphertext [512]; 
   uint8_t plaintext [512]; 
   uint8_t tag [512]; 
@@ -114,28 +114,42 @@ int main(int argc, const char **argv)
   memset(tag, 0, 512 * sizeof(uint8_t)); 
 
   /* Test mac. */ 
-  printf("\nTest aez_amac() ... \n"); 
-  strcpy((char *)message, "0123456789abcdef000000000.00000000000000"); 
-  aez_amac(mac, message, strlen((char *)message), &key, 3); 
-  printf("Message: %s\n", message); 
-  printf("MAC:     "); 
-  dump_block((uint8_t *)mac, 0);
-  
-  strcpy((char *)message, "0123456789abcdef000000000000000000000000"); 
-  aez_amac(mac, message, strlen((char *)message), &key, 3); 
-  printf("Message: %s\n", message); 
-  printf("MAC:     "); 
-  dump_block((uint8_t *)mac, 0);
+//  printf("\nTest aez_amac() ... \n"); 
+//  strcpy((char *)message, "0123456789abcdef000000000.00000000000000"); 
+//  aez_amac(mac, message, strlen((char *)message), &key, 3); 
+//  printf("Message: %s\n", message); 
+//  printf("MAC:     "); 
+//  dump_block((uint8_t *)mac, 0);
+//  
+//  strcpy((char *)message, "0123456789abcdef000000000000000000000000"); 
+//  aez_amac(mac, message, strlen((char *)message), &key, 3); 
+//  printf("Message: %s\n", message); 
+//  printf("MAC:     "); 
+//  dump_block((uint8_t *)mac, 0);
 
   /* Test encipher. */
   strcpy((char *)tag, "This is a tag, don't you know? AD, N."); 
-  strcpy((char *)message, "0123456789abcdef");
-  int bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
+  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+  //strcpy((char *)message, "0123456789abcdef");
+  bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
+  printf("bytes %d\n", bytes); 
   aez_decipher(plaintext, ciphertext, tag, bytes, &key); 
-  printf("Ciphertext: "); 
-  dump_block(ciphertext, 0); 
-  printf("Plaintext:  %s\n", plaintext); 
-
+  
+  printf("Message:    "); 
+  aez_print_block((uint32_t *)message, 0);
+  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+    aez_print_block((uint32_t *)&message[i], 12);
+  
+  printf("\nCiphertext: "); 
+  aez_print_block((uint32_t *)ciphertext, 0);
+  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+    aez_print_block((uint32_t *)&ciphertext[i], 12);
+  
+  printf("\nPlaintext:  "); 
+  aez_print_block((uint32_t *)plaintext, 0);
+  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+    aez_print_block((uint32_t *)&plaintext[i], 12);
+  
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
   
