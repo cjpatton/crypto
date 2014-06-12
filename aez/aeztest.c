@@ -130,10 +130,12 @@ int main(int argc, const char **argv)
   /* Test encipher. */
   strcpy((char *)tag, "0123456789abcdef"); 
   //strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-  strcpy((char *)message, "0123456789abcdef0123456789abcdef.");
-  bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
+  strcpy((char *)message, "0123456789abcdef.");
+  bytes = aez_encipher(ciphertext, message, tag, 
+                       strlen((char *)message), strlen((char *)tag), &key);  
   printf("bytes %d\n", bytes); 
-  aez_decipher(plaintext, ciphertext, tag, bytes, &key); 
+  aez_decipher(plaintext, ciphertext, tag, 
+               bytes, strlen((char *)tag), &key); 
   
   printf("Message:    "); 
   aez_print_block((uint32_t *)message, 0);

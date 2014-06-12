@@ -13,44 +13,49 @@ int encipher_ff0(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key);
 
 int decipher_ff0(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key);
                      
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key);
 
 int decipher_mem(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key);
                      
 
 
 /*
- * tag_bytes == 32. 
+ * tag_bytes == 16. 
  */
 int aez_encipher(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   if (msg_bytes < AEZ_BYTES) // FF0
-   return encipher_ff0(out, in, tag, msg_bytes, key); 
+   return encipher_ff0(out, in, tag, msg_bytes, tag_bytes, key); 
 
   else if (msg_bytes == AEZ_BYTES)
   {
     uint8_t tweak [AEZ_BYTES]; 
-    aez_amac(tweak, tag, 256, key, 3);
+    aez_amac(tweak, tag, tag_bytes, key, 3);
     CP_BLOCK(out, in);
     XOR_BLOCK(out, tweak); 
     aez_blockcipher(out, out, key->Kone, key, ENCRYPT, 10); 
@@ -59,7 +64,7 @@ int aez_encipher(uint8_t *out,
   }
 
   else // MEM
-   return encipher_mem(out, in, tag, msg_bytes, key); 
+   return encipher_mem(out, in, tag, msg_bytes, tag_bytes, key); 
 
 }
 
@@ -70,15 +75,16 @@ int aez_decipher(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   if (msg_bytes < AEZ_BYTES) // FF0
-    return decipher_ff0(out, in, tag, msg_bytes, key); 
+    return decipher_ff0(out, in, tag, msg_bytes, tag_bytes, key); 
  
   else if (msg_bytes == AEZ_BYTES)
   {
     uint8_t tweak [AEZ_BYTES]; 
-    aez_amac(tweak, tag, 16, key, 3); // FIXME tag length
+    aez_amac(tweak, tag, tag_bytes, key, 3); 
     CP_BLOCK(out, in);
     XOR_BLOCK(out, tweak); 
     aez_blockcipher(out, out, key->Kone, key, DECRYPT, 10); 
@@ -87,7 +93,7 @@ int aez_decipher(uint8_t *out,
   }
 
   else // MEM
-    return decipher_mem(out, in, tag, msg_bytes, key); 
+    return decipher_mem(out, in, tag, msg_bytes, tag_bytes, key); 
 }
 
 /*
@@ -97,6 +103,7 @@ int encipher_mem(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   if (msg_bytes <= AEZ_BYTES)
@@ -110,7 +117,7 @@ int encipher_mem(uint8_t *out,
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
   /* Mix tweak into first block. */ 
-  aez_amac((uint8_t *)tweak, tag, 16, key, 0); // FIXME tag length
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 0); 
   XOR_BLOCK(out, tweak); 
   
   /* X0 - AMAC() is a PRF taken over the whole message. When tweaked with 
@@ -199,6 +206,7 @@ int decipher_mem(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   if (msg_bytes <= AEZ_BYTES)
@@ -212,7 +220,7 @@ int decipher_mem(uint8_t *out,
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
   /* Mix tweak into first block. */ 
-  aez_amac((uint8_t *)tweak, tag, 16, key, 0); // FIXME tag length
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 0); 
   XOR_BLOCK(out, tweak); 
   
   /* Y0 - AMAC() is a PRF taken over the whole message. When tweaked with 
@@ -299,6 +307,7 @@ int encipher_ff0(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   printf("FF0 patience.\n"); 
@@ -309,6 +318,7 @@ int decipher_ff0(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
   printf("FF0 unpatience.\n"); 

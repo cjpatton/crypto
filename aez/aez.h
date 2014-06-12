@@ -166,12 +166,14 @@ int aez_encipher(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key); 
 
 int aez_decipher(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
                  size_t msg_bytes,
+                 size_t tag_bytes, 
                  aez_keyvector_t *key); 
 
 #endif // AEZ_H
