@@ -6,7 +6,7 @@
 #include <assert.h>
 
 /* 
- * Local function declarations. 
+ * Local function declarations (definitions below).  
  */
 
 int encipher_ff0(uint8_t *out, 
@@ -38,9 +38,9 @@ int decipher_mem(uint8_t *out,
                  aez_keyvector_t *key);
                      
 
-
 /*
- * tag_bytes == 16. 
+ * The AEZ enciphering scheme. Calls EncipherMEM() and
+ * EncipherFF0(). 
  */
 int aez_encipher(uint8_t *out, 
                  const uint8_t *in, 
@@ -69,7 +69,8 @@ int aez_encipher(uint8_t *out,
 }
 
 /*
- *
+ * The AEZ deciphering scheme. Calls DecipherMEM() and
+ * DecipherFF0(). 
  */
 int aez_decipher(uint8_t *out, 
                  const uint8_t *in, 
@@ -81,7 +82,7 @@ int aez_decipher(uint8_t *out,
   if (msg_bytes < AEZ_BYTES) // FF0
     return decipher_ff0(out, in, tag, msg_bytes, tag_bytes, key); 
  
-  else if (msg_bytes == AEZ_BYTES)
+  else if (msg_bytes == AEZ_BYTES) // |m| = 16
   {
     uint8_t tweak [AEZ_BYTES]; 
     aez_amac(tweak, tag, tag_bytes, key, 3); 
@@ -96,8 +97,11 @@ int aez_decipher(uint8_t *out,
     return decipher_mem(out, in, tag, msg_bytes, tag_bytes, key); 
 }
 
+
 /*
- *
+ * EncipherMEM - encipher messages longer than 16 bytes. This is 
+ * the meat of the AEZ scheme. This is based on the Naor, Reingold
+ * scheme. See [24] in the AEZ reference. 
  */
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -122,7 +126,7 @@ int encipher_mem(uint8_t *out,
   
   /* X0 - AMAC() is a PRF taken over the whole message. When tweaked with 
    * the offset Ki, each AES call on the message blocks is an independent
-   * PSRP. */ 
+   * PRP. */ 
   aez_amac((uint8_t *)X0, out, msg_bytes, key, 1);
 
   /* Y0 */ 
@@ -200,7 +204,7 @@ int encipher_mem(uint8_t *out,
 }
 
 /*
- *
+ * DecipherMEM - decipher messages longer than 16 bytes. 
  */
 int decipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -225,7 +229,7 @@ int decipher_mem(uint8_t *out,
   
   /* Y0 - AMAC() is a PRF taken over the whole message. When tweaked with 
    * the offset Ki, each AES call on the message blocks is an independent
-   * PSRP. */ 
+   * PRP. */ 
   aez_amac((uint8_t *)Y0, out, msg_bytes, key, 1);
 
   /* X0 */ 
@@ -302,7 +306,12 @@ int decipher_mem(uint8_t *out,
   return msg_bytes; 
 }
 
-                     
+
+/*
+ * EncipherFF0 - encipher messages shorter than 16 bytes. This is 
+ * based on a Fesital network, the number of rounds depending on the
+ * size of the message. 
+ */
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
@@ -314,6 +323,9 @@ int encipher_ff0(uint8_t *out,
   return msg_bytes; 
 }
 
+/*
+ * DecipherFF0 - decipher messages shorter than 16 bytes. 
+ */
 int decipher_ff0(uint8_t *out,
                  const uint8_t *in, 
                  const uint8_t *tag, 

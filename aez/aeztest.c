@@ -9,6 +9,7 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
 {
   static int test_no = 1; 
   int i, j;
+  
   uint8_t *ciphertext = malloc(msg_bytes + AEZ_BYTES); 
   uint8_t *plaintext  = malloc(msg_bytes + AEZ_BYTES);  
   memset(plaintext, 0, msg_bytes + AEZ_BYTES); 
@@ -138,7 +139,7 @@ int main(int argc, const char **argv)
 {
   /* Fake key to start. */ 
   aez_keyvector_t key; 
-  uint8_t message [512]; 
+  uint8_t message [1024]; 
   uint8_t tag [512]; 
   uint8_t K [AEZ_BYTES]; 
   int i; 
@@ -152,19 +153,19 @@ int main(int argc, const char **argv)
   aez_init_keyvector(&key, K, ENCRYPT, 64); 
   //dump_keys(&key); 
  
-  /* Test cipher ... */
-  memset(message, 0,1024 * sizeof(uint8_t)); 
+  /* Enciphering tests. */
   memset(tag, 0, 512 * sizeof(uint8_t)); 
-
-  /* Test encipher. */
-  strcpy((char *)tag, "0123456789abcdefpoop.");
+  strcpy((char *)tag, "Man, this is a super nice tag.");
   
+  memset(message, 0, 1024 * sizeof(uint8_t)); 
   strcpy((char *)message, "0123456789abcdef");
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
 
+  memset(message, 0,1024 * sizeof(uint8_t)); 
   strcpy((char *)message, "0123456789abcdef.");
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
 
+  memset(message, 0,1024 * sizeof(uint8_t)); 
   strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
