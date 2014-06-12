@@ -78,7 +78,7 @@ int aez_decipher(uint8_t *out,
   else if (msg_bytes == AEZ_BYTES)
   {
     uint8_t tweak [AEZ_BYTES]; 
-    aez_amac(tweak, tag, 256, key, 3); // FIXME tag length
+    aez_amac(tweak, tag, 16, key, 3); // FIXME tag length
     CP_BLOCK(out, in);
     XOR_BLOCK(out, tweak); 
     aez_blockcipher(out, out, key->Kone, key, DECRYPT, 10); 
@@ -91,8 +91,7 @@ int aez_decipher(uint8_t *out,
 }
 
 /*
- * TODO Check that message is shorter than vector.
- * TODO Check that message is greather than 16 bytes. 
+ *
  */
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -100,6 +99,10 @@ int encipher_mem(uint8_t *out,
                  size_t msg_bytes,
                  aez_keyvector_t *key)
 {
+  if (msg_bytes <= AEZ_BYTES)
+    return (int)aez_MSG_LENGTH; 
+  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); // TODO calculate vectors on the fly
+
   int i, j=0;  
   aez_block_t tweak, prev, X0, Y0;
   uint32_t *offset; 
@@ -107,7 +110,7 @@ int encipher_mem(uint8_t *out,
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
   /* Mix tweak into first block. */ 
-  aez_amac((uint8_t *)tweak, tag, 255, key, 0); // FIXME tag length
+  aez_amac((uint8_t *)tweak, tag, 16, key, 0); // FIXME tag length
   XOR_BLOCK(out, tweak); 
   
   /* X0 - AMAC() is a PRF taken over the whole message. When tweaked with 
@@ -190,8 +193,7 @@ int encipher_mem(uint8_t *out,
 }
 
 /*
- * TODO Check that message is shorter than vector.
- * TODO Check that message is greather than 16 bytes. 
+ *
  */
 int decipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -199,6 +201,10 @@ int decipher_mem(uint8_t *out,
                  size_t msg_bytes,
                  aez_keyvector_t *key)
 {
+  if (msg_bytes <= AEZ_BYTES)
+    return (int)aez_MSG_LENGTH; 
+  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); // TODO calculate vectors on the fly
+  
   int i, j=0;
   aez_block_t tweak, prev, Y0, X0;
   uint32_t *offset; 
@@ -206,7 +212,7 @@ int decipher_mem(uint8_t *out,
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
   
   /* Mix tweak into first block. */ 
-  aez_amac((uint8_t *)tweak, tag, 255, key, 0); // FIXME tag length
+  aez_amac((uint8_t *)tweak, tag, 16, key, 0); // FIXME tag length
   XOR_BLOCK(out, tweak); 
   
   /* Y0 - AMAC() is a PRF taken over the whole message. When tweaked with 

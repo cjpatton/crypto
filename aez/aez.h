@@ -101,11 +101,12 @@ struct tweak_state {
  * Return status of AEZ routines. 
  */
 typedef enum {
-  aez_SUCCESS = 0, 
+  aez_SUCCESS = 0,
   aez_INVALID_KEY = -1,
   aez_INVALID_ROUNDS = -2,
   aez_INVALID_MODE = -3,
-  aez_NOT_IMPLEMENTED = -4
+  aez_NOT_IMPLEMENTED = -4,
+  aez_MSG_LENGTH = -5
 } aez_err_t; 
 
 

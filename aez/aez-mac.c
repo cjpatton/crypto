@@ -56,7 +56,7 @@ void aez_ahash(uint8_t *hash,
                size_t msg_bytes, 
                aez_keyvector_t *key)
 {
-  assert((msg_bytes / 16) < key->msg_length); 
+  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); 
   
   int i=0, j; 
   uint8_t tmp [AEZ_BYTES];

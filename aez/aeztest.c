@@ -128,9 +128,9 @@ int main(int argc, const char **argv)
 //  dump_block((uint8_t *)mac, 0);
 
   /* Test encipher. */
-  strcpy((char *)tag, "This is a tag, don't you know? AD, N."); 
+  strcpy((char *)tag, "0123456789abcdef"); 
   //strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-  strcpy((char *)message, "0123456789abcdef.stuff");
+  strcpy((char *)message, "0123456789abcdef0123456789abcdef.");
   bytes = aez_encipher(ciphertext, message, tag, strlen((char *)message), &key);  
   printf("bytes %d\n", bytes); 
   aez_decipher(plaintext, ciphertext, tag, bytes, &key); 
