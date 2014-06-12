@@ -117,6 +117,7 @@ int encipher_mem(uint8_t *out,
 
   /* Y0 */ 
   aez_blockcipher((uint8_t *)Y0, (uint8_t *)X0, key->Kecb, key, ENCRYPT, 10);
+  CP_BLOCK(prev, Y0); 
 
   for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
@@ -157,8 +158,15 @@ int encipher_mem(uint8_t *out,
     /* Ym-1, Cm-1 */ 
     i = m - AEZ_BYTES;
     aez_blockcipher(&out[i], tmp, key->Kecb, key, ENCRYPT, 10); 
-    XOR_BLOCK(&out[i], Y0); 
-    XOR_BLOCK(&out[i], key->K[j-1]); 
+    if (msg_bytes > 32)
+    {
+      XOR_BLOCK(&out[i], Y0); 
+      XOR_BLOCK(&out[i], key->K[j-1]); 
+    }
+    else 
+    {
+      CP_BLOCK(Y0, &out[i]); 
+    }
 
     /* Ym-1 -> Ym, Cm */ 
     for (i = 0; i < msg_bytes - m; i++)
@@ -208,6 +216,7 @@ int decipher_mem(uint8_t *out,
 
   /* X0 */ 
   aez_blockcipher((uint8_t *)X0, (uint8_t *)Y0, key->Kecb, key, DECRYPT, 10);
+  CP_BLOCK(prev, X0); 
 
   for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
@@ -249,9 +258,16 @@ int decipher_mem(uint8_t *out,
     /* Ym || R -> Mm-1 */
     i = m - AEZ_BYTES; 
     aez_blockcipher(&out[i], tmp, key->Kecb, key, DECRYPT, 10);  
-    XOR_BLOCK(&out[i], key->K[j-1]); 
-    XOR_BLOCK(&out[i], X0); 
-   
+    if (msg_bytes > 32)
+    {
+      XOR_BLOCK(&out[i], key->K[j-1]); 
+      XOR_BLOCK(&out[i], X0); 
+    }
+    else
+    {
+      CP_BLOCK(X0, &out[i]); 
+    }
+
     for (i = 0; i < msg_bytes - m; i++)
     {
       out[i + m]  = ((uint8_t *)prev)[i]; 
