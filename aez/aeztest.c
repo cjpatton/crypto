@@ -45,6 +45,9 @@ int main(int argc, const char **argv)
   strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
   
@@ -58,7 +61,7 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
                size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key)
 {
   static int test_no = 1; 
-  int i, j;
+  int i, j, bytes; 
   
   uint8_t *ciphertext = malloc(msg_bytes + AEZ_BYTES); 
   uint8_t *plaintext  = malloc(msg_bytes + AEZ_BYTES);  
@@ -67,8 +70,19 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
   
   printf("Test #%d (%d bytes)\n", test_no++, (int)msg_bytes); 
   
-  int bytes = aez_encipher(ciphertext, message, tag, msg_bytes, tag_bytes, key);  
+  int res = aez_encipher(ciphertext, message, tag, msg_bytes, tag_bytes, key);  
+  if (res < 0)
+  {
+    if (res == aez_NOT_IMPLEMENTED)
+      printf(" Feature not implemented.\n\n"); 
+    else 
+      printf(" An error occured!\n\n"); 
+    free(ciphertext); 
+    free(plaintext);
+    return; 
+  }
   
+  bytes = res; 
   aez_decipher(plaintext, ciphertext, tag, 
                bytes, tag_bytes, key); 
   

@@ -319,8 +319,7 @@ int encipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  printf("FF0 patience.\n"); 
-  return msg_bytes; 
+  return (int)aez_NOT_IMPLEMENTED;
 }
 
 /*
@@ -333,6 +332,5 @@ int decipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  printf("FF0 unpatience.\n"); 
-  return msg_bytes; 
+  return (int)aez_NOT_IMPLEMENTED; 
 }

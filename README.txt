@@ -10,6 +10,7 @@ aez/ INCOMPLETE
 
   TODO 
     - EncipherFF0(), DecipherFF0()
+    - Better error handling. 
     - Format() (tweak)
     - Extract() (key)
     - Encrypt(), Decrypt()
