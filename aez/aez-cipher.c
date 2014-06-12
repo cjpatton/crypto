@@ -123,6 +123,7 @@ int encipher_mem(uint8_t *out,
     XOR_BLOCK(&out[i], X0); 
     XOR_BLOCK(&out[i], key->K[j]); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
+    CP_BLOCK(prev, &out[i]); 
     XOR_BLOCK(&out[i], Y0); 
     XOR_BLOCK(&out[i], key->K[j]); 
     ++j; 
@@ -139,8 +140,34 @@ int encipher_mem(uint8_t *out,
     offset = key->Kmac[1]; 
   }
 
-  else /* TODO Fragmented last block */ 
+  else /* Fragmented last block */ 
   {
+    uint8_t tmp [16]; 
+    int m = i; 
+
+    /* Xm || R - input to last cipher call. */ 
+    CP_BLOCK(tmp, prev); 
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      tmp[i]  = out[i + m]; 
+      tmp[i] ^= ((uint8_t *)X0)[i];
+      tmp[i] ^= ((uint8_t *)key->K[j])[i];
+    }
+
+    /* Ym-1, Cm-1 */ 
+    i = m - AEZ_BYTES;
+    aez_blockcipher(&out[i], tmp, key->Kecb, key, ENCRYPT, 10); 
+    XOR_BLOCK(&out[i], Y0); 
+    XOR_BLOCK(&out[i], key->K[j-1]); 
+
+    /* Ym-1 -> Ym, Cm */ 
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      out[i + m]  = ((uint8_t *)prev)[i];
+      out[i + m] ^= ((uint8_t *)Y0)[i]; 
+      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+    }
+
     offset = key->Kmac1[1]; 
   }
   
@@ -187,6 +214,7 @@ int decipher_mem(uint8_t *out,
     XOR_BLOCK(&out[i], key->K[j]); 
     XOR_BLOCK(&out[i], Y0); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
+    CP_BLOCK(prev, &out[i]); 
     XOR_BLOCK(&out[i], key->K[j]); 
     XOR_BLOCK(&out[i], X0); 
     ++j; 
@@ -202,9 +230,35 @@ int decipher_mem(uint8_t *out,
     offset = key->Kmac[1]; 
   }
 
-  else /* TODO Fragmented last block */ 
+  else /* Fragmented last block */ 
   {
+    uint8_t tmp [16]; 
+    int m = i; 
     
+    /* prev -> Ymp1 */ 
+    CP_BLOCK(tmp, prev); 
+
+    /* Cm, Ym -> Ym || R */ 
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      out[i + m] ^= ((uint8_t *)Y0)[i]; 
+      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+      ((uint8_t *)tmp)[i] = out[i + m]; 
+    }
+  
+    /* Ym || R -> Mm-1 */
+    i = m - AEZ_BYTES; 
+    aez_blockcipher(&out[i], tmp, key->Kecb, key, DECRYPT, 10);  
+    XOR_BLOCK(&out[i], key->K[j-1]); 
+    XOR_BLOCK(&out[i], X0); 
+   
+    for (i = 0; i < msg_bytes - m; i++)
+    {
+      out[i + m]  = ((uint8_t *)prev)[i]; 
+      out[i + m] ^= ((uint8_t *)X0)[i]; 
+      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+    }
+
     offset = key->Kmac1[1]; 
   }
   
