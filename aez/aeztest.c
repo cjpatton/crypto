@@ -1,5 +1,4 @@
 #include "aez.h"
-#include <openssl/aes.h>
 #include "../cipher/aes.h"
 #include <stdio.h>
 #include <string.h>
