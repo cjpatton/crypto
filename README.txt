@@ -9,10 +9,16 @@ aez/ INCOMPLETE
   on the x86-optimized implementation of AES-128 from OpenSSL.
 
   TODO 
-    - Encipher*(), Decipher*()
+    - EncipherFF0(), DecipherFF0()
+    - Format() (tweak)
+    - Extract() (key)
+    - Encrypt(), Decrypt()
   
   NOTES
   
+    - {En,De}cipherMEM(): I expect the input size to be greater
+      than 16 bytes long. 
+
     - BSD copyright? 
 
     - AES4 doesn't appear to be invertible? Well, it is if the 
