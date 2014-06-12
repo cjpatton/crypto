@@ -5,6 +5,56 @@
 #include <string.h>
 
 void unit_test(const uint8_t *message, const uint8_t *tag, 
+               size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key);
+
+void dump_block(const uint8_t *X, int margin);
+
+void dump_keys(aez_keyvector_t *key);
+
+int main(int argc, const char **argv)
+{
+  /* Fake key to start. */ 
+  aez_keyvector_t key; 
+  uint8_t message [1024]; 
+  uint8_t tag [512]; 
+  uint8_t K [AEZ_BYTES]; 
+  int i; 
+  for (i = 0; i < AEZ_BYTES; i += 4)
+  {
+    *(uint32_t*)(&K[i]) = 1 << i; /* TODO byte order */ 
+  }
+  K[15] ^= 0x80;
+
+  /* Initialize key vector. */ 
+  aez_init_keyvector(&key, K, ENCRYPT, 64); 
+  //dump_keys(&key); 
+ 
+  /* Enciphering tests. */
+  memset(tag, 0, 512 * sizeof(uint8_t)); 
+  strcpy((char *)tag, "Man, this is a super nice tag.");
+  
+  memset(message, 0, 1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef.");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  
+  /* Destroy key vector. */ 
+  aez_free_keyvector(&key); 
+  
+  
+
+  return 0; 
+}
+
+
+void unit_test(const uint8_t *message, const uint8_t *tag, 
                size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key)
 {
   static int test_no = 1; 
@@ -133,46 +183,4 @@ void dump_keys(aez_keyvector_t *key)
       aez_print_block(key->enc.Kshort[i], 13);
     XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
   }
-}
-
-int main(int argc, const char **argv)
-{
-  /* Fake key to start. */ 
-  aez_keyvector_t key; 
-  uint8_t message [1024]; 
-  uint8_t tag [512]; 
-  uint8_t K [AEZ_BYTES]; 
-  int i; 
-  for (i = 0; i < AEZ_BYTES; i += 4)
-  {
-    *(uint32_t*)(&K[i]) = 1 << i; /* TODO byte order */ 
-  }
-  K[15] ^= 0x80;
-
-  /* Initialize key vector. */ 
-  aez_init_keyvector(&key, K, ENCRYPT, 64); 
-  //dump_keys(&key); 
- 
-  /* Enciphering tests. */
-  memset(tag, 0, 512 * sizeof(uint8_t)); 
-  strcpy((char *)tag, "Man, this is a super nice tag.");
-  
-  memset(message, 0, 1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "0123456789abcdef");
-  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-
-  memset(message, 0,1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "0123456789abcdef.");
-  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-
-  memset(message, 0,1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
-  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-  
-  /* Destroy key vector. */ 
-  aez_free_keyvector(&key); 
-  
-  
-
-  return 0; 
 }
