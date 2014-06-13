@@ -99,66 +99,66 @@ int main(int argc, const char **argv)
 }
 
 
-//void unit_test(const uint8_t *message, const uint8_t *tag, 
-//               size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key)
-//{
-//  static int test_no = 1; 
-//  int i, j, bytes; 
-//  
-//  uint8_t *ciphertext = malloc(msg_bytes + AEZ_BYTES); 
-//  uint8_t *plaintext  = malloc(msg_bytes + AEZ_BYTES);  
-//  memset(plaintext, 0, msg_bytes + AEZ_BYTES); 
-//  memset(ciphertext, 0, msg_bytes + AEZ_BYTES); 
-//  
-//  printf("Test #%d (%d bytes)\n", test_no++, (int)msg_bytes); 
-//  
-//  int res = aez_encipher(ciphertext, message, tag, msg_bytes, tag_bytes, key);  
-//  if (res < 0)
-//  {
-//    if (res == aez_NOT_IMPLEMENTED)
-//      printf(" Feature not implemented.\n\n"); 
-//    else 
-//      printf(" An error occured!\n\n"); 
-//    free(ciphertext); 
-//    free(plaintext);
-//    return; 
-//  }
-//  
-//  bytes = res; 
-//  aez_decipher(plaintext, ciphertext, tag, 
-//               bytes, tag_bytes, key); 
-//  
-//  printf(" Message:    "); 
-//  aez_print_block((uint32_t *)message, 0);
-//  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
-//    aez_print_block((uint32_t *)&message[i], 13);
-//  
-//  printf("\n Ciphertext: "); 
-//  aez_print_block((uint32_t *)ciphertext, 0);
-//  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
-//    aez_print_block((uint32_t *)&ciphertext[i], 13);
-//
-//  //plaintext[4] = 'q';
-//  for (j = 0; j < bytes; j++)
-//  {
-//    if (plaintext[j] != message[j])
-//    {
-//      printf("\n Message-plaintext mismatch!\n"); 
-//      printf(" Plaintext:  "); 
-//      aez_print_block((uint32_t *)plaintext, 0);
-//      for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
-//        aez_print_block((uint32_t *)&plaintext[i], 13);
-//      printf("\n"); 
-//      break;
-//    }
-//  }
-//
-//  if (j == bytes)
-//    printf("\n No problem.\n\n"); 
-//
-//  free(ciphertext);
-//  free(plaintext); 
-//}
+void unit_test(const uint8_t *message, const uint8_t *tag, 
+               size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key)
+{
+  static int test_no = 1; 
+  int i, j, bytes; 
+  
+  uint8_t *ciphertext = malloc(msg_bytes + AEZ_BYTES); 
+  uint8_t *plaintext  = malloc(msg_bytes + AEZ_BYTES);  
+  memset(plaintext, 0, msg_bytes + AEZ_BYTES); 
+  memset(ciphertext, 0, msg_bytes + AEZ_BYTES); 
+  
+  printf("Test #%d (%d bytes)\n", test_no++, (int)msg_bytes); 
+  
+  int res = aez_encipher(ciphertext, message, tag, msg_bytes, tag_bytes, key);  
+  if (res < 0)
+  {
+    if (res == aez_NOT_IMPLEMENTED)
+      printf(" Feature not implemented.\n\n"); 
+    else 
+      printf(" An error occured!\n\n"); 
+    free(ciphertext); 
+    free(plaintext);
+    return; 
+  }
+  
+  bytes = res; 
+  aez_decipher(plaintext, ciphertext, tag, 
+               bytes, tag_bytes, key); 
+  
+  printf(" Message:    "); 
+  aez_print_block((uint32_t *)message, 0);
+  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+    aez_print_block((uint32_t *)&message[i], 13);
+  
+  printf("\n Ciphertext: "); 
+  aez_print_block((uint32_t *)ciphertext, 0);
+  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+    aez_print_block((uint32_t *)&ciphertext[i], 13);
+
+  //plaintext[4] = 'q';
+  for (j = 0; j < bytes; j++)
+  {
+    if (plaintext[j] != message[j])
+    {
+      printf("\n Message-plaintext mismatch!\n"); 
+      printf(" Plaintext:  "); 
+      aez_print_block((uint32_t *)plaintext, 0);
+      for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+        aez_print_block((uint32_t *)&plaintext[i], 13);
+      printf("\n"); 
+      break;
+    }
+  }
+
+  if (j == bytes)
+    printf("\n No problem.\n\n"); 
+
+  free(ciphertext);
+  free(plaintext); 
+}
 
 void dump_block(const uint8_t *X, int margin)
 {
