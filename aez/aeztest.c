@@ -65,30 +65,30 @@ int main(int argc, const char **argv)
   aez_init_keyvector(&key, K, ENCRYPT, 200); 
   //dump_keys(&key); 
 
-  printf("bytes: %d, blocks: %d\n", (int)strlen((char *)bigtext), 
-        (int)strlen((char *)bigtext)/16);
-  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
-  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
-  
+  //printf("bytes: %d, blocks: %d\n", (int)strlen((char *)bigtext), 
+  //      (int)strlen((char *)bigtext)/16);
+  //aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
+  //printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
+
   /* Enciphering tests. */
   memset(tag, 0, 512 * sizeof(uint8_t)); 
   strcpy((char *)tag, "Man, this is a super nice tag.");
 
-//  memset(message, 0, 1024 * sizeof(uint8_t)); 
-//  strcpy((char *)message, "0123456789abcdef");
-//  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-//
-//  memset(message, 0,1024 * sizeof(uint8_t)); 
-//  strcpy((char *)message, "0123456789abcdef.");
-//  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-//
-//  memset(message, 0,1024 * sizeof(uint8_t)); 
-//  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
-//  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-//  
-//  memset(message, 0,1024 * sizeof(uint8_t)); 
-//  strcpy((char *)message, "0123");
-//  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  memset(message, 0, 1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef.");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "0123");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
