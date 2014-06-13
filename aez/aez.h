@@ -71,7 +71,7 @@ struct key_schedule {
  * necessary to precompute intermediate values. 
  */
 struct tweak_state {
-  aez_block_t J, I [8], L [16];
+  aez_block_t Jinit, J, I [8], L [16];
 };
 
 typedef struct {
@@ -93,8 +93,8 @@ typedef struct {
               Kmac1 [4]; // 11, Kmac'
 
   /* Offsets - tweaked by doubling. */ 
-  aez_block_t *K;     // 1
-  aez_block_t *Khash; // 5
+  aez_block_t K;     // 1
+  aez_block_t Khash; // 5
 
 } aez_keyvector_t; 
 
@@ -136,6 +136,12 @@ void aez_free_keyvector(aez_keyvector_t *key);
 /*
  * Basic tweaked blockcipher. 
  */
+
+void aez_variant(aez_block_t offset, 
+                 aez_keyvector_t *key,
+                 int j, int i, int l, int k);
+
+void aez_reset_variant(aez_keyvector_t *key); 
 
 int aez_blockcipher(uint8_t *out, 
                     const uint8_t *in, 

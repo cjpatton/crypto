@@ -12,10 +12,6 @@ void init_tweak_state(aez_keyvector_t *key,
                       const uint8_t *K, 
                       aez_mode_t mode); 
 
-void key_variant(aez_block_t offset, 
-                 const struct tweak_state *tweak_state,
-                 int j, int i, int l, int k);
-
 void dot2(aez_block_t X);
 void dot_inc(aez_block_t *Xs, int n);
 
@@ -85,29 +81,29 @@ void aez_init_keyvector(aez_keyvector_t *key,
   init_tweak_state(key, K, mode); 
 
   /* Create key offsets (tweaks). */ 
-  key_variant(key->Kecb, &(key->ts), 0, 0, 1, 10); 
-  key_variant(key->Kff0, &(key->ts), 0, 0, 2, 4);
-  key_variant(key->Kone, &(key->ts), 0, 0, 3, 10);
+  aez_variant(key->Kecb, key, 0, 0, 1, 10); 
+  aez_variant(key->Kff0, key, 0, 0, 2, 4);
+  aez_variant(key->Kone, key, 0, 0, 3, 10);
   
   for (i = 0; i < 4; i++)
   {
-    key_variant(key->Kmac[i],  &(key->ts), 0, 0, i + 4, 10);
-    key_variant(key->Kmac1[i], &(key->ts), 0, 0, i + 9, 10);
+    aez_variant(key->Kmac[i],  key, 0, 0, i + 4, 10);
+    aez_variant(key->Kmac1[i], key, 0, 0, i + 9, 10);
   }
 
   key->msg_length = msg_length; 
-  key->Khash = aez_malloc_block(msg_length); 
-  key->K =     aez_malloc_block(msg_length);
-  for (n = 0; n < msg_length; n++) 
-  {
-    i = (n % 8);
-    if (i == 0) // iterate by doubling
-      dot2(key->ts.J);
-
-    ++j; // Bit of a nothing variable.  
-    key_variant(key->K[n],     &(key->ts), j, i, 0, 0);
-    key_variant(key->Khash[n], &(key->ts), j, i, 0, 4);
-  }
+//  key->Khash = aez_malloc_block(msg_length); 
+//  key->K =     aez_malloc_block(msg_length);
+//  for (n = 0; n < msg_length; n++) 
+//  {
+//    i = (n % 8);
+//    if (i == 0) // iterate by doubling
+//      dot2(key->ts.J);
+//
+//    ++j; // Bit of a nothing variable.  
+//    aez_variant(key->K[n],     key, j, i, 0, 0);
+//    aez_variant(key->Khash[n], key, j, i, 0, 4);
+//  }
 }
 
 
@@ -116,8 +112,8 @@ void aez_init_keyvector(aez_keyvector_t *key,
  */
 void aez_free_keyvector(aez_keyvector_t *key)
 {
-  aez_free_block(key->Khash); 
-  aez_free_block(key->K); 
+//  aez_free_block(key->Khash); 
+//  aez_free_block(key->K); 
 }
 
 
@@ -135,12 +131,14 @@ void init_tweak_state(aez_keyvector_t *key,
   ZERO_BLOCK(tmp); 
   
   /* j * J, where j iterates by doubling. Since this operation is 
-   * closed, we don't need to compute intermediate values. */ 
+   * closed, we don't need to compute intermediate values. */
   tmp[0] = 1; /* TODO byte order */ 
   aes_encrypt((const uint8_t *)tmp, 
               (uint8_t *)key->ts.J, 
               (uint32_t *)key->enc.Klong, 10); 
-  
+
+  CP_BLOCK(key->ts.Jinit, key->ts.J); 
+
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
   tmp[0] = 0; /* TODO byte order */ 
   ZERO_BLOCK(key->ts.I[0]); 
@@ -171,8 +169,8 @@ void init_tweak_state(aez_keyvector_t *key,
 /*
  * k is the number of AES rounds; j, i, and l are tweaks. 
  */
-void key_variant(aez_block_t offset, 
-                 const struct tweak_state *tweak_state,
+void aez_variant(aez_block_t offset, 
+                 aez_keyvector_t *key, 
                  int j, int i, int l, int k)
 {
   if (j == 0) 
@@ -180,12 +178,23 @@ void key_variant(aez_block_t offset,
     ZERO_BLOCK(offset); 
   } 
   else // Iterative doubling handled in aez_init_keyvector(). 
-  { 
-    CP_BLOCK(offset, tweak_state->J); 
+  {
+    if (i == 0)
+    {
+      printf("did this\n"); 
+      dot2(key->ts.J); 
+    }
+    CP_BLOCK(offset, key->ts.J); 
   }
 
-  XOR_BLOCK(offset, tweak_state->I[i]); // I[j] = i * J.
-  XOR_BLOCK(offset, tweak_state->L[l]); // L[l] = l * L. 
+  /* Precomputed. */ 
+  XOR_BLOCK(offset, key->ts.I[i]); // I[j] = i * I.
+  XOR_BLOCK(offset, key->ts.L[l]); // L[l] = l * L. 
+}
+
+void aez_reset_variant(aez_keyvector_t *key) 
+{
+  CP_BLOCK(key->ts.J, key->ts.Jinit); 
 }
 
 
