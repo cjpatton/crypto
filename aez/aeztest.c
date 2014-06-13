@@ -10,7 +10,7 @@ void dump_block(const uint8_t *X, int margin);
 
 void dump_keys(aez_keyvector_t *key);
 
-char bigtext [] = "Encryption and decryption. See Figure 3. To encrypt a string M we augment it with an\
+uint8_t bigtext [] = "Encryption and decryption. See Figure 3. To encrypt a string M we augment it with an\
 authenticator —a block of abytes zero bytes—and encipher the resulting string, tweaking this\
 enciphering scheme with a tweak formed from AD, N , and the parameters. These are encoded in\
 a manner that enhances the efficiency of their processing (in particular, AD always starts with the\
@@ -62,15 +62,12 @@ int main(int argc, const char **argv)
   K[15] ^= 0x80;
 
   /* Initialize key vector. */ 
-  aez_init_keyvector(&key, K, ENCRYPT, 64); 
+  aez_init_keyvector(&key, K, ENCRYPT, 200); 
   //dump_keys(&key); 
 
-  printf("bytes: %d, blocks: %d\n", (int)strlen(bigtext), 
-        (int)strlen(bigtext)/16);
-
-  memset(message, 0, 1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "I went to the waffle house and it was very cold.");
-  aez_ahash(hash, message, strlen((char *)message), &key);
+  printf("bytes: %d, blocks: %d\n", (int)strlen((char *)bigtext), 
+        (int)strlen((char *)bigtext)/16);
+  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
   printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   /* Enciphering tests. */
