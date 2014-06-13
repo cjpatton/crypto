@@ -10,6 +10,42 @@ void dump_block(const uint8_t *X, int margin);
 
 void dump_keys(aez_keyvector_t *key);
 
+char bigtext [] = "Encryption and decryption. See Figure 3. To encrypt a string M we augment it with an\
+authenticator —a block of abytes zero bytes—and encipher the resulting string, tweaking this\
+enciphering scheme with a tweak formed from AD, N , and the parameters. These are encoded in\
+a manner that enhances the efficiency of their processing (in particular, AD always starts with the\
+second block and ends on a block boundary, and the nonce is packed into the first block as long as\
+this is possible). Next we encipher the augmented message. To decrypt a ciphertext C we reverse\
+the process, verifying the presence of the all-zero authenticator.\
+For the users’ convenience, keys of any length are allowed. Using procedure Extract, they are first\
+processed into 16-byte strings using an almost-universal hash function with a fixed but “random”\
+key, an approach rooted in the leftover hash lemma [2, 11, 15]. The Extract algorithm is based on\
+CMAC and NIST recommendation SP 800-56C [8]. Keys of 128 bits are processed more efficiently\
+than other keys.\
+Alternative processing is performed at lines 104 and 113 if the message M is empty. In this case\
+we do need not to encipher anything; the user is only requesting a message-authentication service.\
+This saves some time when AEZ is used as a MAC. The MAC we use to satisfy the user’s request\
+is a PRF we call it AMAC. Besides taking in the key and the string that is being authenticated,\
+AMAC also takes in a number i ∈ [0..4], which is regarded as part of the domain of the PRF. The\
+argument is used to conceptually provide a variety of MACS, each as efficient as the other. We will\
+meet AMAC again; it is used for multiple purposes within AEZ.\
+Enciphering and deciphering. Messages are enciphered by one of four different methods. Dis-\
+patch occurs in algorithm Encipher of Figure 3. Strings of length 0 or 16 bytes are handled by\
+Encipher itself. Strings of 1–15 bytes are enciphered using the Feistel-based method FF0, realized in\
+algorithm EncipherFF0. Strings of 17 bytes or more are enciphered using a method we call MEM,\
+realized in the algorithm EncipherMEM of Figure 4. In all of these routines, when encountering a\
+key derived from K—any of Kecb, Kff0, Kone, Kmac, Kmac ′ , Khashi , or Ki —the named key is\
+implicitly defined from K using the procedure MakeSubkeyVectors of Figure 7.\
+Roughly following FFX [4, 12], algorithm EncipherFF0 uses ten rounds of a balanced Feistel net-\
+work. (More rounds are used for strings shorter than three bytes. Specifically, we use 24 ro\
+nds for one-byte strings, and 16 rounds for two-byte strings.) The round function is based on AES. We\
+use the four-round version of it for this purpose. This is implicit in the pseudocode, embedded in\
+the fact that Kff0 is a five-block key. Another novel feature of EncipherFF0 compared to FFX is\
+the swapping of a fixed pair of points when a key-dependent, tweak-dependent, length-dependent\
+pseudorandom bit comes out to be 1. The same trick, without the tweak or length dependency,\
+has been used before [27] to address the well-known fact that Feistel can only generate even per-\
+mutations [17]."; 
+
 int main(int argc, const char **argv)
 {
   /* Fake key to start. */ 
@@ -28,6 +64,9 @@ int main(int argc, const char **argv)
   /* Initialize key vector. */ 
   aez_init_keyvector(&key, K, ENCRYPT, 64); 
   //dump_keys(&key); 
+
+  printf("bytes: %d, blocks: %d\n", (int)strlen(bigtext), 
+        (int)strlen(bigtext)/16);
 
   memset(message, 0, 1024 * sizeof(uint8_t)); 
   strcpy((char *)message, "I went to the waffle house and it was very cold.");
