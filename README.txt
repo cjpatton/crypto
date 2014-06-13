@@ -16,6 +16,11 @@ aez/ INCOMPLETE
     - Encrypt(), Decrypt()
   
   NOTES
+    
+    - Now calculating K, Khash on the fly. aez_reset_variant() 
+      resets the tweak to K0, Khash0. This is currently called
+      in aez_ahash() and aez_{en,de}cipher(). Would it be better
+      to have a new set of tweaks for each block that we encipher?  
   
     - {En,De}cipherMEM(): I expect the input size to be greater
       than 16 bytes long. 
@@ -29,9 +34,6 @@ aez/ INCOMPLETE
 
     - It looks safe to pass in the same memory reference for `in` 
       and `out` for the AES cipher. 
-      
-    - Wouild it be better to compute vector offsets (K and Khash) 
-      on the fly? 
       
     - Preprocessor and '{', '}' tokens.
 

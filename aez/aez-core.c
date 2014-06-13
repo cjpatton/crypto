@@ -91,19 +91,6 @@ void aez_init_keyvector(aez_keyvector_t *key,
     aez_variant(key->Kmac1[i], key, 0, 0, i + 9, 10);
   }
 
-  key->msg_length = msg_length; 
-//  key->Khash = aez_malloc_block(msg_length); 
-//  key->K =     aez_malloc_block(msg_length);
-//  for (n = 0; n < msg_length; n++) 
-//  {
-//    i = (n % 8);
-//    if (i == 0) // iterate by doubling
-//      dot2(key->ts.J);
-//
-//    ++j; // Bit of a nothing variable.  
-//    aez_variant(key->K[n],     key, j, i, 0, 0);
-//    aez_variant(key->Khash[n], key, j, i, 0, 4);
-//  }
 }
 
 
@@ -112,8 +99,6 @@ void aez_init_keyvector(aez_keyvector_t *key,
  */
 void aez_free_keyvector(aez_keyvector_t *key)
 {
-//  aez_free_block(key->Khash); 
-//  aez_free_block(key->K); 
 }
 
 

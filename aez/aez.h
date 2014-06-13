@@ -76,8 +76,6 @@ struct tweak_state {
 
 typedef struct {
 
-  size_t msg_length; // In 128-bit blocks. 
-
   /* Key schedules */ 
   struct key_schedule enc, dec; 
 
@@ -91,10 +89,6 @@ typedef struct {
 
   aez_block_t Kmac  [4], // 11
               Kmac1 [4]; // 11, Kmac'
-
-  /* Offsets - tweaked by doubling. */ 
-  aez_block_t K;     // 1
-  aez_block_t Khash; // 5
 
 } aez_keyvector_t; 
 
