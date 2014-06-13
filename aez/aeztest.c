@@ -70,11 +70,6 @@ int main(int argc, const char **argv)
   aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
   printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
   
-  memset(message, 0, 1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "I went to the waffle house and it was very cold.");
-  aez_ahash(hash, message, strlen((char *)message), &key);
-  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
-
   /* Enciphering tests. */
   memset(tag, 0, 512 * sizeof(uint8_t)); 
   strcpy((char *)tag, "Man, this is a super nice tag.");

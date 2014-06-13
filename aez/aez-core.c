@@ -58,7 +58,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
                         aez_mode_t mode, 
                         size_t msg_length)
 {
-  int n, i, j = 0;
+  int i;
   
   /* Set up key schedules - Klong. */ 
   aes_set_encrypt_key(K, (uint32_t *)key->enc.Klong, 10); 
@@ -180,10 +180,7 @@ void aez_variant(aez_block_t offset,
   else // Iterative doubling handled in aez_init_keyvector(). 
   {
     if (i == 0)
-    {
-      printf("did this\n"); 
       dot2(key->ts.J); 
-    }
     CP_BLOCK(offset, key->ts.J); 
   }
 
