@@ -80,7 +80,8 @@ void aez_init_keyvector(aez_keyvector_t *key,
   /* Initialize tweak state. */ 
   init_tweak_state(key, K, mode); 
 
-  /* Create key offsets (tweaks). */ 
+  /* Create key offsets (tweaks). Note that K and Khash are calculated 
+   * on the fly in aez_{en,de}cipher() and aez_ahash() resp. */ 
   aez_variant(key->Kecb, key, 0, 0, 1, 10); 
   aez_variant(key->Kff0, key, 0, 0, 2, 4);
   aez_variant(key->Kone, key, 0, 0, 3, 10);
@@ -225,8 +226,12 @@ void dot_inc(aez_block_t *Xs, int n)
 }
 
 
-
-
+/*
+ * Tweakable blockcipher, based on the OpenSSL implementation of 
+ * AES128. The tweak is XOR'ed into the precomputed AES key 
+ * schedule, then XOR'ed out. This routine supports 10-round 
+ * schedules (standard AES) and 4-round schedules (AES4). 
+ */
 int aez_blockcipher(uint8_t *out, 
                     const uint8_t *in, 
                     const aez_block_t offset, 
@@ -274,7 +279,9 @@ int aez_blockcipher(uint8_t *out,
 }
 
 
-
+/*
+ * Output a block. 
+ */
 void aez_print_block(const aez_block_t X, int margin)
 {
   int i;

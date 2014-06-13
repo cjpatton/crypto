@@ -7,7 +7,7 @@
 
 
 /*
- *
+ * AMAC - a message authentication code based AHash() (see below). 
  */
 void aez_amac(uint8_t *mac, 
               const uint8_t *plaintext, 
@@ -49,7 +49,8 @@ void aez_amac(uint8_t *mac,
 
 
 /*
- *
+ * Ahash - a Wegmen-Carter style universal hash function based on 
+ * a 4-round, non-invertible variant of AES.  
  */ 
 void aez_ahash(uint8_t *hash, 
                const uint8_t *plaintext,
