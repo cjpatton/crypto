@@ -221,20 +221,20 @@ void dump_keys(aez_keyvector_t *key)
     XOR_BLOCK(key->enc.Klong[10], key->Kmac1[j]); 
   }
 
-  printf("\n\nVectors\n\n"); 
-  for (j = 0; j < key->msg_length; j++) 
-  {
-    printf(" K[%-4d] ", j);
-    aez_print_block(key->K[j], 0); 
-  }
-
-  for (j = 0; j < key->msg_length; j++) 
-  {
-    printf("\n Khash[%-4d] ", j);
-    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
-    aez_print_block(key->enc.Kshort[0], 0);
-    for (i = 1; i < 5; i++)
-      aez_print_block(key->enc.Kshort[i], 13);
-    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
-  }
+//  printf("\n\nVectors\n\n"); 
+//  for (j = 0; j < key->msg_length; j++) 
+//  {
+//    printf(" K[%-4d] ", j);
+//    aez_print_block(key->K[j], 0); 
+//  }
+//
+//  for (j = 0; j < key->msg_length; j++) 
+//  {
+//    printf("\n Khash[%-4d] ", j);
+//    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
+//    aez_print_block(key->enc.Kshort[0], 0);
+//    for (i = 1; i < 5; i++)
+//      aez_print_block(key->enc.Kshort[i], 13);
+//    XOR_BLOCK(key->enc.Kshort[0], key->Khash[j]); 
+//  }
 }

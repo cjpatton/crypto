@@ -112,10 +112,10 @@ int encipher_mem(uint8_t *out,
 {
   if (msg_bytes <= AEZ_BYTES)
     return (int)aez_MSG_LENGTH; 
-  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); // TODO calculate vectors on the fly
+  aez_reset_variant(key); 
 
   int i, j=0;  
-  aez_block_t tweak, prev, X0, Y0;
+  aez_block_t tweak, prev, X0, Y0, K, Kprev;
   uint32_t *offset; 
   
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
@@ -135,23 +135,23 @@ int encipher_mem(uint8_t *out,
 
   for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
     XOR_BLOCK(&out[i], X0); 
-    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], K); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10); 
     CP_BLOCK(prev, &out[i]); 
     XOR_BLOCK(&out[i], Y0); 
-    XOR_BLOCK(&out[i], key->K[j]); 
-    ++j; 
+    XOR_BLOCK(&out[i], K); 
   }
 
   if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
   {
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
     XOR_BLOCK(&out[i], X0); 
-    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], K); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, ENCRYPT, 10);
     XOR_BLOCK(&out[i], Y0); 
-    XOR_BLOCK(&out[i], key->K[j]); 
-
+    XOR_BLOCK(&out[i], K); 
     offset = key->Kmac[1]; 
   }
 
@@ -159,6 +159,8 @@ int encipher_mem(uint8_t *out,
   {
     uint8_t tmp [16]; 
     int m = i; 
+    CP_BLOCK(Kprev, K);
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
 
     /* Xm || R - input to last cipher call. */ 
     CP_BLOCK(tmp, prev); 
@@ -166,7 +168,7 @@ int encipher_mem(uint8_t *out,
     {
       tmp[i]  = out[i + m]; 
       tmp[i] ^= ((uint8_t *)X0)[i];
-      tmp[i] ^= ((uint8_t *)key->K[j])[i];
+      tmp[i] ^= ((uint8_t *)K)[i];
     }
 
     /* Ym-1, Cm-1 */ 
@@ -175,7 +177,7 @@ int encipher_mem(uint8_t *out,
     if (msg_bytes > 32)
     {
       XOR_BLOCK(&out[i], Y0); 
-      XOR_BLOCK(&out[i], key->K[j-1]); 
+      XOR_BLOCK(&out[i], Kprev); 
     }
     else 
     {
@@ -187,7 +189,7 @@ int encipher_mem(uint8_t *out,
     {
       out[i + m]  = ((uint8_t *)prev)[i];
       out[i + m] ^= ((uint8_t *)Y0)[i]; 
-      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+      out[i + m] ^= ((uint8_t *)K)[i]; 
     }
 
     offset = key->Kmac1[1]; 
@@ -200,6 +202,8 @@ int encipher_mem(uint8_t *out,
 
   /* Unmix tweak. */ 
   XOR_BLOCK(out, tweak); 
+  
+  aez_reset_variant(key); 
   return msg_bytes;  
 }
 
@@ -215,10 +219,10 @@ int decipher_mem(uint8_t *out,
 {
   if (msg_bytes <= AEZ_BYTES)
     return (int)aez_MSG_LENGTH; 
-  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); // TODO calculate vectors on the fly
+  aez_reset_variant(key); 
   
   int i, j=0;
-  aez_block_t tweak, prev, Y0, X0;
+  aez_block_t tweak, prev, Y0, X0, K, Kprev;
   uint32_t *offset; 
   
   memcpy(out, in, msg_bytes * sizeof(uint8_t)); 
@@ -238,21 +242,22 @@ int decipher_mem(uint8_t *out,
 
   for (i = AEZ_BYTES; i < msg_bytes - AEZ_BYTES; i += AEZ_BYTES)
   {
-    XOR_BLOCK(&out[i], key->K[j]); 
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
+    XOR_BLOCK(&out[i], K); 
     XOR_BLOCK(&out[i], Y0); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
     CP_BLOCK(prev, &out[i]); 
-    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], K); 
     XOR_BLOCK(&out[i], X0); 
-    ++j; 
   }
 
   if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
   {
-    XOR_BLOCK(&out[i], key->K[j]); 
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
+    XOR_BLOCK(&out[i], K); 
     XOR_BLOCK(&out[i], Y0); 
     aez_blockcipher(&out[i], &out[i], key->Kecb, key, DECRYPT, 10); 
-    XOR_BLOCK(&out[i], key->K[j]); 
+    XOR_BLOCK(&out[i], K); 
     XOR_BLOCK(&out[i], X0); 
     offset = key->Kmac[1]; 
   }
@@ -261,6 +266,8 @@ int decipher_mem(uint8_t *out,
   {
     uint8_t tmp [16]; 
     int m = i; 
+    CP_BLOCK(Kprev, K);
+    aez_variant(K, key, i + 1, (j++) % 8, 0, 0); 
     
     /* prev -> Ymp1 */ 
     CP_BLOCK(tmp, prev); 
@@ -269,7 +276,7 @@ int decipher_mem(uint8_t *out,
     for (i = 0; i < msg_bytes - m; i++)
     {
       out[i + m] ^= ((uint8_t *)Y0)[i]; 
-      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+      out[i + m] ^= ((uint8_t *)K)[i]; 
       ((uint8_t *)tmp)[i] = out[i + m]; 
     }
   
@@ -278,7 +285,7 @@ int decipher_mem(uint8_t *out,
     aez_blockcipher(&out[i], tmp, key->Kecb, key, DECRYPT, 10);  
     if (msg_bytes > 32)
     {
-      XOR_BLOCK(&out[i], key->K[j-1]); 
+      XOR_BLOCK(&out[i], Kprev); 
       XOR_BLOCK(&out[i], X0); 
     }
     else
@@ -290,7 +297,7 @@ int decipher_mem(uint8_t *out,
     {
       out[i + m]  = ((uint8_t *)prev)[i]; 
       out[i + m] ^= ((uint8_t *)X0)[i]; 
-      out[i + m] ^= ((uint8_t *)key->K[j])[i]; 
+      out[i + m] ^= ((uint8_t *)K)[i]; 
     }
 
     offset = key->Kmac1[1]; 
@@ -303,6 +310,8 @@ int decipher_mem(uint8_t *out,
 
   /* Unmix tweak. */ 
   XOR_BLOCK(out, tweak); 
+  
+  aez_reset_variant(key); 
   return msg_bytes; 
 }
 

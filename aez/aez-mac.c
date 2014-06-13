@@ -7,7 +7,7 @@
 
 
 /*
- *
+ * AMAC - a message authentication code based AHash() (see below). 
  */
 void aez_amac(uint8_t *mac, 
               const uint8_t *plaintext, 
@@ -49,34 +49,40 @@ void aez_amac(uint8_t *mac,
 
 
 /*
- *
+ * Ahash - a Wegmen-Carter style universal hash function based on 
+ * a 4-round, non-invertible variant of AES.  
  */ 
 void aez_ahash(uint8_t *hash, 
                const uint8_t *plaintext,
                size_t msg_bytes, 
                aez_keyvector_t *key)
 {
-  assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); 
-  
+  aez_reset_variant(key); 
+
   int i=0, j; 
+  aez_block_t Khash;
   uint8_t tmp [AEZ_BYTES];
   ZERO_BLOCK((uint32_t *)hash);
- 
+
   /* Apply AES4 to each block and XOR them together. */ 
   for (j = 0; j < msg_bytes; j += AEZ_BYTES) 
   {
-    aez_blockcipher(tmp, plaintext + j, key->Khash[i++], key, ENCRYPT, 4); 
+    aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
+    aez_blockcipher(tmp, plaintext + j, Khash, key, ENCRYPT, 4); 
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
 
   /* Pad last block */ 
   if (j > msg_bytes) 
   {
+    aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
     ZERO_BLOCK((uint32_t *)tmp); 
     j -= AEZ_BYTES; 
     memcpy(tmp, plaintext + j, sizeof(uint8_t) * (msg_bytes - j));
     tmp[msg_bytes - j] = 1; 
-    aez_blockcipher(tmp, tmp, key->Khash[i++], key, ENCRYPT, 4);  
+    aez_blockcipher(tmp, tmp, Khash, key, ENCRYPT, 4);  
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }
+
+  aez_reset_variant(key); 
 }

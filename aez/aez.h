@@ -62,16 +62,28 @@ struct key_schedule {
   aez_block10_t Klong; 
 };
 
+/*
+ * Intermediate data structure for key tweaking. A tweak of an AES round 
+ * key K is defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L).
+ * The operator defines a recursive relation, instantiated as dot_inc(). We
+ * precompute these values for valid (j, i, l) domain points. In the AEZ 
+ * definition, j actually increments by doubling; in this case, it isn't 
+ * necessary to precompute intermediate values. Function aez_variant() 
+ * performs the doubling on the fly. 
+ */
+struct tweak_state {
+  aez_block_t Jinit, J, I [8], L [16];
+};
+
 typedef struct {
 
-  size_t msg_length; // In 128-bit blocks. 
-
   /* Key schedules */ 
-
   struct key_schedule enc, dec; 
 
-  /* Offsets */ 
+  /* Precomputed tweak vectors */ 
+  struct tweak_state ts; 
 
+  /* Offsets - K, Khash are computed on the fly. */ 
   aez_block_t Kecb, // 11
               Kone, // 11
               Kff0; // 5 
@@ -79,22 +91,8 @@ typedef struct {
   aez_block_t Kmac  [4], // 11
               Kmac1 [4]; // 11, Kmac'
 
-  aez_block_t *K;     // 1
-  aez_block_t *Khash; // 5
-
 } aez_keyvector_t; 
 
-/*
- * Intermediate data structure for key tweaking. A tweak of an AES round 
- * key K is defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L).
- * The operator defines a recursive relation, instantiated as dot_inc(). We
- * precompute these values for valid (j, i, l) domain points. In the AEZ 
- * definition, j actually increments by doubling; in this case, it isn't 
- * necessary to precompute intermediate values. 
- */
-struct tweak_state {
-  aez_block_t J, I [8], L [16];
-};
 
 
 /*
@@ -120,8 +118,10 @@ typedef enum {
 
 
 /*
- * Key initialization routines. 
+ * aez-core.c 
  */
+
+/* Key initialization routines. */
 
 void aez_init_keyvector(aez_keyvector_t *key, 
                         const uint8_t *K, 
@@ -130,10 +130,15 @@ void aez_init_keyvector(aez_keyvector_t *key,
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
-/*
- * Basic tweaked blockcipher. 
- */
 
+/* Key tweaking */ 
+void aez_variant(aez_block_t offset, 
+                 aez_keyvector_t *key,
+                 int j, int i, int l, int k);
+
+void aez_reset_variant(aez_keyvector_t *key); 
+
+/* Tweakable AES128 blockcipher */
 int aez_blockcipher(uint8_t *out, 
                     const uint8_t *in, 
                     const aez_block_t offset, 
@@ -142,7 +147,7 @@ int aez_blockcipher(uint8_t *out,
                     int rounds); 
 
 /*
- * Implemented in aez-mac.c
+ * aez-mac.c
  */
 
 void aez_print_block(const aez_block_t X, int margin);
