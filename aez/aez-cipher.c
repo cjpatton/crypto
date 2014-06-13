@@ -221,6 +221,7 @@ int decipher_mem(uint8_t *out,
   if (msg_bytes <= AEZ_BYTES)
     return (int)aez_MSG_LENGTH; 
   assert(msg_bytes <= (key->msg_length * AEZ_BYTES)); // TODO calculate vectors on the fly
+  aez_reset_variant(key); 
   
   int i, j=0;
   aez_block_t tweak, prev, Y0, X0, Kprev;
@@ -250,7 +251,6 @@ int decipher_mem(uint8_t *out,
     CP_BLOCK(prev, &out[i]); 
     XOR_BLOCK(&out[i], key->K); 
     XOR_BLOCK(&out[i], X0); 
-    ++j; 
   }
 
   if (i == msg_bytes - AEZ_BYTES) /* Unfragmented last block */ 
@@ -312,6 +312,8 @@ int decipher_mem(uint8_t *out,
 
   /* Unmix tweak. */ 
   XOR_BLOCK(out, tweak); 
+  
+  aez_reset_variant(key); 
   return msg_bytes; 
 }
 
