@@ -8,8 +8,7 @@
  * Some local function declearations. 
  */
 
-void init_tweak_state(struct tweak_state *tweak_state, 
-                      aez_keyvector_t *key,
+void init_tweak_state(aez_keyvector_t *key,
                       const uint8_t *K, 
                       aez_mode_t mode); 
 
@@ -63,7 +62,6 @@ void aez_init_keyvector(aez_keyvector_t *key,
                         aez_mode_t mode, 
                         size_t msg_length)
 {
-  struct tweak_state *tweak_state = malloc(sizeof(struct tweak_state));
   int n, i, j = 0;
   
   /* Set up key schedules - Klong. */ 
@@ -84,17 +82,17 @@ void aez_init_keyvector(aez_keyvector_t *key,
   ZERO_BLOCK(key->dec.Kshort[4]); 
 
   /* Initialize tweak state. */ 
-  init_tweak_state(tweak_state, key, K, mode); 
+  init_tweak_state(key, K, mode); 
 
   /* Create key offsets (tweaks). */ 
-  key_variant(key->Kecb, tweak_state, 0, 0, 1, 10); 
-  key_variant(key->Kff0, tweak_state, 0, 0, 2, 4);
-  key_variant(key->Kone, tweak_state, 0, 0, 3, 10);
+  key_variant(key->Kecb, &(key->ts), 0, 0, 1, 10); 
+  key_variant(key->Kff0, &(key->ts), 0, 0, 2, 4);
+  key_variant(key->Kone, &(key->ts), 0, 0, 3, 10);
   
   for (i = 0; i < 4; i++)
   {
-    key_variant(key->Kmac[i],  tweak_state, 0, 0, i + 4, 10);
-    key_variant(key->Kmac1[i], tweak_state, 0, 0, i + 9, 10);
+    key_variant(key->Kmac[i],  &(key->ts), 0, 0, i + 4, 10);
+    key_variant(key->Kmac1[i], &(key->ts), 0, 0, i + 9, 10);
   }
 
   key->msg_length = msg_length; 
@@ -104,14 +102,12 @@ void aez_init_keyvector(aez_keyvector_t *key,
   {
     i = (n % 8);
     if (i == 0) // iterate by doubling
-      dot2(tweak_state->J);
+      dot2(key->ts.J);
 
     ++j; // Bit of a nothing variable.  
-    key_variant(key->K[n],     tweak_state, j, i, 0, 0);
-    key_variant(key->Khash[n], tweak_state, j, i, 0, 4);
+    key_variant(key->K[n],     &(key->ts), j, i, 0, 0);
+    key_variant(key->Khash[n], &(key->ts), j, i, 0, 4);
   }
-
-  free(tweak_state); 
 }
 
 
@@ -128,8 +124,7 @@ void aez_free_keyvector(aez_keyvector_t *key)
 /*
  * Initialize state for key tweaking (called by aez_init_keyvector()).  
  */
-void init_tweak_state(struct tweak_state *tweak_state, 
-                      aez_keyvector_t *key,
+void init_tweak_state(aez_keyvector_t *key,
                       const uint8_t *K, 
                       aez_mode_t mode)
 {
@@ -143,31 +138,31 @@ void init_tweak_state(struct tweak_state *tweak_state,
    * closed, we don't need to compute intermediate values. */ 
   tmp[0] = 1; /* TODO byte order */ 
   aes_encrypt((const uint8_t *)tmp, 
-              (uint8_t *)tweak_state->J, 
+              (uint8_t *)key->ts.J, 
               (uint32_t *)key->enc.Klong, 10); 
   
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
   tmp[0] = 0; /* TODO byte order */ 
-  ZERO_BLOCK(tweak_state->I[0]); 
+  ZERO_BLOCK(key->ts.I[0]); 
   aes_encrypt((const uint8_t *)tmp, 
-              (uint8_t *)tweak_state->I[1], 
+              (uint8_t *)key->ts.I[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 8; n++)
   {
-    dot_inc(tweak_state->I, n);  
-    //aez_print_block(tweak_state->I[n], 0); 
+    dot_inc(key->ts.I, n);  
+    //aez_print_block(key->ts.I[n], 0); 
   }
   
   /* l * L, where l \in [0 .. 16]. Precompute these values. */ 
   tmp[0] = 2; /* TODO byte order */ 
-  ZERO_BLOCK(tweak_state->L[0]); 
+  ZERO_BLOCK(key->ts.L[0]); 
   aes_encrypt((const uint8_t *)tmp, 
-              (uint8_t *)tweak_state->L[1], 
+              (uint8_t *)key->ts.L[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 16; n++)
   {
-    dot_inc(tweak_state->L, n);  
-    //aez_print_block(tweak_state->L[n], 0); 
+    dot_inc(key->ts.L, n);  
+    //aez_print_block(key->ts.L[n], 0); 
   }
 
 }

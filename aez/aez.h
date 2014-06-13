@@ -62,28 +62,6 @@ struct key_schedule {
   aez_block10_t Klong; 
 };
 
-typedef struct {
-
-  size_t msg_length; // In 128-bit blocks. 
-
-  /* Key schedules */ 
-
-  struct key_schedule enc, dec; 
-
-  /* Offsets */ 
-
-  aez_block_t Kecb, // 11
-              Kone, // 11
-              Kff0; // 5 
-
-  aez_block_t Kmac  [4], // 11
-              Kmac1 [4]; // 11, Kmac'
-
-  aez_block_t *K;     // 1
-  aez_block_t *Khash; // 5
-
-} aez_keyvector_t; 
-
 /*
  * Intermediate data structure for key tweaking. A tweak of an AES round 
  * key K is defined by K ^ Offset, where Offset = (j * J) ^ (i * I) ^ (l * L).
@@ -95,6 +73,31 @@ typedef struct {
 struct tweak_state {
   aez_block_t J, I [8], L [16];
 };
+
+typedef struct {
+
+  size_t msg_length; // In 128-bit blocks. 
+
+  /* Key schedules */ 
+  struct key_schedule enc, dec; 
+
+  /* Precomputed tweak vectors */ 
+  struct tweak_state ts; 
+
+  /* Offsets - tweaks don't change. */ 
+  aez_block_t Kecb, // 11
+              Kone, // 11
+              Kff0; // 5 
+
+  aez_block_t Kmac  [4], // 11
+              Kmac1 [4]; // 11, Kmac'
+
+  /* Offsets - tweaked by doubling. */ 
+  aez_block_t *K;     // 1
+  aez_block_t *Khash; // 5
+
+} aez_keyvector_t; 
+
 
 
 /*
