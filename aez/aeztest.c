@@ -65,10 +65,8 @@ int main(int argc, const char **argv)
   aez_init_keyvector(&key, K, ENCRYPT, 200); 
   //dump_keys(&key); 
 
-  //printf("bytes: %d, blocks: %d\n", (int)strlen((char *)bigtext), 
-  //      (int)strlen((char *)bigtext)/16);
-  //aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
-  //printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
+  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
+  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   /* Enciphering tests. */
   memset(tag, 0, 512 * sizeof(uint8_t)); 
