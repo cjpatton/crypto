@@ -14,6 +14,15 @@ aez/ INCOMPLETE
     - Format() (tweak)
     - Extract() (key)
     - Encrypt(), Decrypt()
+    
+    - Finish Ff0. 
+    - Stress-test MEM.
+    - aez_incipher in place? 
+    - Coarse grained multithreading encipher_mem, aez_ahash
+      - block_cipher does not treat aez_keyvector_t thread-
+        safely. Message passing for key variant? 
+  
+
   
   NOTES
     
