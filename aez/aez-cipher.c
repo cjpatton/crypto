@@ -319,7 +319,9 @@ int decipher_mem(uint8_t *out,
 /*
  * EncipherFF0 - encipher messages shorter than 16 bytes. This is 
  * based on a Fesital network, the number of rounds depending on the
- * size of the message. 
+ * size of the message.
+ *
+ * TODO correct number of rounds, mix in bit. 
  */
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
@@ -328,7 +330,57 @@ int encipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  return (int)aez_NOT_IMPLEMENTED;
+  int i, j, k=10, pivot;
+  uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES], 
+          A [AEZ_BYTES], B [AEZ_BYTES];  
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
+  
+  memcpy(out, in, msg_bytes); 
+
+  ZERO_BLOCK(A); 
+  ZERO_BLOCK(B); 
+  ZERO_BLOCK(tmp); 
+
+  pivot = msg_bytes / 2; 
+  
+  for (j = 0; j < pivot; j++)
+    A[j] = out[j]; 
+
+  for (j = pivot; j < msg_bytes; j++)
+    B[j - pivot] = out[j];
+  
+  for (i = 1; i <= k; i++)
+  {
+
+    ZERO_BLOCK(tmp); 
+    *(uint32_t *)tmp = i;
+    for (j = 0; j < msg_bytes - pivot; j++)
+      tmp[4 + j] = B[j];
+    tmp[4 + pivot] = 1;
+
+    //printf("A   "); aez_print_block((uint32_t *)A, 0);
+    //printf("B   "); aez_print_block((uint32_t *)B, 0);
+    //printf("tmp "); aez_print_block((uint32_t *)tmp, 0);
+
+    XOR_BLOCK(tmp, tweak);
+    aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
+
+    for (j = 0; j < pivot; j++)
+    {
+      tmp[j] ^= A[j];
+      A[j] = B[j];
+      B[j] = tmp[j];
+    }
+
+  }
+
+  for (j = 0; j < pivot; j++)
+    out[j] = A[j]; 
+
+  for (j = pivot; j < msg_bytes; j++)
+    out[j] = B[j - pivot];
+  
+  return msg_bytes;
 }
 
 /*
@@ -341,5 +393,55 @@ int decipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  return (int)aez_NOT_IMPLEMENTED; 
+  int i, j, k=10, pivot;
+  uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES], 
+          A [AEZ_BYTES], B [AEZ_BYTES];  
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
+  
+  memcpy(out, in, msg_bytes); 
+
+  ZERO_BLOCK(A); 
+  ZERO_BLOCK(B); 
+  ZERO_BLOCK(tmp); 
+
+  pivot = msg_bytes / 2; 
+  
+  for (j = 0; j < pivot; j++)
+    B[j] = out[j]; 
+
+  for (j = pivot; j < msg_bytes; j++)
+    A[j - pivot] = out[j];
+  
+  for (i = k; i > 0; i--)
+  {
+
+    ZERO_BLOCK(tmp); 
+    *(uint32_t *)tmp = i;
+    for (j = 0; j < msg_bytes - pivot; j++)
+      tmp[4 + j] = B[j];
+    tmp[4 + pivot] = 1;
+
+    //printf("A   "); aez_print_block((uint32_t *)A, 0);
+    //printf("B   "); aez_print_block((uint32_t *)B, 0);
+    //printf("tmp "); aez_print_block((uint32_t *)tmp, 0);
+
+    XOR_BLOCK(tmp, tweak);
+    aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
+
+    for (j = 0; j < pivot; j++)
+    {
+      tmp[j] ^= A[j];
+      A[j] = B[j];
+      B[j] = tmp[j];
+    }
+
+  }
+
+  for (j = 0; j < pivot; j++)
+    out[j] = B[j]; 
+
+  for (j = pivot; j < msg_bytes; j++)
+    out[j] = A[j - pivot];
+  
+  return msg_bytes;
 }

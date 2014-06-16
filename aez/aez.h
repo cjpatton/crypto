@@ -121,8 +121,9 @@ typedef enum {
  * aez-core.c 
  */
 
-/* Key initialization routines. */
+void aez_print_block(const aez_block_t X, int margin);
 
+/* Key initialization routines. */
 void aez_init_keyvector(aez_keyvector_t *key, 
                         const uint8_t *K, 
                         aez_mode_t mode,
@@ -149,8 +150,6 @@ int aez_blockcipher(uint8_t *out,
 /*
  * aez-mac.c
  */
-
-void aez_print_block(const aez_block_t X, int margin);
 
 void aez_amac(uint8_t *mac, 
               const uint8_t *plaintext, 
