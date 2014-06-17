@@ -343,7 +343,7 @@ int encipher_ff0(uint8_t *out,
   
   }
   
-  return msg_bytes;
+  return (int)aez_NOT_IMPLEMENTED;
 }
 
 /*
@@ -367,5 +367,5 @@ int decipher_ff0(uint8_t *out,
   {
 
   }
-  return msg_bytes;
+  return (int)aez_NOT_IMPLEMENTED;
 }
