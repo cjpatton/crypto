@@ -322,6 +322,7 @@ int decipher_mem(uint8_t *out,
  * depending on the
  * size of the message.
  *
+ * FIXME doesn't function as an unbalanced Feistal network yet.
  * TODO correct number of rounds, mix in bit. 
  */
 int encipher_ff0(uint8_t *out, 
@@ -331,8 +332,10 @@ int encipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  int i, j, k=4, l;
+  int i, j, k=10, l;
   uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
+  uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
+  
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
   memcpy(out, in, msg_bytes); 
@@ -340,10 +343,25 @@ int encipher_ff0(uint8_t *out,
 
   for (i = 1; i <= k; i++)
   {
-  
+    ZERO_BLOCK(A); memcpy(A, out, l); 
+    ZERO_BLOCK(B); memcpy(B, &out[l], msg_bytes - l); 
+    
+    ZERO_BLOCK(tmp); 
+    *(uint32_t *)tmp = i; 
+    memcpy(&tmp[4], B, msg_bytes - l); 
+    tmp[4 + msg_bytes - l] = 1; 
+
+    XOR_BLOCK(tmp, tweak);
+    aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
+
+    for (j = 0; j < l; j++)
+      tmp[j] ^= A[j];
+
+    memcpy(out, B, msg_bytes - l); 
+    memcpy(&out[l], tmp, l); 
   }
   
-  return (int)aez_NOT_IMPLEMENTED;
+  return msg_bytes;
 }
 
 /*
@@ -356,8 +374,9 @@ int decipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  int i, j, k=4, l;
+  int i, j, k=10, l;
   uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
+  uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
   memcpy(out, in, msg_bytes); 
@@ -365,6 +384,22 @@ int decipher_ff0(uint8_t *out,
 
   for (i = k; i > 0; i--)
   {
+    ZERO_BLOCK(B); memcpy(B, out, l); 
+    ZERO_BLOCK(A); memcpy(A, &out[l], msg_bytes - l); 
+    
+    ZERO_BLOCK(tmp); 
+    *(uint32_t *)tmp = i; 
+    memcpy(&tmp[4], B, l); 
+    tmp[4 + l] = 1; 
+
+    XOR_BLOCK(tmp, tweak);
+    aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
+
+    for (j = 0; j < l; j++)
+      tmp[j] ^= A[j];
+
+    memcpy(out, tmp, l); 
+    memcpy(&out[l], B, msg_bytes - l); 
 
   }
   return (int)aez_NOT_IMPLEMENTED;
