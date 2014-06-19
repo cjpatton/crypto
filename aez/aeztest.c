@@ -86,9 +86,9 @@ int main(int argc, const char **argv)
 //  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
 //  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
-//  memset(message, 0,1024 * sizeof(uint8_t)); 
-//  strcpy((char *)message, "a");
-//  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  memset(message, 0,1024 * sizeof(uint8_t)); 
+  strcpy((char *)message, "a");
+  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
   /* Destroy key vector. */ 
   aez_free_keyvector(&key); 
