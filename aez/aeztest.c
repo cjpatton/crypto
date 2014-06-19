@@ -85,7 +85,7 @@ int main(int argc, const char **argv)
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
   memset(message, 0,1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "22222");
+  strcpy((char *)message, "1");
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
   
   /* Destroy key vector. */ 

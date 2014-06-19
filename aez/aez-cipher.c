@@ -322,7 +322,6 @@ int decipher_mem(uint8_t *out,
  * depending on the
  * size of the message.
  *
- * FIXME doesn't function as an unbalanced Feistal network yet.
  * TODO correct number of rounds, mix in bit. 
  */
 int encipher_ff0(uint8_t *out, 
@@ -358,7 +357,7 @@ int encipher_ff0(uint8_t *out,
       tmp[j] ^= A[j];
 
     memcpy(out, B, msg_bytes - l); 
-    memcpy(&out[l], tmp, l); 
+    memcpy(&out[msg_bytes - l], tmp, l); 
   }
   
   return msg_bytes;
@@ -383,13 +382,13 @@ int decipher_ff0(uint8_t *out,
   l = msg_bytes / 2; 
   for (i = k; i > 0; i--)
   {
-    ZERO_BLOCK(B); memcpy(B, out, l); 
-    ZERO_BLOCK(A); memcpy(A, &out[l], msg_bytes - l); 
+    ZERO_BLOCK(B); memcpy(B, out, msg_bytes - l); 
+    ZERO_BLOCK(A); memcpy(A, &out[msg_bytes - l], l); 
     
     ZERO_BLOCK(tmp); 
     *(uint32_t *)tmp = i; 
-    memcpy(&tmp[4], B, l); 
-    tmp[4 + l] = 1; 
+    memcpy(&tmp[4], B, msg_bytes - l); 
+    tmp[4 + msg_bytes - l] = 1; 
 
     XOR_BLOCK(tmp, tweak);
     aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
