@@ -29,6 +29,12 @@
     ((uint32_t *)dst)[2] = 0; \
     ((uint32_t *)dst)[3] = 0; }
 
+#define BLOCK_CMP(x, y) \
+  (((uint32_t *)x)[0] == ((uint32_t *)y)[0] && \
+   ((uint32_t *)x)[1] == ((uint32_t *)y)[1] && \
+   ((uint32_t *)x)[2] == ((uint32_t *)y)[2] && \
+   ((uint32_t *)x)[3] == ((uint32_t *)y)[3]) 
+  
 #define BLOCK_MSB(X) (X[3] >> 31)
 
 
@@ -52,6 +58,20 @@ void aez_free_block4(aez_block4_t *blocks);
 aez_block10_t *aez_malloc_block10(size_t msg_length); 
 void aez_free_block10(aez_block10_t *blocks); 
 
+
+/*
+ * Constants.
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const aez_block_t aez_extract; /* aez-crypt.c */ 
+
+#ifdef __cplusplus
+}
+#endif 
 
 /*
  * Key space for AEZ. 

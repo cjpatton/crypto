@@ -5,9 +5,13 @@
 #include <string.h>
 #include <assert.h>
 
+
 /* 
  * Local function declarations (definitions below).  
  */
+
+
+void point_swap(uint8_t *out, const uint8_t *tweak, size_t msg_bytes);
 
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
@@ -37,7 +41,6 @@ int decipher_mem(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key);
                      
-
 /*
  * The AEZ enciphering scheme. Calls EncipherMEM() and
  * EncipherFF0(). 
@@ -320,8 +323,6 @@ int decipher_mem(uint8_t *out,
  * EncipherFF0 - encipher messages shorter than 16 bytes. This is 
  * based on an unbalanced Fesital network, the number of rounds 
  * depends on the size of the message.
- *
- * TODO Mix in psuedo random bit according to spec. 
  */
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
@@ -362,6 +363,8 @@ int encipher_ff0(uint8_t *out,
     memcpy(&out[msg_bytes - l], tmp, l); 
   }
   
+  point_swap(out, tweak, msg_bytes);
+
   return msg_bytes;
 }
 
@@ -382,9 +385,11 @@ int decipher_ff0(uint8_t *out,
   if (msg_bytes == 1) k = 24; 
   else if (msg_bytes == 2) k = 16;
   else k = 10; 
-  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
- 
+  
   memcpy(out, in, msg_bytes); 
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
+  point_swap(out, tweak, msg_bytes);
+ 
   l = (msg_bytes / 2) + 1; 
   for (i = k; i > 0; i--)
   {
@@ -406,5 +411,35 @@ int decipher_ff0(uint8_t *out,
     memcpy(&out[l], B, msg_bytes - l); 
 
   }
-  return (int)aez_NOT_IMPLEMENTED;
+  
+  return msg_bytes;
+}
+
+/* 
+ * When a tweak-dependent pseudo random bit comes up True, 
+ * swap two points in the message and ciphertext domains. 
+ * Used in [27] (see AEZ spec) to address the fact that 
+ * Feistel networks only generate even permuataions. 
+ *
+ * TODO This is a potential timing-attack chanel. (This 
+ *      is addressed in the latest revision of the 
+ *      AEZ spec.)
+ */ 
+void point_swap(uint8_t *out, const uint8_t *tweak, size_t msg_bytes)
+{
+  int i, j, k;
+  if (tweak[msg_bytes - 1] & 1)
+  {
+    j = 1; 
+    for (i = 0; i < msg_bytes; i++)
+      if (out[i] != 255) 
+        j = 0; 
+    k = 1; 
+    for (i = 0; i < msg_bytes; i++)
+      if (out[i] != 0)
+        k = 0; 
+    if (j || k)
+      for (i = 0; i < msg_bytes; i++)
+        out[i] ^= 255;   
+  }
 }
