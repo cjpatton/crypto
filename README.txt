@@ -9,15 +9,11 @@ aez/ INCOMPLETE
   on the x86-optimized implementation of AES-128 from OpenSSL.
 
   TODO 
-    - EncipherFF0(), DecipherFF0()
-    - Better error handling. 
     - Format() (tweak)
     - Extract() (key)
     - Encrypt(), Decrypt()
     
-    - Finish Ff0. 
-    - Stress-test MEM.
-    - aez_incipher in place? 
+    - aez_encipher in place?  
     - Coarse grained multithreading encipher_mem, aez_ahash
       - block_cipher does not treat aez_keyvector_t thread-
         safely. Message passing for key variant? 
