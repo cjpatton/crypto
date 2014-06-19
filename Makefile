@@ -1,10 +1,12 @@
 CC_FLAGS=-Wall #-O3
 
+aez: aeztest aezconst
+
 aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aes.o
 	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aes.o -o aeztest
 
-aezconstants: aez/aezconstants.c aez-core.o aez-mac.o aez-cipher.o aes.o
-	gcc $(CC_FLAGS) aez/aezconstants.c aez-core.o aez-mac.o aez-cipher.o aes.o -o aezconstants
+aezconst: aez/aezconst.c aez-core.o aez-mac.o aez-cipher.o aes.o
+	gcc $(CC_FLAGS) aez/aezconst.c aez-core.o aez-mac.o aez-cipher.o aes.o -o aezconst
 
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
@@ -45,7 +47,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa
+	rm -f *.o *test oaep-rsa aezconst
 
 # A couple tests ... 
 do: oaep-rsa
