@@ -322,7 +322,6 @@ int decipher_mem(uint8_t *out,
  * depends on the size of the message.
  *
  * TODO Mix in psuedo random bit according to spec. 
- * TODO One byte doesn't cipher properly.
  */
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
@@ -341,7 +340,7 @@ int encipher_ff0(uint8_t *out,
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
   memcpy(out, in, msg_bytes); 
-  l = msg_bytes / 2; 
+  l = (msg_bytes / 2) + 1; 
 
   for (i = 1; i <= k; i++)
   {
@@ -386,7 +385,7 @@ int decipher_ff0(uint8_t *out,
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
  
   memcpy(out, in, msg_bytes); 
-  l = msg_bytes / 2; 
+  l = (msg_bytes / 2) + 1; 
   for (i = k; i > 0; i--)
   {
     ZERO_BLOCK(B); memcpy(B, out, msg_bytes - l); 
