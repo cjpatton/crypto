@@ -67,7 +67,7 @@ void aez_free_block10(aez_block10_t *blocks);
 extern "C" {
 #endif
 
-extern const aez_block_t aez_extract; /* aez-crypt.c */ 
+extern const aez_block_t aez_const_extract; /* aez-crypt.c */ 
 
 #ifdef __cplusplus
 }
@@ -133,7 +133,7 @@ typedef enum {
  * somewhat differently in the case of decryption. 
  */
 typedef enum {
-  ENCRYPT = 0, DECRYPT
+  ENCRYPT, DECRYPT
 } aez_mode_t;
 
 
@@ -145,9 +145,7 @@ void aez_print_block(const aez_block_t X, int margin);
 
 /* Key initialization routines. */
 void aez_init_keyvector(aez_keyvector_t *key, 
-                        const uint8_t *K, 
-                        aez_mode_t mode,
-                        size_t msg_length);  
+                        const uint8_t *K); 
 
 void aez_free_keyvector(aez_keyvector_t *key); 
 
@@ -159,7 +157,7 @@ void aez_variant(aez_block_t offset,
 
 void aez_reset_variant(aez_keyvector_t *key); 
 
-/* Tweakable AES128 blockcipher */
+/* Tweakable AES-128 blockcipher */
 int aez_blockcipher(uint8_t *out, 
                     const uint8_t *in, 
                     const aez_block_t offset, 
@@ -199,5 +197,37 @@ int aez_decipher(uint8_t *out,
                  size_t msg_bytes,
                  size_t tag_bytes, 
                  aez_keyvector_t *key); 
+
+/*
+ * aez-crypt.c 
+ */
+
+int aez_encrypt(uint8_t *out, 
+                const uint8_t *in,
+                const uint8_t *nonce, 
+                const uint8_t *data,
+                size_t msg_bytes,
+                size_t nonce_bytes,
+                size_t data_bytes,
+                aez_keyvector_t *key);
+
+int aez_decrypt(uint8_t *out, 
+                const uint8_t *in,
+                const uint8_t *nonce, 
+                const uint8_t *data,
+                size_t msg_bytes,
+                size_t nonce_bytes,
+                size_t data_bytes,
+                aez_keyvector_t *key);
+
+int aez_format(uint8_t *tag, 
+               const uint8_t *nonce,
+               const uint8_t *data,
+               size_t nonce_bytes,
+               size_t data_bytes);
+
+int aez_extract(aez_keyvector_t *key, 
+                const char *user_key, 
+                size_t user_key_bytes); 
 
 #endif // AEZ_H

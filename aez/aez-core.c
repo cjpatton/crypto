@@ -9,8 +9,7 @@
  */
 
 void init_tweak_state(aez_keyvector_t *key,
-                      const uint8_t *K, 
-                      aez_mode_t mode); 
+                      const uint8_t *K);
 
 void dot2(aez_block_t X);
 void dot_inc(aez_block_t *Xs, int n);
@@ -54,9 +53,7 @@ void aez_free_block10(aez_block10_t *blocks)
  * Initialize key vector.  
  */
 void aez_init_keyvector(aez_keyvector_t *key, 
-                        const uint8_t *K, 
-                        aez_mode_t mode, 
-                        size_t msg_length)
+                        const uint8_t *K)
 {
   int i;
   
@@ -78,7 +75,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
   ZERO_BLOCK(key->dec.Kshort[4]); 
 
   /* Initialize tweak state. */ 
-  init_tweak_state(key, K, mode); 
+  init_tweak_state(key, K); 
 
   /* Create key offsets (tweaks). Note that K and Khash are calculated 
    * on the fly in aez_{en,de}cipher() and aez_ahash() resp. */ 
@@ -107,8 +104,7 @@ void aez_free_keyvector(aez_keyvector_t *key)
  * Initialize state for key tweaking (called by aez_init_keyvector()).  
  */
 void init_tweak_state(aez_keyvector_t *key,
-                      const uint8_t *K, 
-                      aez_mode_t mode)
+                      const uint8_t *K)
 {
   int n; 
   aez_block_t tmp;
@@ -230,7 +226,11 @@ void dot_inc(aez_block_t *Xs, int n)
  * Tweakable blockcipher, based on the OpenSSL implementation of 
  * AES128. The tweak is XOR'ed into the precomputed AES key 
  * schedule, then XOR'ed out. This routine supports 10-round 
- * schedules (standard AES) and 4-round schedules (AES4). 
+ * schedules (standard AES) and 4-round schedules (AES4).
+ *
+ * TODO There's a lot of branching here that could be eliminated 
+ *      by separating this into aez_aes_encrypt, aez_aes_decrypt, 
+ *      and aez_aes4. 
  */
 int aez_blockcipher(uint8_t *out, 
                     const uint8_t *in, 
@@ -281,6 +281,9 @@ int aez_blockcipher(uint8_t *out,
 
 /*
  * Output a block. 
+ *
+ * TODO This should probably be removed in a production 
+ *      verison of this program. 
  */
 void aez_print_block(const aez_block_t X, int margin)
 {

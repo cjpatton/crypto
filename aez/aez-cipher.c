@@ -104,7 +104,7 @@ int aez_decipher(uint8_t *out,
 /*
  * EncipherMEM - encipher messages longer than 16 bytes. This is 
  * the meat of the AEZ scheme. This is based on the Naor, Reingold
- * scheme. See [24] in the AEZ reference. 
+ * electronic codebook scheme. See [24] in the AEZ reference.
  */
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
@@ -349,7 +349,7 @@ int encipher_ff0(uint8_t *out,
     ZERO_BLOCK(B); memcpy(B, &out[l], msg_bytes - l); 
     
     ZERO_BLOCK(tmp); 
-    *(uint32_t *)tmp = i; 
+    *(uint32_t *)tmp = i; /* TODO byte order */  
     memcpy(&tmp[4], B, msg_bytes - l); 
     tmp[4 + msg_bytes - l] = 1; 
 
@@ -397,7 +397,7 @@ int decipher_ff0(uint8_t *out,
     ZERO_BLOCK(A); memcpy(A, &out[msg_bytes - l], l); 
     
     ZERO_BLOCK(tmp); 
-    *(uint32_t *)tmp = i; 
+    *(uint32_t *)tmp = i; /* TODO byte order */ 
     memcpy(&tmp[4], B, msg_bytes - l); 
     tmp[4 + msg_bytes - l] = 1; 
 
@@ -421,9 +421,9 @@ int decipher_ff0(uint8_t *out,
  * Used in [27] (see AEZ spec) to address the fact that 
  * Feistel networks only generate even permuataions. 
  *
- * TODO This is a potential timing-attack chanel. (This 
- *      is addressed in the latest revision of the 
- *      AEZ spec.)
+ * TODO This is a potential timing-attack channel, a fact
+ *      that is addressed in the latest revision of the 
+ *      AEZ spec.
  */ 
 void point_swap(uint8_t *out, const uint8_t *tweak, size_t msg_bytes)
 {
