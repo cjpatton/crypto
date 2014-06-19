@@ -319,10 +319,10 @@ int decipher_mem(uint8_t *out,
 /*
  * EncipherFF0 - encipher messages shorter than 16 bytes. This is 
  * based on an unbalanced Fesital network, the number of rounds 
- * depending on the
- * size of the message.
+ * depends on the size of the message.
  *
- * TODO correct number of rounds, mix in bit. 
+ * TODO Mix in psuedo random bit according to spec. 
+ * TODO One byte doesn't cipher properly.
  */
 int encipher_ff0(uint8_t *out, 
                  const uint8_t *in, 
@@ -331,10 +331,13 @@ int encipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  int i, j, k=10, l;
+  int i, j, k, l;
   uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
   uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
   
+  if (msg_bytes == 1) k = 24; 
+  else if (msg_bytes == 2) k = 16;
+  else k = 10; 
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
   memcpy(out, in, msg_bytes); 
@@ -373,11 +376,15 @@ int decipher_ff0(uint8_t *out,
                  size_t tag_bytes, 
                  aez_keyvector_t *key)
 {
-  int i, j, k=10, l;
+  int i, j, k, l;
   uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
   uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
-  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
+  if (msg_bytes == 1) k = 24; 
+  else if (msg_bytes == 2) k = 16;
+  else k = 10; 
+  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
+ 
   memcpy(out, in, msg_bytes); 
   l = msg_bytes / 2; 
   for (i = k; i > 0; i--)
