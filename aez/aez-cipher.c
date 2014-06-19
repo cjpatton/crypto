@@ -381,7 +381,6 @@ int decipher_ff0(uint8_t *out,
   
   memcpy(out, in, msg_bytes); 
   l = msg_bytes / 2; 
-
   for (i = k; i > 0; i--)
   {
     ZERO_BLOCK(B); memcpy(B, out, l); 
