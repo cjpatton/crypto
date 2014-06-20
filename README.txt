@@ -10,14 +10,13 @@ aez/ INCOMPLETE
 
   TODO 
     - Format() (tweak)
-    - Extract() (key)
     - Encrypt(), Decrypt()
     
     - aez_encipher in place?  
     - Coarse grained multithreading encipher_mem, aez_ahash
       - block_cipher does not treat aez_keyvector_t thread-
         safely. Message passing for key variant? 
-  
+ 
 
   
   NOTES
@@ -41,6 +40,9 @@ aez/ INCOMPLETE
       and `out` for the AES cipher. 
       
     - Preprocessor and '{', '}' tokens.
+
+    - Byte order: I made a node wherever a word was loaded into 
+      bytes. What about the byte order of input texts and keys? 
 
 
 oaep-rsa.c

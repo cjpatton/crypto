@@ -93,14 +93,6 @@ void aez_init_keyvector(aez_keyvector_t *key,
 
 
 /*
- * Free key vector. 
- */
-void aez_free_keyvector(aez_keyvector_t *key)
-{
-}
-
-
-/*
  * Initialize state for key tweaking (called by aez_init_keyvector()).  
  */
 void init_tweak_state(aez_keyvector_t *key,

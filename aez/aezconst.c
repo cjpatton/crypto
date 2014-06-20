@@ -24,8 +24,6 @@ int main() {
     printf("CONST%d = ", i); 
     aez_print_block((uint32_t *)ciphertext, 0); 
   }
-  
-  aez_free_keyvector(&key); 
 
   return 0; 
 }

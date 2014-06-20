@@ -48,52 +48,20 @@ mutations [17].";
 
 int main(int argc, const char **argv)
 {
-  /* Fake key to start. */ 
-  aez_keyvector_t key; 
+  
   uint8_t message [1024]; 
-  uint8_t tag [512]; 
-  uint8_t hash [16]; 
-  uint8_t K [AEZ_BYTES]; 
-  int i; 
-  for (i = 0; i < AEZ_BYTES; i += 4)
-  {
-    *(uint32_t*)(&K[i]) = 1 << i; /* TODO byte order */ 
-  }
-  K[15] ^= 0x80;
-
-  /* Initialize key vector. */ 
-  aez_init_keyvector(&key, K); 
-  //dump_keys(&key); 
-
-  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key);
-  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
-
-  /* Enciphering tests. */
-  memset(tag, 0, 512 * sizeof(uint8_t)); 
-  strcpy((char *)tag, "Man, this is a super nice tag.");
-
-  unit_test(bigtext, tag, strlen((char *)bigtext), strlen((char *)tag), &key); 
-  //
-  //  memset(message, 0, 1024 * sizeof(uint8_t)); 
-  //  strcpy((char *)message, "0123456789abcdef");
-  //  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-  //
-  //  memset(message, 0,1024 * sizeof(uint8_t)); 
-  //  strcpy((char *)message, "0123456789abcdef.");
-  //  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-  //
-  //  memset(message, 0,1024 * sizeof(uint8_t)); 
-  //  strcpy((char *)message, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefstuff");
-  //  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  uint8_t user_key [] = "This.";
+  uint8_t tag [] = "I think this is a fine tag."; 
   
-  memset(message, 0,1024 * sizeof(uint8_t)); 
-  strcpy((char *)message, "a");
+  aez_keyvector_t key; 
+  aez_extract(&key, user_key, strlen((char *)user_key)); 
+
+  //unit_test(bigtext, tag, strlen((char *)bigtext), strlen((char *)tag), &key); 
+  
+  memset(message, 0, 1024); 
+  strcpy((char *)message, "Hi."); 
   unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
-  
-  /* Destroy key vector. */ 
-  aez_free_keyvector(&key); 
-  
-  
+
 
   return 0; 
 }

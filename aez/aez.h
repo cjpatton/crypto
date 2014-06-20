@@ -67,7 +67,11 @@ void aez_free_block10(aez_block10_t *blocks);
 extern "C" {
 #endif
 
-extern const aez_block_t aez_const_extract; /* aez-crypt.c */ 
+/* aez-crypt.c */ 
+extern const aez_block_t aez_const1,
+                         aez_const2,
+                         aez_const3,
+                         aez_const4;
 
 #ifdef __cplusplus
 }
@@ -147,9 +151,6 @@ void aez_print_block(const aez_block_t X, int margin);
 void aez_init_keyvector(aez_keyvector_t *key, 
                         const uint8_t *K); 
 
-void aez_free_keyvector(aez_keyvector_t *key); 
-
-
 /* Key tweaking */ 
 void aez_variant(aez_block_t offset, 
                  aez_keyvector_t *key,
@@ -227,7 +228,7 @@ int aez_format(uint8_t *tag,
                size_t data_bytes);
 
 int aez_extract(aez_keyvector_t *key, 
-                const char *user_key, 
+                const uint8_t *user_key, 
                 size_t user_key_bytes); 
 
 #endif // AEZ_H
