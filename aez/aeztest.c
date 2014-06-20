@@ -50,7 +50,7 @@ int main(int argc, const char **argv)
 {
   
   uint8_t message [1024]; 
-  uint8_t user_key [] = "This.";
+  uint8_t user_key [] = "This is a better key than just \"This.\".";
   uint8_t tag [] = "I think this is a fine tag."; 
   
   aez_keyvector_t key; 
