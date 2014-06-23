@@ -1,5 +1,6 @@
 #include "aez.h"
 #include "../cipher/aes.h"
+#include "rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -50,17 +51,42 @@ int main(int argc, const char **argv)
 {
   
   uint8_t message [1024]; 
-  uint8_t user_key [] = "This is a better key than just \"This.\".";
+  uint8_t plaintext [1024]; 
+  uint8_t ciphertext [1024]; 
+  uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
   uint8_t tag [] = "I think this is a fine tag."; 
   
   aez_keyvector_t key; 
-  aez_extract(&key, user_key, strlen((char *)user_key)); 
-
-  //unit_test(bigtext, tag, strlen((char *)bigtext), strlen((char *)tag), &key); 
-  
+  aez_init_keyvector(&key, user_key); 
   memset(message, 0, 1024); 
-  strcpy((char *)message, "Hi."); 
-  unit_test(message, tag, strlen((char *)message), strlen((char *)tag), &key); 
+  strcpy((char *)message, "01234527789abcdef"); 
+
+  /* ------------------------------------------------------------------ */
+  printf("Us ... \n"); 
+  memset(plaintext, 0, 1024); 
+
+  aes_encrypt(message, ciphertext, (uint32_t *)key.enc.Klong, 10);  
+  aes_decrypt(ciphertext, plaintext, (uint32_t *)key.dec.Klong, 10);  
+
+  printf("message:    %s\n", plaintext); 
+  printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
+  printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
+
+  /* ------------------------------------------------------------------ */
+  printf("\n ... and them.\n"); 
+  uint32_t encKlong [11 * 4]; 
+  uint32_t decKlong [11 * 4]; 
+  rijndaelKeySetupEnc(encKlong, user_key, 128); 
+  rijndaelKeySetupDec(decKlong, user_key, 128); 
+  memset(plaintext, 0, 1024); 
+
+  rijndaelEncrypt(encKlong, 10, message, ciphertext); 
+  rijndaelDecrypt(decKlong, 10, ciphertext, plaintext); 
+  
+  printf("message:    %s\n", plaintext); 
+  printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
+  printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
+
 
 
   return 0; 
