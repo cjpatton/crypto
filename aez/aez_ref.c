@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "aez.h" // TODO benchmarking
+
 typedef unsigned char byte;
 
 #include "rijndael-alg-fst.h"     /* Defines "u32" type for AES internal key */
@@ -103,6 +105,7 @@ static void Variant(byte *K, unsigned jdoublings, unsigned i, unsigned l,
         mult_block(l, L);
         xor_bytes(Offset,Offset,L,16);
     }
+    printf("Offset: "); aez_print_block((u32 *)Offset, 0); 
     if (inv)    rijndaelKeySetupDec(Klong, K, 128);
     if (k==0) {
         memcpy(dst, Offset, 16);
@@ -122,11 +125,12 @@ static void Variant(byte *K, unsigned jdoublings, unsigned i, unsigned l,
 
 /* ------------------------------------------------------------------------- */
 
-static void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
+void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
     byte sigma[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     u32 Khash[5*4];
     unsigned j = 1;
     while (mbytes >= 16) {
+        printf("Once\n"); 
         byte buf[16];
         Variant(K, (j+7)/8, (j-1)%8 , 0, 4, 0, Khash);
         rijndaelEncrypt(Khash, 4, M, buf);
@@ -136,6 +140,7 @@ static void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
         j += 1;
     }
     if (mbytes) {
+        printf("Nope\n"); 
         byte buf[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
         memcpy(buf, M, mbytes);
         buf[mbytes] = 0x80;
@@ -436,28 +441,28 @@ static void pbuf(byte *p, unsigned len, char *s)
 #define ABYTES 2
 #define MAX 1000
 
-int main() {
-    byte kin[] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};
-    byte m[MAX];
-    byte c[sizeof(m)+ABYTES];
-    byte n[13] = {1,2,3,0};
-    byte ad[12] = {1,2,3,0};
-    unsigned i,j;
-
-    for (i=0; i<MAX; i++) m[i] = (byte)(i*i+47);
-
-    for (i=0; i<256; i++) {
-        for (j=0; j<256; j++) {
-            byte buf[2];
-            buf[0] = (byte)i; buf[1] = (byte)j;
-            Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), buf, 2, 0, c);
-            pbuf(c, 2, 0);
-        }
-    }
-
-    for (i=0; i<MAX; i++) {
-        Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), m, i, ABYTES, c);
-        pbuf(c, i+ABYTES, 0);
-    }
-    return 0;
-}
+//int main() {
+//    byte kin[] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};
+//    byte m[MAX];
+//    byte c[sizeof(m)+ABYTES];
+//    byte n[13] = {1,2,3,0};
+//    byte ad[12] = {1,2,3,0};
+//    unsigned i,j;
+//
+//    for (i=0; i<MAX; i++) m[i] = (byte)(i*i+47);
+//
+//    for (i=0; i<256; i++) {
+//        for (j=0; j<256; j++) {
+//            byte buf[2];
+//            buf[0] = (byte)i; buf[1] = (byte)j;
+//            Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), buf, 2, 0, c);
+//            pbuf(c, 2, 0);
+//        }
+//    }
+//
+//    for (i=0; i<MAX; i++) {
+//        Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), m, i, ABYTES, c);
+//        pbuf(c, i+ABYTES, 0);
+//    }
+//    return 0;
+//}

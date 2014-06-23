@@ -67,6 +67,7 @@ void aez_ahash(uint8_t *hash,
   /* Apply AES4 to each block and XOR them together. */ 
   for (j = 0; j < msg_bytes; j += AEZ_BYTES) 
   {
+    printf("Once\n"); 
     aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
     aez_blockcipher(tmp, plaintext + j, Khash, key, ENCRYPT, 4); 
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
@@ -75,6 +76,7 @@ void aez_ahash(uint8_t *hash,
   /* Pad last block */ 
   if (j > msg_bytes) 
   {
+    printf("Nope\n"); 
     aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
     ZERO_BLOCK((uint32_t *)tmp); 
     j -= AEZ_BYTES; 

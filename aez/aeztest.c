@@ -53,24 +53,29 @@ int main(int argc, const char **argv)
   uint8_t message [1024]; 
   uint8_t plaintext [1024]; 
   uint8_t ciphertext [1024]; 
+  uint8_t hash [AEZ_BYTES]; 
   uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
   uint8_t tag [] = "I think this is a fine tag."; 
   
   aez_keyvector_t key; 
   aez_init_keyvector(&key, user_key); 
   memset(message, 0, 1024); 
-  strcpy((char *)message, "01234527789abcdef"); 
+  strcpy((char *)message, "01234567789abcde"); 
+  printf("Message bytes: %d\n", strlen((char *)message)); 
 
   /* ------------------------------------------------------------------ */
   printf("Us ... \n"); 
-  memset(plaintext, 0, 1024); 
+  
+  memset(hash, 0, AEZ_BYTES); 
+  aez_ahash(hash, message, strlen((char *)message), &key); 
+  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
-  aes_encrypt(message, ciphertext, (uint32_t *)key.enc.Klong, 10);  
-  aes_decrypt(ciphertext, plaintext, (uint32_t *)key.dec.Klong, 10);  
-
-  printf("message:    %s\n", plaintext); 
-  printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
-  printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
+  // AES
+  //aes_encrypt(message, ciphertext, (uint32_t *)key.enc.Klong, 10);  
+  //aes_decrypt(ciphertext, plaintext, (uint32_t *)key.dec.Klong, 10);  
+  //printf("message:    %s\n", plaintext); 
+  //printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
+  //printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
 
   /* ------------------------------------------------------------------ */
   printf("\n ... and them.\n"); 
@@ -78,14 +83,17 @@ int main(int argc, const char **argv)
   uint32_t decKlong [11 * 4]; 
   rijndaelKeySetupEnc(encKlong, user_key, 128); 
   rijndaelKeySetupDec(decKlong, user_key, 128); 
-  memset(plaintext, 0, 1024); 
-
-  rijndaelEncrypt(encKlong, 10, message, ciphertext); 
-  rijndaelDecrypt(decKlong, 10, ciphertext, plaintext); 
   
-  printf("message:    %s\n", plaintext); 
-  printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
-  printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
+  memset(hash, 0, AEZ_BYTES); 
+  AHash(user_key, message, strlen((char *)message), hash); 
+  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
+
+  // AES 
+  //rijndaelEncrypt(encKlong, 10, message, ciphertext); 
+  //rijndaelDecrypt(decKlong, 10, ciphertext, plaintext); 
+  //printf("message:    %s\n", plaintext); 
+  //printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
+  //printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
 
 
 

@@ -161,6 +161,8 @@ void aez_variant(aez_block_t offset,
   /* Precomputed. */ 
   XOR_BLOCK(offset, key->ts.I[i]); // I[j] = i * I.
   XOR_BLOCK(offset, key->ts.L[l]); // L[l] = l * L. 
+  
+  printf("Offset: "); aez_print_block((uint32_t *)offset, 0); 
 }
 
 void aez_reset_variant(aez_keyvector_t *key) 

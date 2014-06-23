@@ -37,6 +37,12 @@
   
 #define BLOCK_MSB(X) (X[3] >> 31)
 
+/* TODO benchmarking. */
+typedef unsigned char byte;
+void AHash(byte *K, byte *M, unsigned mbytes, byte *result);
+
+
+
 
 /*
  * Block types for key vectors. Careful - these are really of 
