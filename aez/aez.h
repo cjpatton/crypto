@@ -47,6 +47,10 @@ void ExtractKey(byte *Key, unsigned kbytes, byte *result);
 void Format(byte *N, unsigned nbytes, byte *AD, unsigned adbytes,
                                 unsigned abytes, byte **T, unsigned *tbytes);
 
+int Decrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
+        unsigned adbytes, byte *C, unsigned cbytes, unsigned abytes, byte *M);
+void Encrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
+        unsigned adbytes, byte *M, unsigned mbytes, unsigned abytes, byte *C);
 
 /*
  * Block types for key vectors. Careful - these are really of 
@@ -202,6 +206,7 @@ int aez_encrypt(uint8_t *out,
                 size_t msg_bytes,
                 size_t nonce_bytes,
                 size_t data_bytes,
+                size_t auth_bytes, 
                 aez_keyvector_t *key);
 
 int aez_decrypt(uint8_t *out, 
@@ -211,6 +216,7 @@ int aez_decrypt(uint8_t *out,
                 size_t msg_bytes,
                 size_t nonce_bytes,
                 size_t data_bytes,
+                size_t auth_bytes, 
                 aez_keyvector_t *key);
 
 int aez_format(uint8_t **tag, 

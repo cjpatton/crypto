@@ -52,7 +52,8 @@ mutations [17].";
 int main(int argc, const char **argv)
 {
   
-  int i; 
+  int res; 
+  const int ABYTES = 16; 
   uint8_t plaintext [4096]; 
   uint8_t ciphertext [4096]; 
   //uint8_t hash [AEZ_BYTES]; 
@@ -62,7 +63,7 @@ int main(int argc, const char **argv)
 
   uint8_t nonce [] = "2343243"; 
   uint8_t data [] = "Additional data occampanying the message. E.g., 3.1415.";
-  uint8_t *tag; 
+  //uint8_t *tag; 
   
   //uint8_t tag [] = "This is a tag";
   //size_t tag_bytes = strlen((char *)tag);
@@ -79,23 +80,41 @@ int main(int argc, const char **argv)
   // Extract
   aez_keyvector_t key; 
   aez_extract(&key, user_key, key_bytes); 
+  
+  // Encrypt
+  memset(plaintext, 0, 4096); 
+  memset(ciphertext, 0, 4096); 
+ 
+  aez_encrypt(ciphertext, bigtext, nonce, data, 
+               msg_bytes, strlen((char *)nonce), strlen((char *)data),
+               ABYTES, &key);
+
+  res = aez_decrypt(ciphertext, bigtext, nonce, data, 
+                    msg_bytes + ABYTES, strlen((char *)nonce), strlen((char *)data),
+                    ABYTES, &key);
+
+  if (res < 0) 
+    printf("Reject plaintext!!\n"); 
+
+  show_cipher(bigtext, ciphertext, plaintext, msg_bytes); 
+  printf("MAC: "); aez_print_block((uint32_t *)&ciphertext[msg_bytes - ABYTES], 0); 
 
   // Format
-  unsigned tag_bytes = aez_format(&tag, nonce, data, 
-                      strlen((char *)nonce), strlen((char *)data), 16);
+  //unsigned tag_bytes = aez_format(&tag, nonce, data, 
+  //                    strlen((char *)nonce), strlen((char *)data), 16);
 
   //for (i = 0; i < tag_bytes; i++) putchar(tag[i]); 
   //putchar('\n'); 
   //printf("Tag bytes: %d\n", tag_bytes);
 
   // Cipher
-  memset(plaintext, 0, 4096); 
-  memset(ciphertext, 0, 4096); 
-  aez_encipher(ciphertext, bigtext, tag, msg_bytes, tag_bytes, &key); 
-  aez_decipher(plaintext, ciphertext, tag, msg_bytes, tag_bytes, &key); 
-  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);
+  //memset(plaintext, 0, 4096); 
+  //memset(ciphertext, 0, 4096); 
+  //aez_encipher(ciphertext, bigtext, tag, msg_bytes, tag_bytes, &key); 
+  //aez_decipher(plaintext, ciphertext, tag, msg_bytes, tag_bytes, &key); 
+  //show_cipher(bigtext, ciphertext, plaintext, msg_bytes);
 
-  free(tag); 
+  //free(tag); 
 
   // AMAC
   //aez_amac(mac, bigtext, msg_bytes, &key, i); 
@@ -116,26 +135,49 @@ int main(int argc, const char **argv)
   /* ------------------------------------------------------------------ */
   printf("\n ... and them.\n");
 
+  // Encrypt
+  memset(plaintext, 0, 4096); 
+  memset(ciphertext, 0, 4096); 
+  
+  Encrypt(user_key, key_bytes, 
+          nonce, strlen((char *)nonce), 
+          data, strlen((char *)data),
+          bigtext, msg_bytes,
+          ABYTES, ciphertext); 
+  
+  res = Decrypt(user_key, key_bytes, 
+                nonce, strlen((char *)nonce), 
+                data, strlen((char *)data),
+                ciphertext, msg_bytes + ABYTES,
+                ABYTES, plaintext); 
+
+  if (res < 0) 
+    printf("Reject plaintext!!\n"); 
+
+  show_cipher(bigtext, ciphertext, plaintext, msg_bytes); 
+  printf("MAC: "); aez_print_block((uint32_t *)&ciphertext[msg_bytes - ABYTES], 0); 
+
+
   // Extract
-  uint8_t K [16]; 
-  ExtractKey(user_key, key_bytes, K);
+  //uint8_t K [16]; 
+  //ExtractKey(user_key, key_bytes, K);
   
   // Format
-  Format(nonce, strlen((char *)nonce), 
-         data, strlen((char *)data), 16, &tag, &tag_bytes); 
+  //Format(nonce, strlen((char *)nonce), 
+  //       data, strlen((char *)data), 16, &tag, &tag_bytes); 
   
   //for (i = 0; i < tag_bytes; i++) putchar(tag[i]); 
   //putchar('\n'); 
   //printf("Tag bytes: %d\n", tag_bytes);
 
   // Cipher
-  memset(plaintext, 0, 4096); 
-  memset(ciphertext, 0, 4096); 
-  Cipher(K, tag, tag_bytes, bigtext, msg_bytes, 0, ciphertext);
-  Cipher(K, tag, tag_bytes, ciphertext, msg_bytes, 1, plaintext);
-  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
+  //memset(plaintext, 0, 4096); 
+  //memset(ciphertext, 0, 4096); 
+  //Cipher(K, tag, tag_bytes, bigtext, msg_bytes, 0, ciphertext);
+  //Cipher(K, tag, tag_bytes, ciphertext, msg_bytes, 1, plaintext);
+  //show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
 
-  free(tag); 
+  //free(tag); 
 
   // AMAC
   //AMAC(user_key, bigtext, msg_bytes, i, mac); 

@@ -10,6 +10,7 @@ int aez_encrypt(uint8_t *out,
                 size_t msg_bytes,
                 size_t nonce_bytes,
                 size_t data_bytes,
+                size_t auth_bytes, 
                 aez_keyvector_t *key)
 {
   return (int)aez_NOT_IMPLEMENTED;
@@ -22,6 +23,7 @@ int aez_decrypt(uint8_t *out,
                 size_t msg_bytes,
                 size_t nonce_bytes,
                 size_t data_bytes,
+                size_t auth_bytes, 
                 aez_keyvector_t *key)
 {
   return (int)aez_NOT_IMPLEMENTED;
