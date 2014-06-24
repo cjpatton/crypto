@@ -3,18 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/*
- * Initialize constants. 
- *
- * TODO byte order 
- */
-
-const aez_block_t aez_const1 = {0xd646a037, 0x12996f44, 0x5b000e23, 0x4345fca0};
-const aez_block_t aez_const2 = {0x5275f58d, 0x932a3590, 0x6193cf1d, 0x8b4671b9};  
-const aez_block_t aez_const3 = {0xbd68f1f2, 0x6d49838c, 0x658819d5, 0x56edba08}; 
-const aez_block_t aez_const4 = {0x7219c43c, 0xd8d854f4, 0x049e54bf, 0x8d8e8389};
-
-
 int aez_encrypt(uint8_t *out, 
                 const uint8_t *in,
                 const uint8_t *nonce, 

@@ -69,24 +69,6 @@ void aez_free_block10(aez_block10_t *blocks);
 
 
 /*
- * Constants.
- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* aez-crypt.c */ 
-extern const aez_block_t aez_const1,
-                         aez_const2,
-                         aez_const3,
-                         aez_const4;
-
-#ifdef __cplusplus
-}
-#endif 
-
-/*
  * Key space for AEZ. 
  */
 
