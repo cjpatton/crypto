@@ -130,7 +130,6 @@ void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
     u32 Khash[5*4];
     unsigned j = 1;
     while (mbytes >= 16) {
-        printf("Once\n"); 
         byte buf[16];
         Variant(K, (j+7)/8, (j-1)%8 , 0, 4, 0, Khash);
         rijndaelEncrypt(Khash, 4, M, buf);
@@ -140,7 +139,6 @@ void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
         j += 1;
     }
     if (mbytes) {
-        printf("Nope\n"); 
         byte buf[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
         memcpy(buf, M, mbytes);
         buf[mbytes] = 0x80;

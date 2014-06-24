@@ -59,29 +59,29 @@ void aez_ahash(uint8_t *hash,
 {
   aez_reset_variant(key); 
 
-  int i=0, j; 
+  int j=1; 
   aez_block_t Khash;
   uint8_t tmp [AEZ_BYTES];
   ZERO_BLOCK((uint32_t *)hash);
 
   /* Apply AES4 to each block and XOR them together. */ 
-  for (j = 0; j < msg_bytes; j += AEZ_BYTES) 
+  while (msg_bytes >= AEZ_BYTES)
   {
-    printf("Once\n"); 
-    aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
-    aez_blockcipher(tmp, plaintext + j, Khash, key, ENCRYPT, 4); 
+    aez_variant(Khash, key, (j + 7)/8, (j - 1) % 8, 0, 4); 
+    aez_blockcipher(tmp, plaintext, Khash, key, ENCRYPT, 4); 
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
+    msg_bytes -= AEZ_BYTES; 
+    plaintext += AEZ_BYTES; 
+    j ++; 
   }
-
+  
   /* Pad last block */ 
-  if (j > msg_bytes) 
+  if (msg_bytes) 
   {
-    printf("Nope\n"); 
-    aez_variant(Khash, key, j + 1, (i++) % 8, 0, 4); 
+    aez_variant(Khash, key, (j + 7)/8, (j - 1) % 8, 0, 4); 
     ZERO_BLOCK((uint32_t *)tmp); 
-    j -= AEZ_BYTES; 
-    memcpy(tmp, plaintext + j, sizeof(uint8_t) * (msg_bytes - j));
-    tmp[msg_bytes - j] = 1; 
+    memcpy(tmp, plaintext, sizeof(uint8_t) * msg_bytes);
+    tmp[msg_bytes] = 0x80; 
     aez_blockcipher(tmp, tmp, Khash, key, ENCRYPT, 4);  
     XOR_BLOCK((uint32_t *)hash, (uint32_t *)tmp); 
   }

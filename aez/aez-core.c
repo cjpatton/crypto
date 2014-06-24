@@ -99,24 +99,23 @@ void init_tweak_state(aez_keyvector_t *key,
                       const uint8_t *K)
 {
   int n; 
-  aez_block_t tmp;
 
   /* I, J, L */ 
-  ZERO_BLOCK(tmp); 
-  
+
   /* j * J, where j iterates by doubling. Since this operation is 
    * closed, we don't need to compute intermediate values. */
-  tmp[0] = 1; /* TODO byte order */ 
-  aes_encrypt((const uint8_t *)tmp, 
+  ZERO_BLOCK(key->ts.J);
+  ((uint8_t *)key->ts.J)[15] = 1; 
+  aes_encrypt((const uint8_t *)key->ts.J, 
               (uint8_t *)key->ts.J, 
               (uint32_t *)key->enc.Klong, 10); 
 
   CP_BLOCK(key->ts.Jinit, key->ts.J); 
 
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
-  tmp[0] = 0; /* TODO byte order */ 
-  ZERO_BLOCK(key->ts.I[0]); 
-  aes_encrypt((const uint8_t *)tmp, 
+  ZERO_BLOCK(key->ts.I[0]);
+  ((uint8_t *)key->ts.I)[15] = 1; 
+  aes_encrypt((const uint8_t *)key->ts.I, 
               (uint8_t *)key->ts.I[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 8; n++)
@@ -126,9 +125,9 @@ void init_tweak_state(aez_keyvector_t *key,
   }
   
   /* l * L, where l \in [0 .. 16]. Precompute these values. */ 
-  tmp[0] = 2; /* TODO byte order */ 
-  ZERO_BLOCK(key->ts.L[0]); 
-  aes_encrypt((const uint8_t *)tmp, 
+  ZERO_BLOCK(key->ts.L[0]);
+  ((uint8_t *)key->ts.L)[15] = 1; 
+  aes_encrypt((const uint8_t *)key->ts.L, 
               (uint8_t *)key->ts.L[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 16; n++)
@@ -154,7 +153,9 @@ void aez_variant(aez_block_t offset,
   else // Iterative doubling handled in aez_init_keyvector(). 
   {
     if (i == 0)
+    {
       dot2(key->ts.J); 
+    }
     CP_BLOCK(offset, key->ts.J); 
   }
 
@@ -176,13 +177,19 @@ void aez_reset_variant(aez_keyvector_t *key)
  */
 void dot2(aez_block_t X)
 {
-  unsigned b = BLOCK_MSB(X);
-  X[3] = (X[3] << 1) ^ (X[2] >> 31);
-  X[2] = (X[2] << 1) ^ (X[1] >> 31);
-  X[1] = (X[1] << 1) ^ (X[0] >> 31);
-  X[0] = (X[0] << 1);
-  if (b) 
-    X[0] ^= 135;
+  uint8_t *b = (uint8_t *)X; 
+  byte tmp = b[0];
+  unsigned i;
+  for (i=0; i<15; i++)
+      b[i] = (byte)((b[i] << 1) | (b[i+1] >> 7));
+  b[15] = (byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
+//  unsigned b = BLOCK_MSB(X);
+//  X[3] = (X[3] << 1) ^ (X[2] >> 31);
+//  X[2] = (X[2] << 1) ^ (X[1] >> 31);
+//  X[1] = (X[1] << 1) ^ (X[0] >> 31);
+//  X[0] = (X[0] << 1);
+//  if (b) 
+//    X[0] ^= 135;
 }
 
 /*
