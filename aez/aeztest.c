@@ -52,19 +52,14 @@ mutations [17].";
 int main(int argc, const char **argv)
 {
   
-  uint8_t message [4096]; 
-  uint8_t plaintext [4096]; 
-  uint8_t ciphertext [4096]; 
+  //uint8_t plaintext [4096]; 
+  //uint8_t ciphertext [4096]; 
   //uint8_t hash [AEZ_BYTES]; 
   //uint8_t mac [AEZ_BYTES]; 
-  uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
-  uint8_t tag [] = "I think this is a fine tag, but it could be a bit more meaningful."; 
+  uint8_t user_key [] = "This is a pretty terrible key.";  
+  size_t key_bytes = strlen((char *)user_key); 
+  //uint8_t tag [] = "I think this is a fine tag, but it could be a bit more meaningful."; 
   
-  aez_keyvector_t key; 
-  aez_init_keyvector(&key, user_key); 
-  memset(message, 0, 4096); 
-  strcpy((char *)message, "01234567789abcdeAww."); 
-
   size_t msg_bytes = 3103;
   //int i =2 ; 
   printf("Message bytes: %d of %d\n", (int)msg_bytes, 
@@ -74,12 +69,16 @@ int main(int argc, const char **argv)
   /* ------------------------------------------------------------------ */
   printf("Us ... \n"); 
   
+  // Extract
+  aez_keyvector_t key; 
+  aez_extract(&key, user_key, key_bytes); 
+
   // Cipher
-  memset(plaintext, 0, 4096); 
-  memset(ciphertext, 0, 4096); 
-  aez_encipher(ciphertext, bigtext, tag, msg_bytes, strlen((char *)tag), &key); 
-  aez_decipher(plaintext, ciphertext, tag, msg_bytes, strlen((char *)tag), &key); 
-  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
+  //memset(plaintext, 0, 4096); 
+  //memset(ciphertext, 0, 4096); 
+  //aez_encipher(ciphertext, bigtext, tag, msg_bytes, strlen((char *)tag), &key); 
+  //aez_decipher(plaintext, ciphertext, tag, msg_bytes, strlen((char *)tag), &key); 
+  //show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
 
   // AMAC
   //aez_amac(mac, bigtext, msg_bytes, &key, i); 
@@ -98,19 +97,24 @@ int main(int argc, const char **argv)
   //printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
 
   /* ------------------------------------------------------------------ */
-  printf("\n ... and them.\n"); 
+  printf("\n ... and them.\n");
+  uint8_t K [16]; 
+  ExtractKey(user_key, key_bytes, K);
+
+
   uint32_t encKlong [11 * 4]; 
   uint32_t decKlong [11 * 4]; 
   rijndaelKeySetupEnc(encKlong, user_key, 128); 
   rijndaelKeySetupDec(decKlong, user_key, 128); 
   
+  // Extract
+
   // Cipher
-  memset(plaintext, 0, 4096); 
-  memset(ciphertext, 0, 4096); 
-  Cipher(user_key, tag, strlen((char *)tag), bigtext, msg_bytes, 0, ciphertext);
-  Cipher(user_key, tag, strlen((char *)tag), ciphertext, msg_bytes, 1, plaintext);
-  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
-  
+  //memset(plaintext, 0, 4096); 
+  //memset(ciphertext, 0, 4096); 
+  //Cipher(user_key, tag, strlen((char *)tag), bigtext, msg_bytes, 0, ciphertext);
+  //Cipher(user_key, tag, strlen((char *)tag), ciphertext, msg_bytes, 1, plaintext);
+  //show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
 
   // AMAC
   //AMAC(user_key, bigtext, msg_bytes, i, mac); 

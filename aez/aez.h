@@ -43,7 +43,7 @@ void AHash(byte *K, byte *M, unsigned mbytes, byte *result);
 void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result);
 void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
                                 unsigned inbytes, unsigned inv, byte *out);
-
+void ExtractKey(byte *Key, unsigned kbytes, byte *result);
 
 
 

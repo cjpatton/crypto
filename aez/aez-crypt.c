@@ -1,6 +1,7 @@
 #include "aez.h"
 #include "../cipher/aes.h"
 #include <string.h>
+#include <stdio.h>
 
 /*
  * Initialize constants. 
@@ -11,7 +12,8 @@
 const aez_block_t aez_const1 = {0xd646a037, 0x12996f44, 0x5b000e23, 0x4345fca0};
 const aez_block_t aez_const2 = {0x5275f58d, 0x932a3590, 0x6193cf1d, 0x8b4671b9};  
 const aez_block_t aez_const3 = {0xbd68f1f2, 0x6d49838c, 0x658819d5, 0x56edba08}; 
-const aez_block_t aez_const4 = {0x7219c43c, 0xd8d854f4, 0x049e54bf, 0x8d8e8389};  
+const aez_block_t aez_const4 = {0x7219c43c, 0xd8d854f4, 0x049e54bf, 0x8d8e8389};
+
 
 int aez_encrypt(uint8_t *out, 
                 const uint8_t *in,
@@ -47,49 +49,70 @@ int aez_format(uint8_t *tag,
 }
 
 /* 
- * TODO byte order of user_key
+ * 
  */
 int aez_extract(aez_keyvector_t *key, 
                 const uint8_t *user_key, 
                 size_t user_key_bytes) 
 {
-  int i;
-  aez_keyvector_t key4; 
-  aez_init_keyvector(&key4, (uint8_t *)aez_const4); 
-  uint8_t K [AEZ_BYTES];  
   
-  if (user_key_bytes == AEZ_BYTES) 
-  {
-    CP_BLOCK(K, user_key); 
-    XOR_BLOCK(K, aez_const1); 
-    aez_init_keyvector(key, K);  
-    return (int)aez_SUCCESS; 
-  }
+  uint8_t result [AEZ_BYTES], tmp [AEZ_BYTES],
+          const1 [AEZ_BYTES], const2[AEZ_BYTES], 
+          const3 [AEZ_BYTES], const4[AEZ_BYTES]; 
 
-  i = user_key_bytes % AEZ_BYTES; 
-  if (i == 0) 
-  {
-    CP_BLOCK(K, &user_key[user_key_bytes - AEZ_BYTES]); 
-    XOR_BLOCK(K, aez_const2); 
-  }
+  uint8_t aez_const [] = "AEZ-Constant-AEZ";
+  
+  memset(const1, 0, AEZ_BYTES); const1[15] = 0x01; 
+  memset(const2, 0, AEZ_BYTES); const2[15] = 0x02; 
+  memset(const3, 0, AEZ_BYTES); const3[15] = 0x03; 
+  memset(const4, 0, AEZ_BYTES); const4[15] = 0x04; 
 
-  else 
+  aez_block10_t *K = aez_malloc_block10(1);
+  aes_set_encrypt_key(aez_const, (uint32_t *)K, 10);
+  
+  if (user_key_bytes == 16) 
   {
-    ZERO_BLOCK(K); 
-    memcpy(K, &user_key[user_key_bytes - i], i); 
-    K[i] = 1;
-    XOR_BLOCK(K, aez_const3); 
+    aes_encrypt(const1, const1, (uint32_t *)K, 10); 
+    CP_BLOCK(result, user_key); 
+    XOR_BLOCK(result, const1);
   }
-  aes_encrypt(K, K, (uint32_t *)key4.enc.Klong, 10); 
+  else
+  {
+    aes_encrypt(const2, const2, (uint32_t *)K, 10); 
+    aes_encrypt(const3, const3, (uint32_t *)K, 10); 
+    aes_encrypt(const4, const4, (uint32_t *)K, 10); 
+    aes_set_encrypt_key(const4, (uint32_t *)K, 10);
+    ZERO_BLOCK(result);
 
-  if (user_key_bytes > AEZ_BYTES) 
-    for (i = 0; i < user_key_bytes - AEZ_BYTES; i += AEZ_BYTES) 
+    while (user_key_bytes > AEZ_BYTES) 
     {
-      XOR_BLOCK(K, &user_key[i]); 
-      aes_encrypt(K, K, (uint32_t *)key4.enc.Klong, 10); 
+      XOR_BLOCK(result, user_key); 
+      aes_encrypt(result, result, (uint32_t *)K, 10); 
+      user_key += AEZ_BYTES;
+      user_key_bytes -= AEZ_BYTES; 
     }
 
-  aez_init_keyvector(key, K);  
+    if (user_key_bytes < AEZ_BYTES) // Pad fragmented last block
+    {
+      ZERO_BLOCK(tmp); 
+      memcpy(tmp, user_key, user_key_bytes); 
+      tmp[user_key_bytes] = 0x80; 
+      XOR_BLOCK(tmp, const3); 
+    }
+
+    else
+    {
+      CP_BLOCK(tmp, user_key); 
+      XOR_BLOCK(tmp, const2); 
+    }
+    
+    XOR_BLOCK(result, tmp); 
+    aes_encrypt(result, result, (uint32_t *)K, 10);   
+  }
+
+  aez_free_block10(K); 
+  printf("result: "); aez_print_block((uint32_t *)result, 0); 
+  aez_init_keyvector(key, result);  
   return (int)aez_SUCCESS;
 }
 

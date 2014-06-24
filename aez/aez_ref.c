@@ -33,6 +33,7 @@
 */
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "aez.h" // TODO benchmarking
 
@@ -317,7 +318,7 @@ void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
 
 /* ------------------------------------------------------------------------- */
 
-static void ExtractKey(byte *Key, unsigned kbytes, byte *result) {
+void ExtractKey(byte *Key, unsigned kbytes, byte *result) {
     byte CONST1[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
          CONST2[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2},
          CONST3[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3},
@@ -346,9 +347,11 @@ static void ExtractKey(byte *Key, unsigned kbytes, byte *result) {
             xor_bytes(buf, buf, CONST3, 16);
         } else
             xor_bytes(buf, Key, CONST2, 16);
+        
         xor_bytes(K, K, buf, 16);
         rijndaelEncrypt(rks, 10, K, result);
     }
+    printf("result: "); aez_print_block((uint32_t *)result, 0); 
 }
 
 /* ------------------------------------------------------------------------- */

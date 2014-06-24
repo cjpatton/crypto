@@ -18,7 +18,7 @@ int main() {
   int i; 
   for (i = 1; i <= 4; i++) {
     ZERO_BLOCK(plaintext); 
-    *(uint32_t *)plaintext = i; /* TODO byte order */
+    plaintext[15] = i; 
     aes_encrypt(plaintext, ciphertext, (uint32_t *)key.enc.Klong, 10); 
     
     printf("CONST%d = ", i); 
