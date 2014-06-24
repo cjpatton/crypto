@@ -53,9 +53,10 @@ int main(int argc, const char **argv)
   uint8_t message [1024]; 
   uint8_t plaintext [1024]; 
   uint8_t ciphertext [1024]; 
-  uint8_t hash [AEZ_BYTES]; 
+  //uint8_t hash [AEZ_BYTES]; 
+  uint8_t mac [AEZ_BYTES]; 
   uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
-  uint8_t tag [] = "I think this is a fine tag."; 
+  //uint8_t tag [] = "I think this is a fine tag."; 
   
   aez_keyvector_t key; 
   aez_init_keyvector(&key, user_key); 
@@ -63,12 +64,21 @@ int main(int argc, const char **argv)
   strcpy((char *)message, "01234567789abcdeAww."); 
   printf("Message bytes: %d\n", strlen((char *)bigtext)); 
 
+  size_t msg_bytes = 3104;
+  int i =2 ; 
+
+
   /* ------------------------------------------------------------------ */
   printf("Us ... \n"); 
   
-  memset(hash, 0, AEZ_BYTES); 
-  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key); 
-  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
+  // AMAC
+  aez_amac(mac, bigtext, msg_bytes, &key, i); 
+  printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
+
+  // AHash
+  //memset(hash, 0, AEZ_BYTES); 
+  //aez_ahash(hash, bigtext, strlen((char *)bigtext), &key); 
+  //printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   // AES
   //aes_encrypt(message, ciphertext, (uint32_t *)key.enc.Klong, 10);  
@@ -84,9 +94,14 @@ int main(int argc, const char **argv)
   rijndaelKeySetupEnc(encKlong, user_key, 128); 
   rijndaelKeySetupDec(decKlong, user_key, 128); 
   
-  memset(hash, 0, AEZ_BYTES); 
-  AHash(user_key, bigtext, strlen((char *)bigtext), hash); 
-  printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
+  // AMAC
+  AMAC(user_key, bigtext, msg_bytes, i, mac); 
+  printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
+  
+  // AHash
+  //memset(hash, 0, AEZ_BYTES); 
+  //AHash(user_key, bigtext, strlen((char *)bigtext), hash); 
+  //printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   // AES 
   //rijndaelEncrypt(encKlong, 10, message, ciphertext); 

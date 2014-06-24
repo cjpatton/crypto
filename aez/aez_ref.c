@@ -151,7 +151,7 @@ void AHash(byte *K, byte *M, unsigned mbytes, byte *result) {
 
 /* ------------------------------------------------------------------------- */
 
-static void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result) {
+void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result) {
     u32 Kmac[11*4];
     byte buf[16];
     if ( (mbytes == 0) || (mbytes%16 != 0) ) Variant(K, 0, 0, 9+i, 10, 0, Kmac);

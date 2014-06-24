@@ -23,7 +23,7 @@ void aez_amac(uint8_t *mac,
   if (msg_bytes < AEZ_BYTES) // E(Kmac1[i], M)
   {
     memcpy(tmp, plaintext, sizeof(uint8_t) * msg_bytes);
-    tmp[msg_bytes] = 1; 
+    tmp[msg_bytes] = 0x80; 
     aez_blockcipher(mac, tmp, key->Kmac1[i], key, ENCRYPT, 10); 
   }
 

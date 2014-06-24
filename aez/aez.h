@@ -40,6 +40,7 @@
 /* TODO benchmarking. */
 typedef unsigned char byte;
 void AHash(byte *K, byte *M, unsigned mbytes, byte *result);
+void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result);
 
 
 
