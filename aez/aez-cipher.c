@@ -10,23 +10,17 @@
  * Local function declarations (definitions below).  
  */
 
+void complement_if_needed(uint8_t *tweak, size_t bytes,
+                          const uint8_t *src, uint8_t *dst);
 
-void point_swap(uint8_t *out, const uint8_t *tweak, size_t msg_bytes);
+int cipher_ff0(uint8_t *out, 
+               const uint8_t *in, 
+               const uint8_t *tag, 
+               size_t msg_bytes,
+               size_t tag_bytes, 
+               unsigned inv, 
+               aez_keyvector_t *key);
 
-int encipher_ff0(uint8_t *out, 
-                 const uint8_t *in, 
-                 const uint8_t *tag, 
-                 size_t msg_bytes,
-                 size_t tag_bytes, 
-                 aez_keyvector_t *key);
-
-int decipher_ff0(uint8_t *out,
-                 const uint8_t *in, 
-                 const uint8_t *tag, 
-                 size_t msg_bytes,
-                 size_t tag_bytes, 
-                 aez_keyvector_t *key);
-                     
 int encipher_mem(uint8_t *out, 
                  const uint8_t *in, 
                  const uint8_t *tag, 
@@ -53,7 +47,7 @@ int aez_encipher(uint8_t *out,
                  aez_keyvector_t *key)
 {
   if (msg_bytes < AEZ_BYTES) // FF0
-   return encipher_ff0(out, in, tag, msg_bytes, tag_bytes, key); 
+   return cipher_ff0(out, in, tag, msg_bytes, tag_bytes, 0, key); 
 
   else if (msg_bytes == AEZ_BYTES)
   {
@@ -83,7 +77,7 @@ int aez_decipher(uint8_t *out,
                  aez_keyvector_t *key)
 {
   if (msg_bytes < AEZ_BYTES) // FF0
-    return decipher_ff0(out, in, tag, msg_bytes, tag_bytes, key); 
+    return cipher_ff0(out, in, tag, msg_bytes, tag_bytes, 1, key); 
  
   else if (msg_bytes == AEZ_BYTES) // |m| = 16
   {
@@ -319,127 +313,99 @@ int decipher_mem(uint8_t *out,
 }
 
 
+
+
 /*
- * EncipherFF0 - encipher messages shorter than 16 bytes. This is 
+ * CipherFF0 - encipher messages shorter than 16 bytes. This is 
  * based on an unbalanced Fesital network, the number of rounds 
- * depends on the size of the message.
+ * depends on the size of the message. In order to mak this c
+ * complient to the spec, I directly transcribed Ted Krovetz' 
+ * solution here. 
  */
-int encipher_ff0(uint8_t *out, 
-                 const uint8_t *in, 
-                 const uint8_t *tag, 
-                 size_t msg_bytes,
-                 size_t tag_bytes, 
-                 aez_keyvector_t *key)
+int cipher_ff0(uint8_t *out, 
+               const uint8_t *in, 
+               const uint8_t *tag, 
+               size_t msg_bytes,
+               size_t tag_bytes, 
+               unsigned inv,
+               aez_keyvector_t *key)
 {
-  int i, j, k, l;
-  uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
-  uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
+  int i, k, l;
+  uint8_t mask=0x00, pad=0x80, 
+          tweak [AEZ_BYTES], 
+          front [AEZ_BYTES],
+          back [AEZ_BYTES],
+          tmp [AEZ_BYTES],
+          *A, *B; 
   
   if (msg_bytes == 1) k = 24; 
   else if (msg_bytes == 2) k = 16;
   else k = 10; 
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
-  memcpy(out, in, msg_bytes); 
+  if (inv) { complement_if_needed(tweak, msg_bytes, in, tmp); in=tmp; }
+  
   l = (msg_bytes+1) /2; 
+  memcpy(front, in, l); 
+  memcpy(back, in + msg_bytes/2, l); 
 
-  for (i = 1; i <= k; i++)
+  if (msg_bytes & 1)
   {
-    ZERO_BLOCK(A); memcpy(A, out, l); 
-    ZERO_BLOCK(B); memcpy(B, &out[l], msg_bytes - l); 
-    
-    ZERO_BLOCK(tmp); 
-    tmp[3] = i; 
-    memcpy(&tmp[4], B, msg_bytes - l); 
-    tmp[4 + msg_bytes - l] = 0x80; 
+    for (i=0; i < msg_bytes/2; i++)
+      back[i] = (uint8_t)((back[i] << 4) | (back[i+1] >> 4));
+    back[msg_bytes / 2] = (uint8_t)(back[msg_bytes/2] << 4);
+    pad = 0x08; mask = 0xf0;
+  }
 
+  if (inv) { B = front; A = back; } else { A = front; B = back; }
+  
+  for (i = 1; i <= k; i+= 2)
+  {
+    ZERO_BLOCK(tmp); 
+    tmp[3] = (uint8_t)(inv ? k + 1 - i : i); 
+    memcpy(&tmp[4], B, l);
+    tmp[4+msg_bytes/2] = (tmp[4+msg_bytes/2] & mask) | pad;
     XOR_BLOCK(tmp, tweak);
     aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
+    XOR_BLOCK(A, tmp); 
 
-    for (j = 0; j < l; j++)
-      tmp[j] ^= A[j];
-
-    memcpy(out, B, msg_bytes - l); 
-    memcpy(&out[msg_bytes - l], tmp, l); 
-  }
-  
-  point_swap(out, tweak, msg_bytes);
-
-  return msg_bytes;
-}
-
-/*
- * DecipherFF0 - decipher messages shorter than 16 bytes. 
- */
-int decipher_ff0(uint8_t *out,
-                 const uint8_t *in, 
-                 const uint8_t *tag, 
-                 size_t msg_bytes,
-                 size_t tag_bytes, 
-                 aez_keyvector_t *key)
-{
-  int i, j, k, l;
-  uint8_t tweak [AEZ_BYTES], tmp [AEZ_BYTES];
-  uint8_t A [AEZ_BYTES], B [AEZ_BYTES]; 
-  
-  if (msg_bytes == 1) k = 24; 
-  else if (msg_bytes == 2) k = 16;
-  else k = 10; 
-  
-  memcpy(out, in, msg_bytes); 
-  aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
-  point_swap(out, tweak, msg_bytes);
- 
-  l = (msg_bytes+1) /2; 
-  for (i = k; i > 0; i--)
-  {
-    ZERO_BLOCK(B); memcpy(B, out, msg_bytes - l); 
-    ZERO_BLOCK(A); memcpy(A, &out[msg_bytes - l], l); 
-    
     ZERO_BLOCK(tmp); 
-    tmp[3] = i;
-    memcpy(&tmp[4], B, msg_bytes - l); 
-    tmp[4 + msg_bytes - l] = 0x80; 
-
+    tmp[3] = (uint8_t)(inv ? k - i: i + 1); 
+    memcpy(&tmp[4], A, l);
+    tmp[4+msg_bytes/2] = (tmp[4+msg_bytes/2] & mask) | pad;
     XOR_BLOCK(tmp, tweak);
     aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
-
-    for (j = 0; j < l; j++)
-      tmp[j] ^= A[j];
-
-    memcpy(out, tmp, l); 
-    memcpy(&out[l], B, msg_bytes - l); 
-
+    XOR_BLOCK(B, tmp); 
   }
-  
+    
+  memcpy(tmp,             front, msg_bytes/2);
+  memcpy(tmp+msg_bytes/2, back, (msg_bytes+1)/2);
+  if (msg_bytes & 1) 
+  {
+    for (i=msg_bytes - 1; i > msg_bytes/2; i--)
+       tmp[i] = (uint8_t)((tmp[i] >> 4) | (tmp[i-1] << 4));
+     tmp[msg_bytes/2] = (byte)((back[0] >> 4) | (front[msg_bytes/2] & mask));
+  }
+  if (inv) memcpy(out,tmp,msg_bytes);
+  else complement_if_needed(tweak, msg_bytes, tmp, out);
   return msg_bytes;
 }
 
 /* 
- * When a tweak-dependent pseudo random bit comes up True, 
- * swap two points in the message and ciphertext domains. 
- * Used in [27] (see AEZ spec) to address the fact that 
- * Feistel networks only generate even permuataions. 
- *
- * TODO This is a potential timing-attack channel, a fact
- *      that is addressed in the latest revision of the 
- *      AEZ spec.
- */ 
-void point_swap(uint8_t *out, const uint8_t *tweak, size_t msg_bytes)
+ * Written by Ted Krovetz for the reference implementation of AEZ.
+ */
+void complement_if_needed(uint8_t *tweak, size_t bytes,
+                          const uint8_t *src, uint8_t *dst) 
 {
-  int i, j, k;
-  if (tweak[msg_bytes - 1] & 1)
-  {
-    j = 1; 
-    for (i = 0; i < msg_bytes; i++)
-      if (out[i] != 255) 
-        j = 0; 
-    k = 1; 
-    for (i = 0; i < msg_bytes; i++)
-      if (out[i] != 0)
-        k = 0; 
-    if (j || k)
-      for (i = 0; i < msg_bytes; i++)
-        out[i] ^= 255;   
-  }
+    uint8_t comp[16], and_sum=0xff, or_sum=0x00;
+    unsigned i;
+    for (i=0; i<bytes; i++) {
+        and_sum &= src[i];
+        or_sum |= src[i];
+        comp[i] = (uint8_t)~src[i];
+    }
+    unsigned delta_bit = ( tweak[(bytes-1)/8] >> ((16-bytes)%8) ) & 1;
+    if ( (delta_bit + (and_sum==0xff) + (or_sum==0x00)) == 2 )
+         memcpy(dst,comp,bytes);
+    else memcpy(dst,src,bytes);
 }

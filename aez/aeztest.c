@@ -65,7 +65,7 @@ int main(int argc, const char **argv)
   memset(message, 0, 4096); 
   strcpy((char *)message, "01234567789abcdeAww."); 
 
-  size_t msg_bytes = 7;
+  size_t msg_bytes = 3103;
   //int i =2 ; 
   printf("Message bytes: %d of %d\n", (int)msg_bytes, 
       (int)strlen((char *)bigtext));
