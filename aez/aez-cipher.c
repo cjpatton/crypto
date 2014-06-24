@@ -341,7 +341,7 @@ int encipher_ff0(uint8_t *out,
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   
   memcpy(out, in, msg_bytes); 
-  l = (msg_bytes / 2) + 1; 
+  l = (msg_bytes+1) /2; 
 
   for (i = 1; i <= k; i++)
   {
@@ -349,9 +349,9 @@ int encipher_ff0(uint8_t *out,
     ZERO_BLOCK(B); memcpy(B, &out[l], msg_bytes - l); 
     
     ZERO_BLOCK(tmp); 
-    *(uint32_t *)tmp = i; /* TODO byte order */  
+    tmp[3] = i; 
     memcpy(&tmp[4], B, msg_bytes - l); 
-    tmp[4 + msg_bytes - l] = 1; 
+    tmp[4 + msg_bytes - l] = 0x80; 
 
     XOR_BLOCK(tmp, tweak);
     aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
@@ -390,16 +390,16 @@ int decipher_ff0(uint8_t *out,
   aez_amac((uint8_t *)tweak, tag, tag_bytes, key, 2); 
   point_swap(out, tweak, msg_bytes);
  
-  l = (msg_bytes / 2) + 1; 
+  l = (msg_bytes+1) /2; 
   for (i = k; i > 0; i--)
   {
     ZERO_BLOCK(B); memcpy(B, out, msg_bytes - l); 
     ZERO_BLOCK(A); memcpy(A, &out[msg_bytes - l], l); 
     
     ZERO_BLOCK(tmp); 
-    *(uint32_t *)tmp = i; /* TODO byte order */ 
+    tmp[3] = i;
     memcpy(&tmp[4], B, msg_bytes - l); 
-    tmp[4 + msg_bytes - l] = 1; 
+    tmp[4 + msg_bytes - l] = 0x80; 
 
     XOR_BLOCK(tmp, tweak);
     aez_blockcipher(tmp, tmp, key->Kff0, key, ENCRYPT, 4); 
