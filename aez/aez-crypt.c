@@ -27,17 +27,52 @@ int aez_decrypt(uint8_t *out,
   return (int)aez_NOT_IMPLEMENTED;
 }
 
-int aez_format(uint8_t *tag, 
+/*
+ * Format nonce and additional data. Dynamically allocate an appropriate 
+ * size buffer and assign it to `tag`; return the number of bytes in the 
+ * buffer. (Caller should free `tag`.) This funciton is transcribed from 
+ * Ted Krovetz' reference implementation of AEZ. 
+ */
+int aez_format(uint8_t **tag, 
                const uint8_t *nonce,
                const uint8_t *data,
                size_t nonce_bytes,
-               size_t data_bytes)
+               size_t data_bytes,
+               size_t auth_bytes)
 {
-  return (int)aez_NOT_IMPLEMENTED;
+
+  size_t tag_bytes;
+  if (nonce_bytes <= 12) {
+      byte *res = (byte *)malloc(data_bytes+16);
+      memset(res,0,16);
+      res[0] = (byte)(nonce_bytes == 12 ? auth_bytes | 0x40 : auth_bytes);
+      memcpy(res+4, nonce, nonce_bytes);
+      if (nonce_bytes < 12) res[nonce_bytes+4] = 0x80;
+      memcpy(res+16, data, data_bytes);
+      tag_bytes = data_bytes+16;
+      *tag = res;
+  } else {
+      unsigned pdata_bytes = 16 - (data_bytes % 16);
+      byte *res = (byte *)malloc(5+nonce_bytes+data_bytes+pdata_bytes);
+      res[0] = (uint8_t)(auth_bytes | 0x80);
+      res[1] = res[2] = res[3] = 0;
+      memcpy(res+4, nonce, 12);
+      memcpy(res+16, data, data_bytes);
+      res[16+data_bytes] = 0x80;
+      memset(res+16+data_bytes+1,0,pdata_bytes-1);
+      memcpy(res+16+data_bytes+pdata_bytes,nonce+12,nonce_bytes-12);
+      res[4+nonce_bytes+data_bytes+pdata_bytes] = (byte)nonce_bytes;
+      tag_bytes = 5+nonce_bytes+data_bytes+pdata_bytes;
+      *tag = res;
+  }
+
+  return tag_bytes;
 }
 
 /* 
- * 
+ * Transform an arbitrary length user-supplied key into a 
+ * pseudorandom 128-bit key suitable for AES. Initialize 
+ * key vetor for AEZ encryption. 
  */
 int aez_extract(aez_keyvector_t *key, 
                 const uint8_t *user_key, 
@@ -99,7 +134,6 @@ int aez_extract(aez_keyvector_t *key,
   }
 
   aez_free_block10(K); 
-  printf("result: "); aez_print_block((uint32_t *)result, 0); 
   aez_init_keyvector(key, result);  
   return (int)aez_SUCCESS;
 }

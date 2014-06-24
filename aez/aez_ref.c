@@ -351,12 +351,11 @@ void ExtractKey(byte *Key, unsigned kbytes, byte *result) {
         xor_bytes(K, K, buf, 16);
         rijndaelEncrypt(rks, 10, K, result);
     }
-    printf("result: "); aez_print_block((uint32_t *)result, 0); 
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void Format(byte *N, unsigned nbytes, byte *AD, unsigned adbytes,
+void Format(byte *N, unsigned nbytes, byte *AD, unsigned adbytes,
                                 unsigned abytes, byte **T, unsigned *tbytes) {
     if (nbytes <= 12) {
         byte *res = (byte *)malloc(adbytes+16);

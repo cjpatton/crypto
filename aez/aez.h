@@ -44,7 +44,8 @@ void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result);
 void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
                                 unsigned inbytes, unsigned inv, byte *out);
 void ExtractKey(byte *Key, unsigned kbytes, byte *result);
-
+void Format(byte *N, unsigned nbytes, byte *AD, unsigned adbytes,
+                                unsigned abytes, byte **T, unsigned *tbytes);
 
 
 /*
@@ -212,11 +213,12 @@ int aez_decrypt(uint8_t *out,
                 size_t data_bytes,
                 aez_keyvector_t *key);
 
-int aez_format(uint8_t *tag, 
+int aez_format(uint8_t **tag, 
                const uint8_t *nonce,
                const uint8_t *data,
                size_t nonce_bytes,
-               size_t data_bytes);
+               size_t data_bytes,
+               size_t auth_bytes);
 
 int aez_extract(aez_keyvector_t *key, 
                 const uint8_t *user_key, 
