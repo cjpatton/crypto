@@ -179,11 +179,11 @@ void aez_reset_variant(aez_keyvector_t *key)
 void dot2(aez_block_t X)
 {
   uint8_t *b = (uint8_t *)X; 
-  byte tmp = b[0];
+  uint8_t tmp = b[0];
   unsigned i;
   for (i=0; i<15; i++)
-      b[i] = (byte)((b[i] << 1) | (b[i+1] >> 7));
-  b[15] = (byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
+      b[i] = (uint8_t)((b[i] << 1) | (b[i+1] >> 7));
+  b[15] = (uint8_t)((b[15] << 1) ^ ((tmp >> 7) * 135));
 }
 
 /*

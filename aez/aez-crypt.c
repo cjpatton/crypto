@@ -104,9 +104,9 @@ int aez_format(uint8_t **tag,
 
   size_t tag_bytes;
   if (nonce_bytes <= 12) {
-      byte *res = (byte *)malloc(data_bytes+16);
+      uint8_t *res = malloc(data_bytes+16);
       memset(res,0,16);
-      res[0] = (byte)(nonce_bytes == 12 ? auth_bytes | 0x40 : auth_bytes);
+      res[0] = (uint8_t)(nonce_bytes == 12 ? auth_bytes | 0x40 : auth_bytes);
       memcpy(res+4, nonce, nonce_bytes);
       if (nonce_bytes < 12) res[nonce_bytes+4] = 0x80;
       memcpy(res+16, data, data_bytes);
@@ -114,7 +114,7 @@ int aez_format(uint8_t **tag,
       *tag = res;
   } else {
       unsigned pdata_bytes = 16 - (data_bytes % 16);
-      byte *res = (byte *)malloc(5+nonce_bytes+data_bytes+pdata_bytes);
+      uint8_t *res = malloc(5+nonce_bytes+data_bytes+pdata_bytes);
       res[0] = (uint8_t)(auth_bytes | 0x80);
       res[1] = res[2] = res[3] = 0;
       memcpy(res+4, nonce, 12);
@@ -122,7 +122,7 @@ int aez_format(uint8_t **tag,
       res[16+data_bytes] = 0x80;
       memset(res+16+data_bytes+1,0,pdata_bytes-1);
       memcpy(res+16+data_bytes+pdata_bytes,nonce+12,nonce_bytes-12);
-      res[4+nonce_bytes+data_bytes+pdata_bytes] = (byte)nonce_bytes;
+      res[4+nonce_bytes+data_bytes+pdata_bytes] = (uint8_t)nonce_bytes;
       tag_bytes = 5+nonce_bytes+data_bytes+pdata_bytes;
       *tag = res;
   }

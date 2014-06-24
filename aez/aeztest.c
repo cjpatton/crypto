@@ -1,6 +1,5 @@
 #include "aez.h"
 #include "../cipher/aes.h"
-#include "rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -68,7 +67,7 @@ int main(int argc, const char **argv)
   //uint8_t tag [] = "This is a tag";
   //size_t tag_bytes = strlen((char *)tag);
 
-  size_t msg_bytes = 123;
+  size_t msg_bytes = 119;
   //int i =2 ; 
   printf("Message bytes: %d of %d\n", (int)msg_bytes, 
       (int)strlen((char *)bigtext));
@@ -133,70 +132,6 @@ int main(int argc, const char **argv)
   //printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
 
   /* ------------------------------------------------------------------ */
-  printf("\n ... and them.\n");
-
-  // Encrypt
-  memset(plaintext, 0, 4096); 
-  memset(ciphertext, 0, 4096); 
-  
-  Encrypt(user_key, key_bytes, 
-          nonce, strlen((char *)nonce), 
-          data, strlen((char *)data),
-          bigtext, msg_bytes,
-          ABYTES, ciphertext); 
-  
-  res = Decrypt(user_key, key_bytes, 
-                nonce, strlen((char *)nonce), 
-                data, strlen((char *)data),
-                ciphertext, msg_bytes + ABYTES,
-                ABYTES, plaintext); 
-
-  if (res < 0) 
-    printf("Reject plaintext!!\n"); 
-
-  show_cipher(bigtext, ciphertext, plaintext, msg_bytes); 
-  printf("MAC: "); aez_print_block((uint32_t *)&ciphertext[msg_bytes - ABYTES], 0); 
-
-
-  // Extract
-  //uint8_t K [16]; 
-  //ExtractKey(user_key, key_bytes, K);
-  
-  // Format
-  //Format(nonce, strlen((char *)nonce), 
-  //       data, strlen((char *)data), 16, &tag, &tag_bytes); 
-  
-  //for (i = 0; i < tag_bytes; i++) putchar(tag[i]); 
-  //putchar('\n'); 
-  //printf("Tag bytes: %d\n", tag_bytes);
-
-  // Cipher
-  //memset(plaintext, 0, 4096); 
-  //memset(ciphertext, 0, 4096); 
-  //Cipher(K, tag, tag_bytes, bigtext, msg_bytes, 0, ciphertext);
-  //Cipher(K, tag, tag_bytes, ciphertext, msg_bytes, 1, plaintext);
-  //show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
-
-  //free(tag); 
-
-  // AMAC
-  //AMAC(user_key, bigtext, msg_bytes, i, mac); 
-  //printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
-  
-  // AHash
-  //memset(hash, 0, AEZ_BYTES); 
-  //AHash(user_key, bigtext, strlen((char *)bigtext), hash); 
-  //printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
-
-  // AES 
-  //rijndaelEncrypt(encKlong, 10, message, ciphertext); 
-  //rijndaelDecrypt(decKlong, 10, ciphertext, plaintext); 
-  //printf("message:    %s\n", plaintext); 
-  //printf("plaintext:  "); aez_print_block((uint32_t *)plaintext, 0);
-  //printf("ciphertext: "); aez_print_block((uint32_t *)ciphertext, 0);
-
-
-
   return 0; 
 }
 

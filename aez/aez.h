@@ -28,29 +28,8 @@
     ((uint32_t *)dst)[1] = 0; \
     ((uint32_t *)dst)[2] = 0; \
     ((uint32_t *)dst)[3] = 0; }
-
-#define BLOCK_CMP(x, y) \
-  (((uint32_t *)x)[0] == ((uint32_t *)y)[0] && \
-   ((uint32_t *)x)[1] == ((uint32_t *)y)[1] && \
-   ((uint32_t *)x)[2] == ((uint32_t *)y)[2] && \
-   ((uint32_t *)x)[3] == ((uint32_t *)y)[3]) 
   
 #define BLOCK_MSB(X) (X[3] >> 31)
-
-/* TODO benchmarking. */
-typedef unsigned char byte;
-void AHash(byte *K, byte *M, unsigned mbytes, byte *result);
-void AMAC(byte *K, byte *M, unsigned mbytes, unsigned i, byte *result);
-void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
-                                unsigned inbytes, unsigned inv, byte *out);
-void ExtractKey(byte *Key, unsigned kbytes, byte *result);
-void Format(byte *N, unsigned nbytes, byte *AD, unsigned adbytes,
-                                unsigned abytes, byte **T, unsigned *tbytes);
-
-int Decrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
-        unsigned adbytes, byte *C, unsigned cbytes, unsigned abytes, byte *M);
-void Encrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
-        unsigned adbytes, byte *M, unsigned mbytes, unsigned abytes, byte *C);
 
 /*
  * Block types for key vectors. Careful - these are really of 

@@ -384,7 +384,7 @@ int cipher_ff0(uint8_t *out,
   {
     for (i=msg_bytes - 1; i > msg_bytes/2; i--)
        tmp[i] = (uint8_t)((tmp[i] >> 4) | (tmp[i-1] << 4));
-     tmp[msg_bytes/2] = (byte)((back[0] >> 4) | (front[msg_bytes/2] & mask));
+     tmp[msg_bytes/2] = (uint8_t)((back[0] >> 4) | (front[msg_bytes/2] & mask));
   }
   if (inv) memcpy(out,tmp,msg_bytes);
   else complement_if_needed(tweak, msg_bytes, tmp, out);
