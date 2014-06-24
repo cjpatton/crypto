@@ -105,7 +105,7 @@ static void Variant(byte *K, unsigned jdoublings, unsigned i, unsigned l,
         mult_block(l, L);
         xor_bytes(Offset,Offset,L,16);
     }
-    printf("Offset: "); aez_print_block((u32 *)Offset, 0); 
+    //printf("Offset: "); aez_print_block((u32 *)Offset, 0); 
     if (inv)    rijndaelKeySetupDec(Klong, K, 128);
     if (k==0) {
         memcpy(dst, Offset, 16);

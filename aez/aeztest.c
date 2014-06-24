@@ -60,14 +60,14 @@ int main(int argc, const char **argv)
   aez_keyvector_t key; 
   aez_init_keyvector(&key, user_key); 
   memset(message, 0, 1024); 
-  strcpy((char *)message, "01234567789abcde"); 
-  printf("Message bytes: %d\n", strlen((char *)message)); 
+  strcpy((char *)message, "01234567789abcdeAww."); 
+  printf("Message bytes: %d\n", strlen((char *)bigtext)); 
 
   /* ------------------------------------------------------------------ */
   printf("Us ... \n"); 
   
   memset(hash, 0, AEZ_BYTES); 
-  aez_ahash(hash, message, strlen((char *)message), &key); 
+  aez_ahash(hash, bigtext, strlen((char *)bigtext), &key); 
   printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   // AES
@@ -85,7 +85,7 @@ int main(int argc, const char **argv)
   rijndaelKeySetupDec(decKlong, user_key, 128); 
   
   memset(hash, 0, AEZ_BYTES); 
-  AHash(user_key, message, strlen((char *)message), hash); 
+  AHash(user_key, bigtext, strlen((char *)bigtext), hash); 
   printf("Hash: "); aez_print_block((uint32_t *)hash, 0); 
 
   // AES 

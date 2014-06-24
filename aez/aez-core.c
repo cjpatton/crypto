@@ -100,8 +100,6 @@ void init_tweak_state(aez_keyvector_t *key,
 {
   int n; 
 
-  /* I, J, L */ 
-
   /* j * J, where j iterates by doubling. Since this operation is 
    * closed, we don't need to compute intermediate values. */
   ZERO_BLOCK(key->ts.J);
@@ -114,8 +112,9 @@ void init_tweak_state(aez_keyvector_t *key,
 
   /* i * I, where i \in [0 .. 7]. Precompute all of these values.*/ 
   ZERO_BLOCK(key->ts.I[0]);
-  ((uint8_t *)key->ts.I)[15] = 1; 
-  aes_encrypt((const uint8_t *)key->ts.I, 
+  ZERO_BLOCK(key->ts.I[1]);
+  ((uint8_t *)key->ts.I[1])[15] = 0; 
+  aes_encrypt((const uint8_t *)key->ts.I[1], 
               (uint8_t *)key->ts.I[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 8; n++)
@@ -126,8 +125,9 @@ void init_tweak_state(aez_keyvector_t *key,
   
   /* l * L, where l \in [0 .. 16]. Precompute these values. */ 
   ZERO_BLOCK(key->ts.L[0]);
-  ((uint8_t *)key->ts.L)[15] = 1; 
-  aes_encrypt((const uint8_t *)key->ts.L, 
+  ZERO_BLOCK(key->ts.L[1]);
+  ((uint8_t *)key->ts.L[1])[15] = 2; 
+  aes_encrypt((const uint8_t *)key->ts.L[1], 
               (uint8_t *)key->ts.L[1], 
               (uint32_t *)key->enc.Klong, 10); 
   for (n = 0; n < 16; n++)
@@ -163,7 +163,7 @@ void aez_variant(aez_block_t offset,
   XOR_BLOCK(offset, key->ts.I[i]); // I[j] = i * I.
   XOR_BLOCK(offset, key->ts.L[l]); // L[l] = l * L. 
   
-  printf("Offset: "); aez_print_block((uint32_t *)offset, 0); 
+  //printf("Offset: "); aez_print_block((uint32_t *)offset, 0); 
 }
 
 void aez_reset_variant(aez_keyvector_t *key) 
@@ -173,7 +173,8 @@ void aez_reset_variant(aez_keyvector_t *key)
 
 
 /*
- * 2 * X dot operation 
+ * 2 * X dot operation. This comes from Ted Krovetz' reference
+ * implementation of AEZ. 
  */
 void dot2(aez_block_t X)
 {
@@ -183,13 +184,6 @@ void dot2(aez_block_t X)
   for (i=0; i<15; i++)
       b[i] = (byte)((b[i] << 1) | (b[i+1] >> 7));
   b[15] = (byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
-//  unsigned b = BLOCK_MSB(X);
-//  X[3] = (X[3] << 1) ^ (X[2] >> 31);
-//  X[2] = (X[2] << 1) ^ (X[1] >> 31);
-//  X[1] = (X[1] << 1) ^ (X[0] >> 31);
-//  X[0] = (X[0] << 1);
-//  if (b) 
-//    X[0] ^= 135;
 }
 
 /*
