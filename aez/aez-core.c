@@ -83,7 +83,7 @@ void aez_init_keyvector(aez_keyvector_t *key,
   aez_variant(key->Kff0, key, 0, 0, 2, 4);
   aez_variant(key->Kone, key, 0, 0, 3, 10);
   
-  for (i = 0; i < 4; i++)
+  for (i = 0; i <= 4; i++)
   {
     aez_variant(key->Kmac[i],  key, 0, 0, i + 4, 10);
     aez_variant(key->Kmac1[i], key, 0, 0, i + 9, 10);

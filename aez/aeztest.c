@@ -68,7 +68,7 @@ int main(int argc, const char **argv)
   //uint8_t tag [] = "This is a tag";
   //size_t tag_bytes = strlen((char *)tag);
 
-  size_t msg_bytes = 35;
+  size_t msg_bytes = 123;
   //int i =2 ; 
   printf("Message bytes: %d of %d\n", (int)msg_bytes, 
       (int)strlen((char *)bigtext));
@@ -89,7 +89,7 @@ int main(int argc, const char **argv)
                msg_bytes, strlen((char *)nonce), strlen((char *)data),
                ABYTES, &key);
 
-  res = aez_decrypt(ciphertext, bigtext, nonce, data, 
+  res = aez_decrypt(plaintext, ciphertext, nonce, data, 
                     msg_bytes + ABYTES, strlen((char *)nonce), strlen((char *)data),
                     ABYTES, &key);
 

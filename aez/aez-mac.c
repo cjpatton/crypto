@@ -15,8 +15,6 @@ void aez_amac(uint8_t *mac,
               aez_keyvector_t *key, 
               int i)
 {
-  assert(0 <= i && i < 4); 
-  
   uint8_t tmp [AEZ_BYTES];
   ZERO_BLOCK((uint32_t *)tmp);
 

@@ -3,6 +3,15 @@
 #include <string.h>
 #include <stdio.h>
 
+#define MAX(a, b) (a < b) ? b : a
+
+/*
+ * AEZ encryption. The length of the ciphertext (`out`) will 
+ * be the length of the input message plus the length of the
+ * authentication code (`auth_bytes`). `out` is expected to 
+ * be at least max(msg_bytes + auth_bytes, 16), where 
+ * auth_bytes <= 16. 
+ */
 int aez_encrypt(uint8_t *out, 
                 const uint8_t *in,
                 const uint8_t *nonce, 
@@ -13,9 +22,31 @@ int aez_encrypt(uint8_t *out,
                 size_t auth_bytes, 
                 aez_keyvector_t *key)
 {
-  return (int)aez_NOT_IMPLEMENTED;
+  uint8_t *tag, *X = malloc(MAX(msg_bytes + auth_bytes, AEZ_BYTES)); 
+  size_t tag_bytes = aez_format(&tag, nonce, data, 
+                  nonce_bytes, data_bytes, auth_bytes); 
+  memcpy(X, in, msg_bytes); 
+  memset(X + msg_bytes, 0, auth_bytes);
+  
+  if (msg_bytes == 0)
+    aez_amac(out, tag, tag_bytes, key, 4); 
+
+  else
+    aez_encipher(out, X, tag, msg_bytes + auth_bytes, tag_bytes, key); 
+
+  free(X); 
+  free(tag); 
+  return msg_bytes + auth_bytes;
 }
 
+
+/*
+ * AEZ decryption. `msg_bytes` should be the length of the enciphered 
+ * message and message authenticaiton code (output of aez_encrypt()). 
+ * If the MAC is correct, then the plaintext is copied to `out` (This  
+ * is expected to be at least msg_bytes - auth_bytes long.) Otherwise
+ * the plaintext is witheld and the function returns aez_REJECT. 
+ */
 int aez_decrypt(uint8_t *out, 
                 const uint8_t *in,
                 const uint8_t *nonce, 
@@ -26,8 +57,36 @@ int aez_decrypt(uint8_t *out,
                 size_t auth_bytes, 
                 aez_keyvector_t *key)
 {
-  return (int)aez_NOT_IMPLEMENTED;
+  int i, res = msg_bytes; 
+  uint8_t *tag, *X = malloc(msg_bytes); 
+  size_t tag_bytes = aez_format(&tag, nonce, data, 
+                       nonce_bytes, data_bytes, auth_bytes); 
+  
+  if (msg_bytes == auth_bytes)
+  {
+    aez_amac(X, tag, tag_bytes, key, 4);
+    for (i = 0; i < msg_bytes; i++)
+      if (X[i] != in[i])
+        res= (int)aez_REJECT; 
+  }
+
+  else 
+  {
+    aez_decipher(X, in, tag, msg_bytes, tag_bytes, key); 
+    for (i = msg_bytes - auth_bytes; i < msg_bytes; i++)
+      if (X[i] != 0)
+        res = (int)aez_REJECT; 
+  } 
+
+
+  if (res != (int)aez_REJECT)
+    memcpy(out, X, msg_bytes - auth_bytes); 
+    
+  free(X); 
+  free(tag); 
+  return res;
 }
+
 
 /*
  * Format nonce and additional data. Dynamically allocate an appropriate 
@@ -70,6 +129,7 @@ int aez_format(uint8_t **tag,
 
   return tag_bytes;
 }
+
 
 /* 
  * Transform an arbitrary length user-supplied key into a 

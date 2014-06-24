@@ -108,8 +108,8 @@ typedef struct {
               Kone, // 11
               Kff0; // 5 
 
-  aez_block_t Kmac  [4], // 11
-              Kmac1 [4]; // 11, Kmac'
+  aez_block_t Kmac  [5], // 11
+              Kmac1 [5]; // 11, Kmac'
 
 } aez_keyvector_t; 
 
@@ -124,7 +124,8 @@ typedef enum {
   aez_INVALID_ROUNDS = -2,
   aez_INVALID_MODE = -3,
   aez_NOT_IMPLEMENTED = -4,
-  aez_MSG_LENGTH = -5
+  aez_MSG_LENGTH = -5,
+  aez_REJECT
 } aez_err_t; 
 
 
