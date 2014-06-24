@@ -3,15 +3,15 @@ written in order to deepen my own understanding. They aren't
 intended for use in the wild. All except the SHA1 and AES 
 implementations (see below) are my own work.   
 
-aez/ INCOMPLETE
+aez/
 
   Implementation of the AEZ authenticated encryption scheme, based 
   on the x86-optimized implementation of AES-128 from OpenSSL.
 
   TODO 
-    - Format() (tweak)
-    - Encrypt(), Decrypt()
-    
+    - Benchmarking
+    - Separate AES calls into aes_encrypt(), aes_decrypt(), and 
+      aes4_encrpyt(). 
     - aez_encipher in place?  
     - Coarse grained multithreading encipher_mem, aez_ahash
       - block_cipher does not treat aez_keyvector_t thread-
