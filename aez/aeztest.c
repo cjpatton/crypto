@@ -52,20 +52,20 @@ mutations [17].";
 int main(int argc, const char **argv)
 {
   
-  uint8_t message [1024]; 
-  uint8_t plaintext [1024]; 
-  uint8_t ciphertext [1024]; 
+  uint8_t message [4096]; 
+  uint8_t plaintext [4096]; 
+  uint8_t ciphertext [4096]; 
   //uint8_t hash [AEZ_BYTES]; 
   //uint8_t mac [AEZ_BYTES]; 
   uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
-  uint8_t tag [] = "I think this is a fine tag."; 
+  uint8_t tag [] = "I think this is a fine tag, but it could be a bit more meaningful."; 
   
   aez_keyvector_t key; 
   aez_init_keyvector(&key, user_key); 
-  memset(message, 0, 1024); 
+  memset(message, 0, 4096); 
   strcpy((char *)message, "01234567789abcdeAww."); 
 
-  size_t msg_bytes = 16;
+  size_t msg_bytes = 3099;
   //int i =2 ; 
   printf("Message bytes: %d of %d\n", (int)msg_bytes, 
       (int)strlen((char *)bigtext));
@@ -75,8 +75,8 @@ int main(int argc, const char **argv)
   printf("Us ... \n"); 
   
   // Cipher
-  memset(plaintext, 0, 1024); 
-  memset(ciphertext, 0, 1024); 
+  memset(plaintext, 0, 4096); 
+  memset(ciphertext, 0, 4096); 
   aez_encipher(ciphertext, bigtext, tag, msg_bytes, strlen((char *)tag), &key); 
   aez_decipher(plaintext, ciphertext, tag, msg_bytes, strlen((char *)tag), &key); 
   show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
@@ -105,8 +105,8 @@ int main(int argc, const char **argv)
   rijndaelKeySetupDec(decKlong, user_key, 128); 
   
   // Cipher
-  memset(plaintext, 0, 1024); 
-  memset(ciphertext, 0, 1024); 
+  memset(plaintext, 0, 4096); 
+  memset(ciphertext, 0, 4096); 
   Cipher(user_key, tag, strlen((char *)tag), bigtext, msg_bytes, 0, ciphertext);
   Cipher(user_key, tag, strlen((char *)tag), ciphertext, msg_bytes, 1, plaintext);
   show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
