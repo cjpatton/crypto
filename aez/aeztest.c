@@ -11,6 +11,8 @@ void dump_block(const uint8_t *X, int margin);
 
 void dump_keys(aez_keyvector_t *key);
 
+void show_cipher(const uint8_t *message, uint8_t *ciphertext, uint8_t *plaintext, size_t bytes);
+
 uint8_t bigtext [] = "Encryption and decryption. See Figure 3. To encrypt a string M we augment it with an\
 authenticator —a block of abytes zero bytes—and encipher the resulting string, tweaking this\
 enciphering scheme with a tweak formed from AD, N , and the parameters. These are encoded in\
@@ -54,26 +56,34 @@ int main(int argc, const char **argv)
   uint8_t plaintext [1024]; 
   uint8_t ciphertext [1024]; 
   //uint8_t hash [AEZ_BYTES]; 
-  uint8_t mac [AEZ_BYTES]; 
+  //uint8_t mac [AEZ_BYTES]; 
   uint8_t user_key [] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};  
-  //uint8_t tag [] = "I think this is a fine tag."; 
+  uint8_t tag [] = "I think this is a fine tag."; 
   
   aez_keyvector_t key; 
   aez_init_keyvector(&key, user_key); 
   memset(message, 0, 1024); 
   strcpy((char *)message, "01234567789abcdeAww."); 
-  printf("Message bytes: %d\n", strlen((char *)bigtext)); 
 
-  size_t msg_bytes = 3104;
-  int i =2 ; 
+  size_t msg_bytes = 16;
+  //int i =2 ; 
+  printf("Message bytes: %d of %d\n", (int)msg_bytes, 
+      (int)strlen((char *)bigtext));
 
 
   /* ------------------------------------------------------------------ */
   printf("Us ... \n"); 
   
+  // Cipher
+  memset(plaintext, 0, 1024); 
+  memset(ciphertext, 0, 1024); 
+  aez_encipher(ciphertext, bigtext, tag, msg_bytes, strlen((char *)tag), &key); 
+  aez_decipher(plaintext, ciphertext, tag, msg_bytes, strlen((char *)tag), &key); 
+  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
+
   // AMAC
-  aez_amac(mac, bigtext, msg_bytes, &key, i); 
-  printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
+  //aez_amac(mac, bigtext, msg_bytes, &key, i); 
+  //printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
 
   // AHash
   //memset(hash, 0, AEZ_BYTES); 
@@ -94,9 +104,17 @@ int main(int argc, const char **argv)
   rijndaelKeySetupEnc(encKlong, user_key, 128); 
   rijndaelKeySetupDec(decKlong, user_key, 128); 
   
+  // Cipher
+  memset(plaintext, 0, 1024); 
+  memset(ciphertext, 0, 1024); 
+  Cipher(user_key, tag, strlen((char *)tag), bigtext, msg_bytes, 0, ciphertext);
+  Cipher(user_key, tag, strlen((char *)tag), ciphertext, msg_bytes, 1, plaintext);
+  show_cipher(bigtext, ciphertext, plaintext, msg_bytes);  
+  
+
   // AMAC
-  AMAC(user_key, bigtext, msg_bytes, i, mac); 
-  printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
+  //AMAC(user_key, bigtext, msg_bytes, i, mac); 
+  //printf("MAC: "); aez_print_block((uint32_t *)mac, 0); 
   
   // AHash
   //memset(hash, 0, AEZ_BYTES); 
@@ -120,7 +138,7 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
                size_t msg_bytes, size_t tag_bytes, aez_keyvector_t *key)
 {
   static int test_no = 1; 
-  int i, j, bytes; 
+  int bytes; 
   
   uint8_t *ciphertext = malloc(msg_bytes + AEZ_BYTES); 
   uint8_t *plaintext  = malloc(msg_bytes + AEZ_BYTES);  
@@ -145,14 +163,24 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
   aez_decipher(plaintext, ciphertext, tag, 
                bytes, tag_bytes, key); 
   
+  show_cipher(message, ciphertext, plaintext, bytes);
+
+  free(ciphertext);
+  free(plaintext); 
+}
+
+
+void show_cipher(const uint8_t *message, uint8_t *ciphertext, uint8_t *plaintext, size_t bytes)
+{
+  int i, j;
   printf(" Message:    "); 
   aez_print_block((uint32_t *)message, 0);
-  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+  for (i = AEZ_BYTES; i < bytes; i += AEZ_BYTES)
     aez_print_block((uint32_t *)&message[i], 13);
   
   printf("\n Ciphertext: "); 
   aez_print_block((uint32_t *)ciphertext, 0);
-  for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+  for (i = AEZ_BYTES; i < bytes; i += AEZ_BYTES)
     aez_print_block((uint32_t *)&ciphertext[i], 13);
 
   //plaintext[4] = 'q';
@@ -163,7 +191,7 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
       printf("\n Message-plaintext mismatch!\n"); 
       printf(" Plaintext:  "); 
       aez_print_block((uint32_t *)plaintext, 0);
-      for (i = AEZ_BYTES; i <= bytes; i += AEZ_BYTES)
+      for (i = AEZ_BYTES; i < bytes; i += AEZ_BYTES)
         aez_print_block((uint32_t *)&plaintext[i], 13);
       printf("\n"); 
       break;
@@ -172,10 +200,8 @@ void unit_test(const uint8_t *message, const uint8_t *tag,
 
   if (j == bytes)
     printf("\n No problem.\n\n"); 
-
-  free(ciphertext);
-  free(plaintext); 
 }
+
 
 void dump_block(const uint8_t *X, int margin)
 {

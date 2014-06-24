@@ -298,7 +298,7 @@ static void CipherFF0(byte *K, byte *T, unsigned tbytes, byte *in,
 
 /* ------------------------------------------------------------------------- */
 
-static void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
+void Cipher(byte *K, byte *T, unsigned tbytes, byte *in,
                                 unsigned inbytes, unsigned inv, byte *out) {
     if (inbytes == 0) return;
     if (inbytes < 16) CipherFF0(K, T, tbytes, in, inbytes, inv, out);
