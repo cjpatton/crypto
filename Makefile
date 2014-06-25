@@ -1,4 +1,4 @@
-CC_FLAGS=-Wall -O3
+CC_FLAGS=-Wall #-O3
 
 
 aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o
@@ -7,8 +7,8 @@ aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndae
 aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o 
 	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o -o aeztest
 
-rijndael-alg-fst.o: aez/rijndael-alg-fst.h aez/rijndael-alg-fst.c
-	gcc $(CC_FLAGS) -c aez/rijndael-alg-fst.c 
+rijndael-alg-fst.o: cipher/rijndael-alg-fst.h cipher/rijndael-alg-fst.c
+	gcc $(CC_FLAGS) -c cipher/rijndael-alg-fst.c 
 
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
@@ -49,7 +49,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa aezconst
+	rm -f *.o *test oaep-rsa aez_bm
 
 # A couple tests ... 
 do: oaep-rsa

@@ -42,7 +42,7 @@
 
 typedef unsigned char byte;
 
-#include "rijndael-alg-fst.h"     /* Defines "u32" type for AES internal key */
+#include "../cipher/rijndael-alg-fst.h"     /* Defines "u32" type for AES internal key */
 
 /* ------------------------------------------------------------------------- */
 
@@ -468,20 +468,20 @@ int main() {
     t = clock() - t; 
     fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
         ((double)t)/CLOCKS_PER_SEC, trials, 
-        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 10000000); 
+        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 100000000); 
 
     /* --------------------------------------------------------------------- */
     fprintf(stderr, "aez_bm: running ref ... "); 
-    t = clock(); 
+    t = 0; t = clock(); 
     for (i = 0; i < trials; i++)
     {
       Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), 
                       message, msg_bytes, ABYTES, ciphertext_bm);
     }
+    t = clock() - t; 
     fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
         ((double)t)/CLOCKS_PER_SEC, trials, 
-        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 10000000); 
-    t = clock() - t; 
+        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 100000000); 
 
 
     /* Validate ------------------------------------------------------------ */
