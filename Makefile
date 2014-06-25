@@ -1,9 +1,11 @@
-CC_FLAGS=-Wall #-O3
+CC_FLAGS=-Wall -O3
 
-aez: aeztest 
 
-aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o
-	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o -o aeztest
+aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o
+	gcc $(CC_FLAGS) aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o -o aez_bm
+
+aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o 
+	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o -o aeztest
 
 rijndael-alg-fst.o: aez/rijndael-alg-fst.h aez/rijndael-alg-fst.c
 	gcc $(CC_FLAGS) -c aez/rijndael-alg-fst.c 

@@ -10,6 +10,7 @@ aez/
   implementation of AES-128 from OpenSSL.
 
   TODO 
+    - aez.h - ABYTES, EXTNS
     - Benchmarking
     - Separate AES calls into aes_encrypt(), aes_decrypt(), and 
       aes4_encrpyt(). 

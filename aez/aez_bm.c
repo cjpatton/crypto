@@ -1,3 +1,9 @@
+/*
+// Benchmarking. 
+ */
+#include "aez.h"
+#include "time.h"
+
 /* 
 // AEZ v1.1 reference code. AEZ info: http://www.cs.ucdavis.edu/~rogaway/aez
 //
@@ -424,40 +430,94 @@ void Encrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
 
 #include <stdio.h>
 
-static void pbuf(byte *p, unsigned len, char *s)
-{
-    unsigned i;
-    if (s) printf("%s", s);
-    for (i = 0; i < len; i++)
-        printf("%02X", (unsigned)(((unsigned char *)p)[i]));
-    printf("\n");
-}
+//static void pbuf(byte *p, unsigned len, char *s)
+//{
+//    unsigned i;
+//    if (s) printf("%s", s);
+//    for (i = 0; i < len; i++)
+//        printf("%02X", (unsigned)(((unsigned char *)p)[i]));
+//    printf("\n");
+//}
 
-#define ABYTES 2
+#define ABYTES 16
 #define MAX 1000
 
 int main() {
     byte kin[] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};
-    byte m[MAX];
-    byte c[sizeof(m)+ABYTES];
     byte n[13] = {1,2,3,0};
     byte ad[12] = {1,2,3,0};
-    unsigned i,j;
 
-    for (i=0; i<MAX; i++) m[i] = (byte)(i*i+47);
+    double cpu_speed = 2.89; // Ghz
+    int i, trials = 1000;
+    size_t msg_bytes = 1 << 18; 
+    byte *ciphertext_bm = malloc(msg_bytes + ABYTES), 
+         *ciphertext = malloc(msg_bytes + ABYTES),
+         *message = malloc(msg_bytes), // Random junk
+         *plaintext = malloc(msg_bytes); 
 
-    for (i=0; i<256; i++) {
-        for (j=0; j<256; j++) {
-            byte buf[2];
-            buf[0] = (byte)i; buf[1] = (byte)j;
-            Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), buf, 2, 0, c);
-            pbuf(c, 2, 0);
-        }
+    /* Benchmark ----------------------------------------------------------- */
+    fprintf(stderr, "aez_bm: running mine ... ");
+    clock_t t = clock();
+    aez_keyvector_t key; 
+    for (i = 0; i < trials; i++)
+    {
+      aez_extract(&key, kin, sizeof(kin)); 
+      aez_encrypt(ciphertext, message, n, ad, 
+                    msg_bytes, sizeof(n), sizeof(ad), ABYTES, &key); 
+    }
+    t = clock() - t; 
+    fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
+        ((double)t)/CLOCKS_PER_SEC, trials, 
+        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 10000000); 
+
+    /* --------------------------------------------------------------------- */
+    fprintf(stderr, "aez_bm: running ref ... "); 
+    t = clock(); 
+    for (i = 0; i < trials; i++)
+    {
+      Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), 
+                      message, msg_bytes, ABYTES, ciphertext_bm);
+    }
+    fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
+        ((double)t)/CLOCKS_PER_SEC, trials, 
+        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 10000000); 
+    t = clock() - t; 
+
+
+    /* Validate ------------------------------------------------------------ */
+    fprintf(stderr, "aez_bm: validating ... "); 
+    int bad = 0;  
+    for (i = 0; i < msg_bytes + ABYTES; i++) 
+    {
+      if (ciphertext[i] != ciphertext_bm[i])
+        bad = 1; 
     }
 
-    for (i=0; i<MAX; i++) {
-        Encrypt(kin, sizeof(kin), n, sizeof(n), ad, sizeof(ad), m, i, ABYTES, c);
-        pbuf(c, i+ABYTES, 0);
+    if (bad) 
+      fprintf(stderr, "\naez_bm: error: ciphertext doesn't match!\n"); 
+    
+    else
+    {
+      int res = aez_decrypt(plaintext, ciphertext, n, ad, 
+                  msg_bytes + ABYTES, sizeof(n), sizeof(ad), ABYTES, &key);
+      if (res == aez_REJECT)
+        fprintf(stderr, "\naez_bm: error: plaintext rejected (auth).\n"); 
+
+      for (bad = 0, i = 0; i < msg_bytes; i++) 
+      {
+        if (plaintext[i] != message[i])
+          bad = 1; 
+      }
+      if (bad)
+        fprintf(stderr, "\naez_bm: error: plaintext mismatch!\n"); 
     }
+    
+    if (!bad)
+      fprintf(stderr, "good.\n"); 
+
+    free(ciphertext_bm); 
+    free(ciphertext);
+    free(message); 
+
     return 0;
 }
