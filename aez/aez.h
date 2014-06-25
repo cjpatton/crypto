@@ -111,7 +111,7 @@ typedef enum {
   aez_INVALID_MODE = -3,
   aez_NOT_IMPLEMENTED = -4,
   aez_MSG_LENGTH = -5,
-  aez_REJECT
+  aez_REJECT = -6
 } aez_err_t; 
 
 

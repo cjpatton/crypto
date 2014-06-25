@@ -2,7 +2,7 @@
  * aez-cipher.c -- Message enciphering in the AEZ authenticated
  * encryption scheme. Encipher, Decipher, EncipherMEM, DecipherMEM,  
  * EncipherFF0, and DecipherFF0. (The last two are implemented in 
- * cipher_ff0J() with an inversion argument.) 
+ * cipher_ff0() with an inversion argument.) 
  * 
  * Christopher Patton <chrispatton@gmail.com>, June 2014.
  */ 
