@@ -30,7 +30,7 @@
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define u32_LITTLE(x) x
 #else 
-#define u32_LITTLE(x) htonl(x) /* FIXME */
+#define u32_LITTLE(x) x /* FIXME */
 #endif 
 
 /* TODO Rotate left/right instructions, using the one defined
