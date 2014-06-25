@@ -1,3 +1,10 @@
+/*
+ * aez-core.c -- Core functionality for the AEZ authenticated encryption
+ * scheme, including key preprocessing and AES calls.  
+ *
+ * Christopher Patton <chrispatton@gmail.com>, June 2014.
+ */
+
 #include "aez.h"
 #include "../portable.h"
 #include "../cipher/aes.h"

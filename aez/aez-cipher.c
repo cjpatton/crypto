@@ -1,3 +1,12 @@
+/*
+ * aez-cipher.c -- Message enciphering in the AEZ authenticated
+ * encryption scheme. Encipher, Decipher, EncipherMEM, DecipherMEM,  
+ * EncipherFF0, and DecipherFF0. (The last two are implemented in 
+ * cipher_ff0J() with an inversion argument.) 
+ * 
+ * Christopher Patton <chrispatton@gmail.com>, June 2014.
+ */ 
+
 #include "aez.h"
 #include "../portable.h"
 #include "../cipher/aes.h"
@@ -34,6 +43,9 @@ int decipher_mem(uint8_t *out,
                  size_t msg_bytes,
                  size_t tag_bytes, 
                  aez_keyvector_t *key);
+
+
+/* ------------------------------------------------------------------------ */
                      
 /*
  * The AEZ enciphering scheme. Calls EncipherMEM() and
@@ -94,6 +106,8 @@ int aez_decipher(uint8_t *out,
     return decipher_mem(out, in, tag, msg_bytes, tag_bytes, key); 
 }
 
+
+/* ------------------------------------------------------------------------ */
 
 /*
  * EncipherMEM - encipher messages longer than 16 bytes. This is 
@@ -313,7 +327,7 @@ int decipher_mem(uint8_t *out,
 }
 
 
-
+/* ------------------------------------------------------------------------ */
 
 /*
  * CipherFF0 - encipher messages shorter than 16 bytes. This is 
@@ -412,8 +426,10 @@ void complement_if_needed(uint8_t *tweak, size_t bytes,
 
 
 
+/* ------------------------------------------------------------------------ */
 
-/*
+/* 
+ * WARNING -- deprecated
  * My original approach to FF0. This worked, but it didn't actually
  * split the message across bits. cipher_ff0() conforms to the spec
  * better. (Just thought I'd keep this around just in case it's 

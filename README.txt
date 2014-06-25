@@ -5,8 +5,9 @@ implementations (see below) are my own work.
 
 aez/
 
-  Implementation of the AEZ authenticated encryption scheme, based 
-  on the x86-optimized implementation of AES-128 from OpenSSL.
+  A compliant implementation of the AEZ authenticated encryption
+  scheme v 1.1. This mode is based on the x86-optimized 
+  implementation of AES-128 from OpenSSL.
 
   TODO 
     - Benchmarking

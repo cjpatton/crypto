@@ -1,3 +1,10 @@
+/*
+ * aez.h -- Data types and method prototypes for the AEZ authenticated 
+ * encryption scheme (AEZ v 1.1). This should be included in any program 
+ * using AEZ. 
+ *
+ * Christopher Patton <chrispatton@gmail.com>, June 2014
+ */
 
 #ifndef AEZ_H
 #define AEZ_H

@@ -1,3 +1,9 @@
+/*
+ * aez-mac.c -- Message authentication for the AEZ encryptiong mode. 
+ * AMAC, AHash.
+ *
+ * Christopher Patton <chrispatton@gmail.com>, June 2014. 
+ */
 #include "aez.h"
 #include "../portable.h"
 #include "../cipher/aes.h"

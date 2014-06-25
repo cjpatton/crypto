@@ -1,3 +1,11 @@
+/*
+ * aez-crypt.c -- High level calls for the AEZ authenticated encryption 
+ * mode, including user key extraction, encryption, and decryption. 
+ * Encrypt, Decrypt, Format, Extract. 
+ *
+ * Christopher Patton <chrispatton@gmail.com>, June 2014.
+ */
+
 #include "aez.h"
 #include "../cipher/aes.h"
 #include <string.h>
