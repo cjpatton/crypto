@@ -1,5 +1,7 @@
-CC_FLAGS=-Wall #-O3
+CC_FLAGS=-Wall -O3
 
+aez_ni_bm: aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o 
+	gcc $(CC_FLAGS) aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o -std=c99 -maes -mssse3 -o aez_ni_bm
 
 aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o
 	gcc $(CC_FLAGS) aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o -o aez_bm
@@ -49,7 +51,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa aez_bm
+	rm -f *.o *test oaep-rsa aez_bm aez_bm_ni
 
 # A couple tests ... 
 do: oaep-rsa

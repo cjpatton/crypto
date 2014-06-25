@@ -441,13 +441,13 @@ void Encrypt(byte *Key, unsigned kbytes, byte *N, unsigned nbytes, byte *AD,
 
 #define ABYTES 16
 #define MAX 1000
+#define HZ 2.89e9
 
 int main() {
     byte kin[] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6};
     byte n[13] = {1,2,3,0};
     byte ad[12] = {1,2,3,0};
 
-    double cpu_speed = 2.89; // Ghz
     int i, trials = 1000;
     size_t msg_bytes = 1 << 18; 
     byte *ciphertext_bm = malloc(msg_bytes + ABYTES), 
@@ -468,7 +468,7 @@ int main() {
     t = clock() - t; 
     fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
         ((double)t)/CLOCKS_PER_SEC, trials, 
-        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 100000000); 
+        ((t * HZ / CLOCKS_PER_SEC) / (trials * msg_bytes))); 
 
     /* --------------------------------------------------------------------- */
     fprintf(stderr, "aez_bm: running ref ... "); 
@@ -481,7 +481,7 @@ int main() {
     t = clock() - t; 
     fprintf(stderr, "%.3f sec., %d trials. (%.3f cycles/byte)\n",
         ((double)t)/CLOCKS_PER_SEC, trials, 
-        ((t * cpu_speed / CLOCKS_PER_SEC) / (trials * msg_bytes)) * 100000000); 
+        ((t * HZ / CLOCKS_PER_SEC) / (trials * msg_bytes))); 
 
 
     /* Validate ------------------------------------------------------------ */
