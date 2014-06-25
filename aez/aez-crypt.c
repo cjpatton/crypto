@@ -65,7 +65,7 @@ int aez_decrypt(uint8_t *out,
                 size_t auth_bytes, 
                 aez_keyvector_t *key)
 {
-  int i, res = msg_bytes; 
+  int i, res = msg_bytes - auth_bytes;  
   uint8_t *tag, *X = malloc(msg_bytes); 
   size_t tag_bytes = aez_format(&tag, nonce, data, 
                        nonce_bytes, data_bytes, auth_bytes); 
