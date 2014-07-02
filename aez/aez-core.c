@@ -7,7 +7,7 @@
 
 #include "aez.h"
 #include "../portable.h"
-#include "../cipher/aes.h"
+#include "../cipher/rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -20,6 +20,9 @@ void init_tweak_state(aez_keyvector_t *key,
 
 void dot2(aez_block_t X);
 void dot_inc(aez_block_t *Xs, int n);
+
+void xor_into_round_key(uint32_t *rk, const uint8_t *s); 
+
 
 
 /*
@@ -65,8 +68,8 @@ void aez_init_keyvector(aez_keyvector_t *key,
   int i;
   
   /* Set up key schedules - Klong. */ 
-  aes_set_encrypt_key(K, (uint32_t *)key->enc.Klong, 10); 
-  aes_set_decrypt_key(K, (uint32_t *)key->dec.Klong, 10); 
+  rijndaelKeySetupEnc((uint32_t *)key->enc.Klong, K, 128); 
+  rijndaelKeySetupDec((uint32_t *)key->dec.Klong, K, 128); 
 
   /* Kshort. */
   ZERO_BLOCK(key->enc.Kshort[0]); 
@@ -111,9 +114,9 @@ void init_tweak_state(aez_keyvector_t *key,
    * closed, we don't need to compute intermediate values. */
   ZERO_BLOCK(key->ts.J);
   ((uint8_t *)key->ts.J)[15] = 1; 
-  aes_encrypt((const uint8_t *)key->ts.J, 
-              (uint8_t *)key->ts.J, 
-              (uint32_t *)key->enc.Klong, 10); 
+  rijndaelEncrypt((uint32_t *)key->enc.Klong, 10, 
+                  (uint8_t *)key->ts.J, 
+                  (uint8_t *)key->ts.J); 
 
   CP_BLOCK(key->ts.Jinit, key->ts.J); 
 
@@ -121,9 +124,9 @@ void init_tweak_state(aez_keyvector_t *key,
   ZERO_BLOCK(key->ts.I[0]);
   ZERO_BLOCK(key->ts.I[1]);
   ((uint8_t *)key->ts.I[1])[15] = 0; 
-  aes_encrypt((const uint8_t *)key->ts.I[1], 
-              (uint8_t *)key->ts.I[1], 
-              (uint32_t *)key->enc.Klong, 10); 
+  rijndaelEncrypt((uint32_t *)key->enc.Klong, 10, 
+                  (uint8_t *)key->ts.I[1], 
+                  (uint8_t *)key->ts.I[1]);  
   for (n = 0; n < 8; n++)
   {
     dot_inc(key->ts.I, n);  
@@ -134,9 +137,9 @@ void init_tweak_state(aez_keyvector_t *key,
   ZERO_BLOCK(key->ts.L[0]);
   ZERO_BLOCK(key->ts.L[1]);
   ((uint8_t *)key->ts.L[1])[15] = 2; 
-  aes_encrypt((const uint8_t *)key->ts.L[1], 
-              (uint8_t *)key->ts.L[1], 
-              (uint32_t *)key->enc.Klong, 10); 
+  rijndaelEncrypt((uint32_t *)key->enc.Klong, 10, 
+                  (uint8_t *)key->ts.L[1], 
+                  (uint8_t *)key->ts.L[1]);  
   for (n = 0; n < 16; n++)
   {
     dot_inc(key->ts.L, n);  
@@ -242,17 +245,17 @@ int aez_blockcipher(uint8_t *out,
                     int rounds)
 {
   
-  void (*cipher)(const uint8_t *, uint8_t *, const aes_key_t *, int); 
+  void (*cipher)(const uint32_t *, int, const uint8_t *, uint8_t *); 
   struct key_schedule *sched; 
 
   if (mode == ENCRYPT)
   {
-    cipher = aes_encrypt;
+    cipher = rijndaelEncrypt;
     sched = &(key->enc);
   }
   else if (mode == DECRYPT)
   {
-    cipher = aes_decrypt; 
+    cipher = rijndaelDecrypt; 
     sched = &(key->dec);
   }
   else
@@ -260,18 +263,18 @@ int aez_blockcipher(uint8_t *out,
 
   if (rounds == 10)
   {
-    XOR_BLOCK(sched->Klong[0], offset);    
-    XOR_BLOCK(sched->Klong[10], offset);    
-    cipher(in, out, (uint32_t *)sched->Klong, rounds);
-    XOR_BLOCK(sched->Klong[0], offset);    
-    XOR_BLOCK(sched->Klong[10], offset);    
+    xor_into_round_key(sched->Klong[0], (const uint8_t *)offset); 
+    xor_into_round_key(sched->Klong[10], (const uint8_t *)offset); 
+    cipher((uint32_t *)sched->Klong, rounds, in, out);
+    xor_into_round_key(sched->Klong[0], (const uint8_t *)offset); 
+    xor_into_round_key(sched->Klong[10], (const uint8_t *)offset); 
   }
 
   else if (rounds == 4)
   {
-    XOR_BLOCK(sched->Kshort[0], offset); 
-    cipher(in, out, (uint32_t *)sched->Kshort, rounds);
-    XOR_BLOCK(sched->Kshort[0], offset); 
+    xor_into_round_key(sched->Kshort[0], (const uint8_t *)offset); 
+    cipher((uint32_t *)sched->Kshort, rounds, in, out);
+    xor_into_round_key(sched->Kshort[0], (const uint8_t *)offset); 
   }
 
   else
@@ -280,6 +283,14 @@ int aez_blockcipher(uint8_t *out,
   return (int)aez_SUCCESS;
 }
 
+/* rijndael-alg-fst.h has a big-endian layout. */ 
+void xor_into_round_key(uint32_t *rk, const uint8_t *s)
+{
+  rk[0] ^= ((u32)s[ 0] << 24) | ((u32)s[ 1] << 16) | ((u32)s[ 2] << 8) | s[ 3];
+  rk[1] ^= ((u32)s[ 4] << 24) | ((u32)s[ 5] << 16) | ((u32)s[ 6] << 8) | s[ 7];
+  rk[2] ^= ((u32)s[ 8] << 24) | ((u32)s[ 9] << 16) | ((u32)s[10] << 8) | s[11];
+  rk[3] ^= ((u32)s[12] << 24) | ((u32)s[13] << 16) | ((u32)s[14] << 8) | s[15];
+}
 
 /*
  * Output a block. 

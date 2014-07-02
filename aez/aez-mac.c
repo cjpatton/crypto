@@ -6,7 +6,7 @@
  */
 #include "aez.h"
 #include "../portable.h"
-#include "../cipher/aes.h"
+#include "../cipher/rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>

@@ -1,13 +1,13 @@
 CC_FLAGS=-Wall -O3
 
-aez_ni_bm: aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o 
-	gcc $(CC_FLAGS) aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o -std=c99 -maes -mssse3 -o aez_ni_bm
+aez_ni_bm: aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o 
+	gcc $(CC_FLAGS) aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -std=c99 -maes -mssse3 -o aez_ni_bm
 
-aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o
-	gcc $(CC_FLAGS) aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o rijndael-alg-fst.o -o aez_bm
+aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o
+	gcc $(CC_FLAGS) aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -o aez_bm
 
-aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o 
-	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o aes.o -o aeztest
+aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o 
+	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -o aeztest
 
 rijndael-alg-fst.o: cipher/rijndael-alg-fst.h cipher/rijndael-alg-fst.c
 	gcc $(CC_FLAGS) -c cipher/rijndael-alg-fst.c 
@@ -33,9 +33,6 @@ oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o
 rsa.o: asym/rsa.h asym/rsa.c util.o
 	gcc $(CC_FLAGS) -c asym/rsa.c -lgmp
 
-aes.o: cipher/aes.h cipher/aes.c cipher/aes_locl.h
-	gcc $(CC_FLAGS) -c cipher/aes.c
-
 sha1.o: hash/sha1.h hash/sha1.c
 	gcc $(CC_FLAGS) -c hash/sha1.c
 
@@ -51,7 +48,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa aez_bm aez_bm_ni
+	rm -f *.o *test oaep-rsa aez_bm aez_ni_bm
 
 # A couple tests ... 
 do: oaep-rsa

@@ -7,7 +7,7 @@
  */
 
 #include "aez.h"
-#include "../cipher/aes.h"
+#include "../cipher/rijndael-alg-fst.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -161,26 +161,26 @@ int aez_extract(aez_keyvector_t *key,
   memset(const4, 0, AEZ_BYTES); const4[15] = 0x04; 
 
   aez_block10_t *K = aez_malloc_block10(1);
-  aes_set_encrypt_key(aez_const, (uint32_t *)K, 10);
-  
+  rijndaelKeySetupEnc((uint32_t *)K, aez_const, 128); 
+
   if (user_key_bytes == 16) 
   {
-    aes_encrypt(const1, const1, (uint32_t *)K, 10); 
+    rijndaelEncrypt((uint32_t *)K, 10, const1, const1); 
     CP_BLOCK(result, user_key); 
     XOR_BLOCK(result, const1);
   }
   else
   {
-    aes_encrypt(const2, const2, (uint32_t *)K, 10); 
-    aes_encrypt(const3, const3, (uint32_t *)K, 10); 
-    aes_encrypt(const4, const4, (uint32_t *)K, 10); 
-    aes_set_encrypt_key(const4, (uint32_t *)K, 10);
+    rijndaelEncrypt((uint32_t *)K, 10, const2, const2); 
+    rijndaelEncrypt((uint32_t *)K, 10, const3, const3); 
+    rijndaelEncrypt((uint32_t *)K, 10, const4, const4); 
+    rijndaelKeySetupEnc((uint32_t *)K, const4, 128); 
     ZERO_BLOCK(result);
 
     while (user_key_bytes > AEZ_BYTES) 
     {
       XOR_BLOCK(result, user_key); 
-      aes_encrypt(result, result, (uint32_t *)K, 10); 
+      rijndaelEncrypt((uint32_t *)K, 10, result, result); 
       user_key += AEZ_BYTES;
       user_key_bytes -= AEZ_BYTES; 
     }
@@ -200,7 +200,7 @@ int aez_extract(aez_keyvector_t *key,
     }
     
     XOR_BLOCK(result, tmp); 
-    aes_encrypt(result, result, (uint32_t *)K, 10);   
+    rijndaelEncrypt((uint32_t *)K, 10, result, result); 
   }
 
   aez_free_block10(K); 

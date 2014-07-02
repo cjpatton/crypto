@@ -448,7 +448,7 @@ int main() {
     byte n[13] = {1,2,3,0};
     byte ad[12] = {1,2,3,0};
 
-    int i, trials = 1000;
+    int i, trials =100;
     size_t msg_bytes = 1 << 18; 
     byte *ciphertext_bm = malloc(msg_bytes + ABYTES), 
          *ciphertext = malloc(msg_bytes + ABYTES),
