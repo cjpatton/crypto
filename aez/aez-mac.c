@@ -5,8 +5,7 @@
  * Christopher Patton <chrispatton@gmail.com>, June 2014. 
  */
 #include "aez.h"
-#include "../portable.h"
-#include "../cipher/rijndael-alg-fst.h"
+#include "rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>

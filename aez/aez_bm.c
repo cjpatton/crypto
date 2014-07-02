@@ -42,7 +42,7 @@
 
 typedef unsigned char byte;
 
-#include "../cipher/rijndael-alg-fst.h"     /* Defines "u32" type for AES internal key */
+#include "rijndael-alg-fst.h"     /* Defines "u32" type for AES internal key */
 
 /* ------------------------------------------------------------------------- */
 

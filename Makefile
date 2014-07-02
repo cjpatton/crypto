@@ -1,4 +1,4 @@
-CC_FLAGS=-Wall -O3
+CC_FLAGS=-Wall #-O3
 
 aez_ni_bm: aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o 
 	gcc $(CC_FLAGS) aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -std=c99 -maes -mssse3 -o aez_ni_bm
@@ -9,22 +9,22 @@ aez_bm: aez/aez_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-
 aeztest: aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o 
 	gcc $(CC_FLAGS) aez/aeztest.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -o aeztest
 
-rijndael-alg-fst.o: cipher/rijndael-alg-fst.h cipher/rijndael-alg-fst.c
-	gcc $(CC_FLAGS) -c cipher/rijndael-alg-fst.c 
+rijndael-alg-fst.o: aez/rijndael-alg-fst.h aez/rijndael-alg-fst.c
+	gcc $(CC_FLAGS) -c aez/rijndael-alg-fst.c 
 
 oaep-rsa: oaep-rsa.c oaep.o rsa.o sha1.o util.o 
 	gcc $(CC_FLAGS) -o oaep-rsa oaep-rsa.c oaep.o sha1.o rsa.o util.o -lgmp
 
-aez-crypt.o: aez/aez.h aez/aez-crypt.c portable.h 
+aez-crypt.o: aez/aez.h aez/aez-crypt.c  
 	gcc $(CC_FLAGS) -c aez/aez-crypt.c 
 
-aez-cipher.o: aez/aez.h aez/aez-cipher.c portable.h 
+aez-cipher.o: aez/aez.h aez/aez-cipher.c  
 	gcc $(CC_FLAGS) -c aez/aez-cipher.c 
 
-aez-core.o: aez/aez.h aez/aez-core.c portable.h 
+aez-core.o: aez/aez.h aez/aez-core.c  
 	gcc $(CC_FLAGS) -c aez/aez-core.c 
 
-aez-mac.o: aez/aez.h aez/aez-mac.c portable.h 
+aez-mac.o: aez/aez.h aez/aez-mac.c  
 	gcc $(CC_FLAGS) -c aez/aez-mac.c 
 
 oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o

@@ -1,5 +1,5 @@
 #include "aez.h"
-#include "../cipher/rijndael-alg-fst.h"
+#include "rijndael-alg-fst.h"
 #include <stdio.h>
 #include <string.h>
 

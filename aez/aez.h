@@ -9,7 +9,6 @@
 #ifndef AEZ_H
 #define AEZ_H
 
-#include "../portable.h"
 #include <stdint.h>
 #include <stdlib.h>
 
