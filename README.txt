@@ -50,7 +50,7 @@ oaep-rsa.c
   using the SHA-1 cryptographic hash funciton. 
 
 
-asym/ 
+rsa/ 
 
   oaep.{h,c}
 

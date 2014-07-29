@@ -27,11 +27,11 @@ aez-core.o: aez/aez.h aez/aez-core.c
 aez-mac.o: aez/aez.h aez/aez-mac.c  
 	gcc $(CC_FLAGS) -c aez/aez-mac.c 
 
-oaep.o: asym/oaep.h asym/oaep.c rsa.o sha1.o
-	gcc $(CC_FLAGS) -c asym/oaep.c -lgmp
+oaep.o: rsa/oaep.h rsa/oaep.c rsa.o sha1.o
+	gcc $(CC_FLAGS) -c rsa/oaep.c -lgmp
 
-rsa.o: asym/rsa.h asym/rsa.c util.o
-	gcc $(CC_FLAGS) -c asym/rsa.c -lgmp
+rsa.o: rsa/rsa.h rsa/rsa.c util.o
+	gcc $(CC_FLAGS) -c rsa/rsa.c -lgmp
 
 sha1.o: hash/sha1.h hash/sha1.c
 	gcc $(CC_FLAGS) -c hash/sha1.c
@@ -64,11 +64,11 @@ did: oaep-rsa
 	./oaep-rsa --decrypt -i cipher -o plaintext.jpg
 	du -h cipher plaintext.jpg papers/message.jpg
 
-oaeptest: asym/oaeptest.c oaep.o rsa.o sha1.o util.o 
-	gcc $(CC_FLAGS) -o oaeptest asym/oaeptest.c oaep.o sha1.o rsa.o util.o -lgmp
+oaeptest: rsa/oaeptest.c oaep.o rsa.o sha1.o util.o 
+	gcc $(CC_FLAGS) -o oaeptest rsa/oaeptest.c oaep.o sha1.o rsa.o util.o -lgmp
 
-rsatest: asym/rsatest.c rsa.o util.o 
-	gcc $(CC_FLAGS) -o rsatest asym/rsatest.c rsa.o util.o -lgmp
+rsatest: rsa/rsatest.c rsa.o util.o 
+	gcc $(CC_FLAGS) -o rsatest rsa/rsatest.c rsa.o util.o -lgmp
 
 chachatest: cipher/chachatest.c chacha.o keygen.o
 	gcc $(CC_FLAGS) -o chachatest cipher/chachatest.c chacha.o keygen.o -lgmp
