@@ -1,5 +1,11 @@
 CC_FLAGS=-Wall #-O3
 
+test: cipher/test.c aes_ni.o
+	gcc $(CC_FLAGS) cipher/test.c aes_ni.o -std=c99 -maes -mssse3 -o test
+
+aes_ni.o: cipher/aes_ni.h cipher/aes_ni.c
+	gcc $(CC_FLAGS) -c cipher/aes_ni.c -std=c99 -maes -mssse3 
+
 aez_ni_bm: aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o 
 	gcc $(CC_FLAGS) aez/aez_ni_bm.c aez-core.o aez-mac.o aez-cipher.o aez-crypt.o rijndael-alg-fst.o -std=c99 -maes -mssse3 -o aez_ni_bm
 
