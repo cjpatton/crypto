@@ -1,7 +1,7 @@
 CC_FLAGS=-Wall #-O3
 
-test: cipher/test.c aes_ni.o
-	gcc $(CC_FLAGS) cipher/test.c aes_ni.o -std=c99 -maes -mssse3 -o test
+tiaoxin: authenc/tiaoxin.c
+	gcc $(CC_FLAGS) authenc/tiaoxin.c -std=c99 -maes -mssse3 -o tiaoxin
 
 aes_ni.o: cipher/aes_ni.h cipher/aes_ni.c
 	gcc $(CC_FLAGS) -c cipher/aes_ni.c -std=c99 -maes -mssse3 
@@ -54,7 +54,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa aez_bm aez_ni_bm
+	rm -f *.o *test oaep-rsa aez_bm aez_ni_bm tiaoxin
 
 # A couple tests ... 
 do: oaep-rsa

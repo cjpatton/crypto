@@ -85,11 +85,11 @@ void aes_cipher(byte *out, const byte *in,
 
   /* Encipher or decipher. */ 
   if (!inv) 
-    tmp = aes(key, *(__m128i*)buf); 
+    *(__m128i*)buf = aes(key, *(__m128i*)buf); 
   else
-    tmp = aesinv(key, *(__m128i*)buf); 
+    *(__m128i*)buf = aesinv(key, *(__m128i*)buf); 
 
   /* Store output in buffer. */ 
-  _mm_storeu_si128((__m128i*)out, tmp); 
+  _mm_storeu_si128((__m128i*)out, *(__m128i*)buf); 
 
 }
