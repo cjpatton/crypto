@@ -1,5 +1,7 @@
 /* 
  * tiaoxin.c -- Tiaoxin-346, a Caesar submission. 
+ * TODO Is it OK to pass an unaligned byte buffer to AES load instruction? 
+ * TODO Authentication. 
  * TODO Processing of additional data. 
  */
 
@@ -161,21 +163,33 @@ void encrypt(Byte *C,
   TiaoxinState state; 
   ALIGN(16) Byte buff [16]; 
   __m128i M0, M1, C0, C1;  
-  unsigned i; 
+  unsigned i, j, num_blocks = msg_len / 32; 
 
-  assert(msg_len <= 32 /* Do last chunk only for now. */);
-  //disp(&state); 
-  
   init(&state, K, N); 
+
+  /* Unfragmented blocks */ 
+  for (j = 0; j < num_blocks * 32; j += 32)
+  {
+    M0 = _mm_loadu_si128((__m128i*)&M[j]);   
+    M1 = _mm_loadu_si128((__m128i*)&M[j + 16]);   
   
+    update(&state, M0, M1, M0 ^ M1); 
+    C0 = state.T3[0] ^ state.T3[2] ^ state.T4[1] ^ (state.T6[3] & state.T4[3]);
+    C1 = state.T6[0] ^ state.T4[2] ^ state.T3[1] ^ (state.T6[5] & state.T3[2]);
+    
+    _mm_storeu_si128((__m128i*)&C[j], C0);  
+    _mm_storeu_si128((__m128i*)&C[j + 16], C1);  
+  }
+
+  /* Fragmented last block */  
   *(__m128i*)buff = _mm_setzero_si128(); 
-  for (i = 0; i < 16 && i < msg_len; i++)
-    buff[i] = M[i]; 
+  for (i = j; i < 16 + j && i < msg_len; i++)
+    buff[i - j] = M[i]; 
   M0 = _mm_loadu_si128((__m128i*)buff);   
 
   *(__m128i*)buff = _mm_setzero_si128(); 
   for (; i < msg_len; i++)
-    buff[i - 16] = M[i]; 
+    buff[i - j - 16] = M[i]; 
   M1 = _mm_loadu_si128((__m128i*)buff);   
  
   update(&state, M0, M1, M0 ^ M1); 
@@ -183,12 +197,12 @@ void encrypt(Byte *C,
   C1 = state.T6[0] ^ state.T4[2] ^ state.T3[1] ^ (state.T6[5] & state.T3[2]);
     
   _mm_storeu_si128((__m128i*)buff, C0);  
-  for (i = 0; i < 16 && i < msg_len; i++)
-    C[i] = buff[i];
+  for (i = j; i < 16 + j && i < msg_len; i++)
+    C[i] = buff[i - j];
   
   _mm_storeu_si128((__m128i*)buff, C1);  
   for (; i < msg_len; i++)
-    C[i] = buff[i - 16];
+    C[i] = buff[i - j - 16];
   
   /* TODO authenticate */ 
 
@@ -205,21 +219,35 @@ int decrypt(Byte *M,
   TiaoxinState state; 
   ALIGN(16) Byte buff [16]; 
   __m128i M0, M1, C0, C1, zero = _mm_setzero_si128(); 
-  unsigned i; 
+  unsigned i, j, num_blocks = msg_len / 32; 
 
-  assert(msg_len <= 32 /* Do last chunk only for now. */);
-  //disp(&state); 
-  
   init(&state, K, N); 
 
+  /* Unfragmented blocks */ 
+  for (j = 0; j < num_blocks * 32; j += 32)
+  {
+    C0 = _mm_loadu_si128((__m128i*)&C[j]);   
+    C1 = _mm_loadu_si128((__m128i*)&C[j + 16]);   
+  
+    update(&state, zero, zero, zero); 
+    M0 = C0 ^ state.T3[0] ^ state.T3[2] ^ state.T4[1] ^ (state.T6[3] & state.T4[3]); 
+    M1 = C1 ^ state.T6[0] ^ state.T4[2] ^ state.T3[1] ^ (state.T6[5] & state.T3[2]) ^ M0;
+    state.T3[0] ^= M0; 
+    state.T4[0] ^= M1; 
+    state.T6[0] ^= M0 ^ M1;
+    
+    _mm_storeu_si128((__m128i*)&M[j], M0);  
+    _mm_storeu_si128((__m128i*)&M[j + 16], M1);  
+  }
+
   *(__m128i*)buff = _mm_setzero_si128(); 
-  for (i = 0; i < 16 && i < msg_len; i++)
-    buff[i] = C[i]; 
+  for (i = j; i < 16 + j && i < msg_len; i++)
+    buff[i - j] = C[i]; 
   C0 = _mm_loadu_si128((__m128i*)buff);   
 
   *(__m128i*)buff = _mm_setzero_si128(); 
   for (; i < msg_len; i++)
-    buff[i - 16] = C[i]; 
+    buff[i - j - 16] = C[i]; 
   C1 = _mm_loadu_si128((__m128i*)buff);   
   
   update(&state, zero, zero, zero); 
@@ -230,12 +258,12 @@ int decrypt(Byte *M,
   state.T6[0] ^= M0 ^ M1;
 
   _mm_storeu_si128((__m128i*)buff, M0);  
-  for (i = 0; i < 16 && i < msg_len; i++)
-    M[i] = buff[i];
+  for (i = j; i < 16 + j && i < msg_len; i++)
+    M[i] = buff[i - j];
   
   _mm_storeu_si128((__m128i*)buff, M1);  
   for (; i < msg_len; i++)
-    M[i] = buff[i - 16];
+    M[i] = buff[i - j - 16];
 
   /* TODO authenticate */ 
   return 0; 
@@ -255,7 +283,7 @@ int main(int argc, const char **argv)
   Byte key [] =   {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
   Byte nonce [] = {0,0,0,0,0,0,0,0,0,0, 0, 0, 0, 0, 0, 1}; 
 
-  Byte message [] = "Hello, my name is Chris!!";
+  Byte message [] = "0000000000000000000000000000000000000000000000000000000000000";
   Byte ciphertext [1024], plaintext [1024], tag [16]; 
   unsigned i, msg_len = strlen((const char *)message); 
 
