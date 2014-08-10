@@ -355,7 +355,7 @@ int decrypt(Byte *M,
 #include <stdlib.h> 
 
 #define HZ (2.9e9) 
-#define TRIALS 100000
+#define TRIALS 1000000
 
 void benchmark() {
 
@@ -383,7 +383,7 @@ void benchmark() {
     t = clock(); 
     for (j = 0; j < TRIALS; j++)
     {
-      encrypt(ciphertext, tag, message, msg_len[i], 9, &K, &N); 
+      encrypt(ciphertext, tag, message, msg_len[i], 16, &K, &N); 
       N ++; 
     }
     t = clock() - t; 
@@ -392,6 +392,12 @@ void benchmark() {
     printf("%8d bytes, %.2f cycles per byte\n", msg_len[i], 
                                total_cycles/total_bytes); 
   }
+
+  N --; 
+  if (decrypt(plaintext, ciphertext, tag, msg_len[i-1], 16, &K, &N))
+    printf("Success!\n");
+  else 
+    printf("Tag mismatch.\n"); 
 
   free(message); 
   free(ciphertext); 
