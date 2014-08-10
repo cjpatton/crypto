@@ -142,7 +142,23 @@ void encrypt(Byte *C,
              unsigned tag_len, 
              OCBState *state)
 {
+  ALIGN(16) Byte buff [16];
+  __m128i in, out, Z;
+  unsigned i, full_blocks = msg_len - (msg_len % 16);  
+
+  /* Unfragmented blocks */ 
+  for (i = 0; i < full_blocks ; i += 16)
+  {
+    Z = _mm_setzero_si128(); // TODO tweak 
+    in = _mm_loadu_si128((__m128i *)&M[i]); 
+    out = aes((__m128i *)state->enc, in ^ Z) ^ Z; 
+    _mm_storeu_si128((__m128i *)&C[i], out); 
+  }
+   
+  /* Fragmented last block */
   // TODO 
+
+
 }
 
 
@@ -169,6 +185,15 @@ int main() {
   Byte key [] =  {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
   OCBState state; 
   init(&state, key); 
+
+  Byte message [1024] = "0000000000000000";
+  Byte plaintext [1024], ciphertext [1024], tag [16];
+  unsigned msg_len = strlen((const char *)message), 
+           tag_len = 16; 
+
+  encrypt(ciphertext, tag, message, msg_len, tag_len, &state); 
+
+
 
 
   return 0; 
