@@ -23,14 +23,26 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef unsigned char byte;
+
+#define ALIGN(n) __attribute__ ((aligned(n)))
+
+typedef unsigned char Byte;
+typedef ALIGN(16) Byte Block [16]; 
+
+typedef struct {
+
+ /* Tweaks */
+ Block J, I[8];  
+ 
+ /* Key schedules */ 
+ Block enc [11], dec[11]; 
+ 
+} OCBState; 
 
 
 
 /* ----- AES key setup and blockcipher calls. ------------------------------ */
 
-
-#define ALIGN(n) __attribute__ ((aligned(n)))
 
 #define SETUP_STEP(v1,v2,v3,shuff_const,aes_const)                    \
     v2 = _mm_aeskeygenassist_si128(v1,aes_const);                     \
@@ -109,9 +121,36 @@ __m128i aes_inv(__m128i key[11], __m128i in)
 }
 
 
+
+/* ---- OCB initialization. ------------------------------------------------ */
+
+void init(OCBState *state, const Byte K[])
+{
+  __m128i key = _mm_loadu_si128((__m128i *)K); 
+  aes_setup(key, (__m128i *)state->enc); 
+  aes_setup_inv(key, (__m128i *)state->dec, (__m128i *)state->dec);
+
+  /* TODO key tweaks. */
+
+} 
+
+
+
+
+
+
+
+
+
+
 /* ----- Testing, testing ... ---------------------------------------------- */
 
 int main() {
+  
+  Byte key [] =  {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  OCBState state; 
+  init(&state, key); 
+
 
   return 0; 
 }
