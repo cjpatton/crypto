@@ -129,17 +129,36 @@ void init(OCBState *state, const Byte K[])
   __m128i key = _mm_loadu_si128((__m128i *)K); 
   aes_setup(key, (__m128i *)state->enc); 
   aes_setup_inv(key, (__m128i *)state->dec, (__m128i *)state->dec);
-
-  /* TODO key tweaks. */
-
 } 
 
 
 
+/* ---- OCB authenticated encryption. -------------------------------------- */
+
+void encrypt(Byte *C, 
+             Byte *T, 
+             const Byte *M, 
+             unsigned msg_len,
+             unsigned tag_len, 
+             OCBState *state)
+{
+  // TODO 
+}
 
 
 
+/* ----- OCB authenticated decryption. ------------------------------------- */
 
+int decrypt(Byte *M, 
+            const Byte *C,
+            const Byte *T,
+            unsigned msg_len, 
+            unsigned tag_len, 
+            OCBState *state)
+{
+  // TODO 
+  return 0; 
+}
 
 
 
