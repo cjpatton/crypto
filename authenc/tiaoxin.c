@@ -1,5 +1,15 @@
-/* 
- * tiaoxin.c -- Tiaoxin-346, a Caesar submission. 
+/** 
+ * tiaoxin.c -- An independent implementation of Tiaoxin-346, designed by 
+ * Ivica Nikolic and submitted in the CAESAR authenticated encryption scheme 
+ * competition. 
+ *
+ *   Written by Christopher Patton.
+ *
+ * This porgram is dedicated to the public domain.
+ */
+
+/*
+ * Last modified on 8 Aug 2014.  
  *
  * NOTE Is it OK to pass an unaligned byte buffer to AES load instruction? 
  *      Yes! _mm_load_si128() is the aligned version; I'm using 
@@ -19,6 +29,9 @@
 
 typedef unsigned char Byte; 
 
+
+/* ---- Tiaoxin-346 constants. --------------------------------------------- */ 
+
 ALIGN(16) const Byte Z0 [] = {0x42, 0x8a, 0x2f, 0x98,
                               0xd7, 0x28, 0xae, 0x22, 
                               0x71, 0x37, 0x44, 0x91,
@@ -28,6 +41,9 @@ ALIGN(16) const Byte Z1 [] = {0xb5, 0xc0, 0xfb, 0xcf,
                               0xec, 0x4d, 0x3b, 0x2f,
                               0xe9, 0xb5, 0xdb, 0xa5,
                               0x81, 0x89, 0xdb, 0xbc}; 
+
+
+/* ---- Tiaoxin-346 state. ------------------------------------------------- */ 
 
 typedef struct {
 
@@ -76,17 +92,11 @@ void disp(const TiaoxinState *state)
     }
     printf(" |\n"); 
   }
-
   printf("+------------------------------------------+\n"); 
 }
 
-void print128_num(__m128i var)
-{
-      uint16_t *val = (uint16_t*) &var;
-          printf("Numerical: %i %i %i %i %i %i %i %i \n", 
-                         val[0], val[1], val[2], val[3], val[4], val[5], 
-                                    val[6], val[7]);
-}
+
+/* ----- Tiaoxin-346 update funciton. -------------------------------------- */
 
 void update(TiaoxinState *state, __m128i M0, __m128i M1, __m128i M2)
 {
@@ -133,6 +143,15 @@ void update(TiaoxinState *state, __m128i M0, __m128i M1, __m128i M2)
 
 }
 
+
+/* ----- Tiaxin-346 initialization. ---------------------------------------- */ 
+
+/* 
+ * Initialize the state with key (K) and nonce (N). 
+ *
+ *   TODO Process additional data. 
+ */ 
+
 void init(TiaoxinState *state, const Byte K[], const Byte N[]) 
 {
   state->T3[0] = _mm_loadu_si128((__m128i*)K); 
@@ -155,6 +174,17 @@ void init(TiaoxinState *state, const Byte K[], const Byte N[])
     update(state, *(__m128i*)Z0, *(__m128i*)Z1, *(__m128i*)Z0); 
 }
 
+
+/* ----- Tiaoxin-346 authentication. --------------------------------------- */ 
+
+/* 
+ * Update a post-encryption or -decryption state with the lengths of the 
+ * message and additional data encoded as blocks. Mix the state another 20 
+ * rounds and XOR the block states to produce the tag. 
+ *   
+ *  TODO Length of additional data.  
+ */
+
 void auth(Byte *T, unsigned tag_len, unsigned msg_len, TiaoxinState *state)
 {
   ALIGN(16) Byte buff [16]; 
@@ -176,6 +206,9 @@ void auth(Byte *T, unsigned tag_len, unsigned msg_len, TiaoxinState *state)
   for (i = 0; i < tag_len; i++)
     T[i] = buff[i]; 
 }
+
+
+/* ----- Tiaoxin-346 authenticated encryption. ----------------------------- */
 
 void encrypt(Byte *C, 
              Byte *T, 
@@ -231,12 +264,15 @@ void encrypt(Byte *C,
   
   /* Generate tag */ 
   auth(T, tag_len, msg_len, &state); 
-  printf("Tag:   "); 
-  for (i = 0; i < tag_len; i++)
-    printf("%02x", T[i]); 
-  printf("\n"); 
-}
+} // encrypt() 
 
+
+/* ----- Tiaoxin-346 authenticated decryption. ----------------------------- */ 
+
+/* 
+ * Decrypt, verify tag. Return 1 if the tag is valid, 0 to rject. Prevent 
+ * releasing the plaintext by destroying it. 
+ */  
 
 int decrypt(Byte *M, 
             const Byte *C, 
@@ -301,27 +337,19 @@ int decrypt(Byte *M,
     M[i] = buff[i - j - 16];
   }
 
-  /* Verify tag. If rejected, destroy plaintext. */ 
+  /* Verify tag. If reject, destroy plaintext. */ 
   auth(buff, tag_len, msg_len, &state); 
-  printf("  Verify: "); 
-  for (i = 0; i < tag_len; i++)
-    printf("%02x", buff[i]); 
-  printf("\n"); 
   if (strncmp((const char *)buff, (const char *)T, tag_len) != 0)
   {
-    //memset(M, 0, msg_len * sizeof(Byte)); 
+    memset(M, 0, msg_len * sizeof(Byte)); 
     return 0; 
   }
   else return 1; 
-}
+} // decrypt() 
 
 
 
-
-
-
-
-
+/* ----- Testing, testing ... ---------------------------------------------- */ 
 
 int main(int argc, const char **argv) 
 {
@@ -333,7 +361,8 @@ int main(int argc, const char **argv)
   Byte ciphertext [1024], plaintext [1024], tag [16]; 
   unsigned i, msg_len = strlen((const char *)message), tag_len=4; 
 
-  encrypt(ciphertext, tag, message, msg_len, tag_len, key, nonce); 
+  encrypt(ciphertext, tag, message, msg_len, tag_len, key, nonce);
+  //ciphertext[58] = 'p'; 
   unsigned valid = decrypt(plaintext, ciphertext, tag, msg_len, tag_len, key, nonce); 
   
   printf("Message:    "); 
@@ -352,8 +381,5 @@ int main(int argc, const char **argv)
     printf("%02x", ciphertext[i]); 
   printf("\n"); 
   
-
-
-
   return 0; 
 }
