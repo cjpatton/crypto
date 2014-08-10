@@ -1,5 +1,8 @@
 CC_FLAGS=-Wall #-O3
 
+ocb: authenc/ocb.c
+	gcc $(CC_FLAGS) authenc/ocb.c -O3 -std=c99 -maes -mssse3 -o ocb
+
 tiaoxin: authenc/tiaoxin.c
 	gcc $(CC_FLAGS) authenc/tiaoxin.c -O3 -std=c99 -maes -mssse3 -o tiaoxin
 
@@ -54,7 +57,7 @@ util.o: misc/util.h misc/util.c
 all: oaep-rsa oaeptest rsatest sha1test chachatest
 
 clean: 
-	rm -f *.o *test oaep-rsa aez_bm aez_ni_bm tiaoxin
+	rm -f *.o *test oaep-rsa aez_bm aez_ni_bm tiaoxin ocb
 
 # A couple tests ... 
 do: oaep-rsa

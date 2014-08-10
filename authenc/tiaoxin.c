@@ -10,7 +10,7 @@
  */
 
 /*
- * Last modified on 8 Aug 2014.  
+ * Last modified on 9 Aug 2014.  
  *
  * NOTE Is it OK to pass an unaligned byte buffer to AES load instruction? 
  *      Yes! _mm_load_si128() is the aligned version; I'm using 
@@ -26,7 +26,6 @@
 #include <tmmintrin.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
 
 #define ALIGN(n) __attribute__ ((aligned(n)))
 
