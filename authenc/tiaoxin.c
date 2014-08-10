@@ -2,7 +2,7 @@
  * tiaoxin.c -- An independent implementation of Tiaoxin-346, designed by 
  * Ivica Nikolic and submitted in the CAESAR authenticated encryption scheme 
  * competition. This program uses the AES-NI instruction set for modern x86
- * processors. Compile with gcc flags "-std=c99 -maes -mssse3".  
+ * processors. Compile with gcc flags "-O3 -std=c99 -maes -mssse3".  
  *
  *   Written by Christopher Patton.
  *
@@ -15,6 +15,8 @@
  * NOTE Is it OK to pass an unaligned byte buffer to AES load instruction? 
  *      Yes! _mm_load_si128() is the aligned version; I'm using 
  *      _mm_loadu_si128().
+ *
+ * TODO Trim down the update function if possible. 
  *
  * TODO Processing of additional data. 
  */
@@ -392,12 +394,16 @@ void benchmark() {
     printf("%8d bytes, %.2f cycles per byte\n", msg_len[i], 
                                total_cycles/total_bytes); 
   }
-
-  N --; 
-  if (decrypt(plaintext, ciphertext, tag, msg_len[i-1], 16, &K, &N))
-    printf("Success!\n");
+  
+  //ciphertext[343] = 'o';
+  N --; i --; 
+  if (decrypt(plaintext, ciphertext, tag, msg_len[i], 16, &K, &N))
+    printf("Success! ");
   else 
-    printf("Tag mismatch.\n"); 
+    printf("Tag mismatch. ");
+  for (i = 0; i < 16; i++)
+    printf("%02x", tag[i]); 
+  printf("\n"); 
 
   free(message); 
   free(ciphertext); 
