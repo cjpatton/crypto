@@ -1,7 +1,8 @@
 /** 
  * tiaoxin.c -- An independent implementation of Tiaoxin-346, designed by 
  * Ivica Nikolic and submitted in the CAESAR authenticated encryption scheme 
- * competition. 
+ * competition. This program uses the AES-NI instruction set for modern x86
+ * processors. Compile with gcc flags "-std=c99 -maes -mssse3".  
  *
  *   Written by Christopher Patton.
  *
@@ -93,7 +94,7 @@ void disp(const TiaoxinState *state)
     printf(" |\n"); 
   }
   printf("+------------------------------------------+\n"); 
-}
+} // disp()
 
 
 /* ----- Tiaoxin-346 update funciton. -------------------------------------- */
@@ -140,8 +141,7 @@ void update(TiaoxinState *state, __m128i M0, __m128i M1, __m128i M2)
   T[3] = tmp[3]; 
   T[4] = tmp[4]; 
   T[5] = tmp[5]; 
-
-}
+} // update() 
 
 
 /* ----- Tiaxin-346 initialization. ---------------------------------------- */ 
@@ -152,18 +152,18 @@ void update(TiaoxinState *state, __m128i M0, __m128i M1, __m128i M2)
  *   TODO Process additional data. 
  */ 
 
-void init(TiaoxinState *state, const Byte K[], const Byte N[]) 
+void init(TiaoxinState *state, const __m128i *K, const __m128i *N) 
 {
-  state->T3[0] = _mm_loadu_si128((__m128i*)K); 
-  state->T3[1] = _mm_loadu_si128((__m128i*)K); 
-  state->T4[0] = _mm_loadu_si128((__m128i*)K); 
-  state->T4[1] = _mm_loadu_si128((__m128i*)K); 
-  state->T6[0] = _mm_loadu_si128((__m128i*)K); 
-  state->T6[1] = _mm_loadu_si128((__m128i*)K); 
+  state->T3[0] = _mm_loadu_si128(K); 
+  state->T3[1] = _mm_loadu_si128(K); 
+  state->T4[0] = _mm_loadu_si128(K); 
+  state->T4[1] = _mm_loadu_si128(K); 
+  state->T6[0] = _mm_loadu_si128(K); 
+  state->T6[1] = _mm_loadu_si128(K); 
   
-  state->T3[2] = _mm_loadu_si128((__m128i*)N); 
-  state->T4[2] = _mm_loadu_si128((__m128i*)N); 
-  state->T6[2] = _mm_loadu_si128((__m128i*)N); 
+  state->T3[2] = _mm_loadu_si128(N); 
+  state->T4[2] = _mm_loadu_si128(N); 
+  state->T6[2] = _mm_loadu_si128(N); 
   
   state->T4[3] = _mm_loadu_si128((__m128i*)Z0); 
   state->T6[3] = _mm_loadu_si128((__m128i*)Z1); 
@@ -172,7 +172,7 @@ void init(TiaoxinState *state, const Byte K[], const Byte N[])
 
   for (int i = 0; i < 16; i++)
     update(state, *(__m128i*)Z0, *(__m128i*)Z1, *(__m128i*)Z0); 
-}
+} // init() 
 
 
 /* ----- Tiaoxin-346 authentication. --------------------------------------- */ 
@@ -205,7 +205,7 @@ void auth(Byte *T, unsigned tag_len, unsigned msg_len, TiaoxinState *state)
   _mm_storeu_si128((__m128i*)buff, M);  
   for (i = 0; i < tag_len; i++)
     T[i] = buff[i]; 
-}
+} // auth() 
 
 
 /* ----- Tiaoxin-346 authenticated encryption. ----------------------------- */
@@ -215,8 +215,8 @@ void encrypt(Byte *C,
              const Byte *M, 
              unsigned msg_len, 
              unsigned tag_len, 
-             const Byte K[], 
-             const Byte N[])
+             const __m128i *K, 
+             const __m128i *N)
 {
   TiaoxinState state; 
   ALIGN(16) Byte buff [16]; 
@@ -279,8 +279,8 @@ int decrypt(Byte *M,
             const Byte *T, 
             unsigned msg_len, 
             unsigned tag_len, 
-            const Byte K[], 
-            const Byte N[])
+            const __m128i *K, 
+            const __m128i *N)
 {
   TiaoxinState state; 
   ALIGN(16) Byte buff [16]; 
@@ -351,35 +351,57 @@ int decrypt(Byte *M,
 
 /* ----- Testing, testing ... ---------------------------------------------- */ 
 
+#include <time.h>
+#include <stdlib.h> 
+
+#define HZ (2.9e9) 
+#define TRIALS 100000
+
+void benchmark() {
+
+  static const int msg_len [] = {64,     128,  256,   512, 
+                                 1024,   4096, 10000, 100000,
+                                 1000000}; 
+  static const int num_msg_lens = 8; 
+  
+  Byte key [] =   {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  __m128i K = _mm_loadu_si128((__m128i *)key); 
+  __m128i N = _mm_setzero_si128(); 
+
+  Byte tag [16]; 
+  Byte *message = malloc(msg_len[num_msg_lens-1] * sizeof(Byte)); 
+  Byte *ciphertext = malloc(msg_len[num_msg_lens-1] * sizeof(Byte)); 
+  Byte *plaintext = malloc(msg_len[num_msg_lens-1] * sizeof(Byte)); 
+
+  unsigned i, j; 
+  clock_t t; 
+  double total_cycles; 
+  double total_bytes; 
+
+  for (i = 0; i < num_msg_lens; i++)
+  {
+    t = clock(); 
+    for (j = 0; j < TRIALS; j++)
+    {
+      encrypt(ciphertext, tag, message, msg_len[i], 9, &K, &N); 
+      N ++; 
+    }
+    t = clock() - t; 
+    total_cycles = t * HZ / CLOCKS_PER_SEC; 
+    total_bytes = (double)TRIALS * msg_len[i]; 
+    printf("%8d bytes, %.2f cycles per byte\n", msg_len[i], 
+                               total_cycles/total_bytes); 
+  }
+
+  free(message); 
+  free(ciphertext); 
+  free(plaintext); 
+}
+
 int main(int argc, const char **argv) 
 {
 
-  Byte key [] =   {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
-  Byte nonce [] = {0,0,0,0,0,0,0,0,0,0, 0, 0, 0, 0, 0, 1}; 
-
-  Byte message [] = "This is an actual message, I'm serious. This is not a test. ";
-  Byte ciphertext [1024], plaintext [1024], tag [16]; 
-  unsigned i, msg_len = strlen((const char *)message), tag_len=4; 
-
-  encrypt(ciphertext, tag, message, msg_len, tag_len, key, nonce);
-  //ciphertext[58] = 'p'; 
-  unsigned valid = decrypt(plaintext, ciphertext, tag, msg_len, tag_len, key, nonce); 
-  
-  printf("Message:    "); 
-  for (i = 0; i < msg_len; i++)
-    printf("%02x", message[i]); 
-  printf(" (%d bytes)\n", msg_len); 
-
-  printf("Plaintext:  "); 
-  for (i = 0; i < msg_len; i++)
-    printf("%02x", plaintext[i]); 
-  if (!valid) printf(" rejected!");
-  printf("\n"); 
-  
-  printf("Ciphertext: "); 
-  for (i = 0; i < msg_len; i++)
-    printf("%02x", ciphertext[i]); 
-  printf("\n"); 
+  benchmark();
   
   return 0; 
 }

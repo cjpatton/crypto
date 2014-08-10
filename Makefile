@@ -1,7 +1,7 @@
 CC_FLAGS=-Wall #-O3
 
 tiaoxin: authenc/tiaoxin.c
-	gcc $(CC_FLAGS) authenc/tiaoxin.c -std=c99 -maes -mssse3 -o tiaoxin
+	gcc $(CC_FLAGS) authenc/tiaoxin.c -O3 -std=c99 -maes -mssse3 -o tiaoxin
 
 aes_ni.o: cipher/aes_ni.h cipher/aes_ni.c
 	gcc $(CC_FLAGS) -c cipher/aes_ni.c -std=c99 -maes -mssse3 
