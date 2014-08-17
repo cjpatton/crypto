@@ -1,5 +1,5 @@
 /**
- * aez.c -- AEZ v 2, a Caesar submission submitted by Viet Tung Haong, Ted 
+ * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
  * Krovetz, and Phillip Rogaway. 
  *
  *   Written by Christopher Patton <chrispatton@gmail.com>.
@@ -12,11 +12,13 @@
 #include "rijndael-alg-fst.h"
 #include <stdint.h>
 #include <assert.h>
+#include <stdio.h>
 
 
 /* ----- AEZ state --------------------------------------------------------- */
 
 typedef unsigned char Byte; 
+
 typedef Byte Block [16]; 
 
 typedef struct {
@@ -202,6 +204,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
   cp_block(state->L, state->Linit); /* Reset tweak. */ 
 }
 
+
 /* ---- AMac() ------------------------------------------------------------- */
 
 /*
@@ -216,11 +219,84 @@ void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
 }
 
 
+/* ---- Encipher() ----------------------------------------------------------- */
+
+/*
+ * EncipherEME4, the meat of AEZv2. 
+ */ 
+void encipher_eme4(Byte C [], 
+                   const Byte M [], 
+                   const Byte T [], 
+                   unsigned msg_len,
+                   unsigned tag_len, 
+                   AezState *state)
+{
+  Byte buff [16], delta [16], X [16], S [16]; 
+  unsigned i, j = 0, k = msg_len / 32;  
+  
+  ahash(delta, T, tag_len, state);
+  zero_block(X); 
+
+  /* X; X0, X'0, ... Xm, X'm */ 
+  for (i = 0; i < k * 32; i += 32)
+  {
+    /* M = &M[i], M' = &M[i+16] */ 
+    cipher(&C[i+16], &M[i+16], 1, j, state); 
+    xor_block(&C[i+16], &C[i+16], &M[i]); 
+
+    cipher(&C[i], &C[i+16], 0, 0, state); 
+    xor_block(&C[i], &C[i], &M[i+16]); 
+
+    xor_block(X, X, &C[i]); 
+    xor_block(X, X, &C[i+16]); 
+    ++j; 
+  }
+
+  /* S */ 
+  xor_block(buff, X, &M[16]);
+  cipher(buff, buff, 0, 1, state); 
+  xor_block(buff, buff, M); 
+  xor_block(S, buff, delta); // R
+  
+  cipher(buff, S, -1, 1, state); 
+  xor_block(buff, buff, &M[16]); 
+  xor_block(buff, buff, X); // R' 
+
+  xor_block(S, S, buff); 
+
+  
+  
+
+}
+
+void encipher_ff0(Byte C [], 
+                  const Byte M [], 
+                  const Byte T [], 
+                  unsigned msg_len,
+                  unsigned tag_len, 
+                  AezState *state)
+{
+  printf("not implemented\n");  
+}
+
+void encipher(Byte C [], 
+              const Byte M [], 
+              const Byte T [], 
+              unsigned msg_len,
+              unsigned tag_len, 
+              AezState *state)
+{
+  if (msg_len < 32) 
+    encipher_ff0(C, M, T, msg_len, tag_len, state); 
+  else
+    encipher_eme4(C, M, T, msg_len, tag_len, state); 
+}
+
+
 
 /* ----- Testing, testing ... ---------------------------------------------- */
 
 #include <string.h>
-#include <stdio.h>
 #include <time.h>
 
 static void display_block(const Block X) 
@@ -273,18 +349,26 @@ int main()
   init(&state, NULL, 0); 
   //display_state(&state); 
   
-  Byte tag [16], message[1024] = "Fellas, seriousyy!";
-  unsigned msg_len = strlen((const char *)message); 
+  Byte tag [1024] = "This is a really, really great tag.",
+       message[1024] = "0123456789abcdef0123456789abcdef", 
+       ciphertext[1024], plaintext [1024]; 
+  unsigned msg_len = strlen((const char *)message),
+           tag_len = strlen((const char *)tag); 
 
   printf("Message length: %d\n", msg_len); 
+  
+  /* Encipher(). */
+  memset(ciphertext, 0, 1024); memset(plaintext, 0, 1024); 
+  encipher(ciphertext, message, tag, msg_len, tag_len, &state); 
+
 
   /* AHash(). */
-  ahash(tag, message, msg_len, &state); 
-  printf("Hash: "); display_block(tag); printf("\n");  
+  //ahash(tag, message, msg_len, &state); 
+  //printf("Hash: "); display_block(tag); printf("\n");  
   
   /* AMac(). */
-  amac(tag, message, msg_len, &state); 
-  printf("Mac:  "); display_block(tag); printf("\n");  
+  //amac(tag, message, msg_len, &state); 
+  //printf("Mac:  "); display_block(tag); printf("\n");  
 
 
   return 0; 
