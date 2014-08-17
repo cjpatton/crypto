@@ -45,11 +45,10 @@ typedef struct {
 /* ----- AEZ initialization and key tweaking ------------------------------- */ 
 
 static void dot2(Byte *b) {
-    Byte tmp = b[0];
-    unsigned i;
-    for (i=0; i<15; i++)
-        b[i] = (Byte)((b[i] << 1) | (b[i+1] >> 7));
-    b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
+  Byte tmp = b[0];
+  for (int i = 0; i < 15; i++)
+    b[i] = (Byte)((b[i] << 1) | (b[i+1] >> 7));
+  b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
 }
 
 /*
@@ -112,14 +111,93 @@ void init(AezState *state, const Byte K [], unsigned key_len)
 }
 
 
+/* ---- E^{i,j}_k(), the tweakable blockcipher ----------------------------- */
 
-/* ---- AHash() ------------------------------------------------------------ */ 
-
-void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
+/*
+ * A tweakable blockcipher with two parameters. `i` determines the key 
+ * schedule and number of rounds for the AES call, and is any of {-1, 0, 1, 
+ * 2, 3}. `j` actually corresponds to a two parameter tweak set, the first 
+ * of which is a residue mod 8, the other doubling whenever 0 = j mod 8.
+ *
+ *   TODO Use appropriate key schedule for AES4 calls.
+ */ 
+void cipher(Byte C [], const Byte M [], int i, int j, AezState *state)
 {
+  if (i == -1) 
+  {
+    assert(0 <= j && j < 8);  
+    xor_block(C, M, state->J[j]); 
+    rijndaelEncrypt((uint32_t *)state->Klong, 10, C, C); 
+  }
+
+  else if (i == 0 || j == 0)
+  {
+    assert(0 <= j && j < 8);  
+    xor_block(C, M, state->J[j]); 
+    rijndaelEncrypt((uint32_t *)state->Kshort, 4, C, C); 
+  }
+
+  else 
+  {
+    unsigned res = j % 8; 
+    xor_block(C, M, state->J[res]); 
+    if (res == 0) 
+      dot2(state->L); 
+    xor_block(C, C, state->L); 
+    rijndaelEncrypt((uint32_t *)state->Kshort, 4, C, C); 
+  }
 
 }
 
+
+/* ---- AHash() ------------------------------------------------------------ */ 
+
+/*
+ * An XOR-almust-universal hash function based on AES4. Output length of `H` 
+ * is 128 bits. `M` is an arbitrary length byte string of length `msg_len`. 
+ */
+
+void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
+{
+  Byte buff [16]; 
+  unsigned i, j = 0, k = msg_len / 16;  
+  
+  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  zero_block(H); 
+
+  /* Unfragmented blocks. */ 
+  for (i = 0; i < k * 16; i += 16)
+  {
+    cipher(buff, &M[i], 3, j++, state);  
+    xor_block(H, H, buff); 
+  }
+
+  /* Fragmented last block. */
+  if (i < msg_len || i == 0) 
+  {
+    k = i; 
+    for (; i < msg_len; i++)
+      buff[i - k] = M[i]; 
+    buff[i - k] = 0x80;
+    cipher(buff, buff, 3, j++, state); 
+    xor_block(H, H, buff); 
+  }
+  
+  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+}
+
+/* ---- AMac() ------------------------------------------------------------- */
+
+/*
+ * A secure message authentication code based on AHash(). Output length of `H`
+ * is 128 bits. `M` is an arbitrary length byte string of length `msg_len`. 
+ */
+
+void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
+{
+  ahash(T, M, msg_len, state); 
+  cipher(T, T, -1, 5, state); 
+}
 
 
 
@@ -177,7 +255,22 @@ int main()
 {
   AezState state; 
   init(&state, NULL, 0); 
-  display_state(&state); 
+  //display_state(&state); 
+  
+  Byte tag [16], message[1024] = "Fellas, seriousyy!";
+  unsigned msg_len = strlen((const char *)message); 
+
+  printf("Message length: %d\n", msg_len); 
+
+  /* AHash(). */
+  ahash(tag, message, msg_len, &state); 
+  printf("Hash: "); display_block(tag); printf("\n");  
+  
+  /* AMac(). */
+  amac(tag, message, msg_len, &state); 
+  printf("Mac:  "); display_block(tag); printf("\n");  
+
+
   return 0; 
 }
 
