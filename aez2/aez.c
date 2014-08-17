@@ -1,35 +1,23 @@
 /**
  * aez.c -- AEZ v 2, a Caesar submission submitted by Viet Tung Haong, Ted 
  * Krovetz, and Phillip Rogaway. 
+ *
+ *   Written by Christopher Patton <chrispatton@gmail.com>.
+ *
+ * This program is dedicated to the public domain. 
+ *
+ * Last modified 17 Aug 2014. 
  */
 
 #include "rijndael-alg-fst.h"
 #include <stdint.h>
 #include <assert.h>
 
-typedef unsigned char Byte; 
-typedef Byte Block [16]; 
-
-void cp_block(Byte X [], const Byte Y [])
-{
-  for (int i = 0; i < 16; i++)
-    X[i] = Y[i]; 
-}
-
-void zero_block(Byte X [])
-{
-  for (int i = 0; i < 16; i++)
-    X[i] = 0; 
-}
-
-void xor_block(Byte X [], const Byte Y [], const Byte Z [])
-{
-  for (int i = 0; i < 16; i++)
-    X[i] = Y[i] ^ Z[i]; 
-}
-
 
 /* ----- AEZ state --------------------------------------------------------- */
+
+typedef unsigned char Byte; 
+typedef Byte Block [16]; 
 
 typedef struct {
 
@@ -42,7 +30,32 @@ typedef struct {
 } AezState; 
 
 
-/* ----- AEZ initialization and key tweaking ------------------------------- */ 
+/* ---- Various primitives ------------------------------------------------- */ 
+
+static void cp_block(Byte X [], const Byte Y [])
+{
+  for (int i = 0; i < 16; i++)
+    X[i] = Y[i]; 
+}
+
+static void zero_block(Byte X [])
+{
+  for (int i = 0; i < 16; i++)
+    X[i] = 0; 
+}
+
+static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
+{
+  for (int i = 0; i < 16; i++)
+    X[i] = Y[i] ^ Z[i]; 
+}
+
+/*
+ * Multiply by two operation for key tweaking. 
+ *  
+ *   TODO The spec requires reversing the byte order before multiplying,
+ *        then reversing the byte order of the resulting string. 
+ */
 
 static void dot2(Byte *b) {
   Byte tmp = b[0];
@@ -52,7 +65,8 @@ static void dot2(Byte *b) {
 }
 
 /*
- * Precompute array of values for incrementing tweak (i ++) 
+ * Incremental tweak generation. Used to precompute multiples 
+ * of the tweaks. 
  */
 static void dot_inc(Block *Xs, int n)
 {
@@ -81,6 +95,8 @@ static void dot_inc(Block *Xs, int n)
   }
 }
 
+
+/* ----- AEZ initialization ------------------------------------------------ */ 
 
 void init(AezState *state, const Byte K [], unsigned key_len)
 {
