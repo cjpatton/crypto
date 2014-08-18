@@ -223,9 +223,6 @@ void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
 
 /*
  * EncipherEME4, the meat of AEZv2. 
- *
- * FIXME In first for loop, skip enciphering first two blocks. That seems 
- *       to happen at the end. 
  */ 
 void encipher_eme4(Byte C [], 
                    const Byte M [], 
@@ -235,26 +232,27 @@ void encipher_eme4(Byte C [],
                    unsigned inv,
                    AezState *state)
 {
-  Block delta, X, R0 /* R */, R1 /* R' */, S; 
-  unsigned i, j = 0, k = msg_len / 32;  
+  Block buff, delta, X, Y, Z, R0 /* R */, R1 /* R' */, S, Y0, Y1; 
+  unsigned i, j, k = msg_len / 32;  
   
   ahash(delta, T, tag_len, state);
   zero_block(X); 
 
-  /* X; X0, X'0, ... Xm, X'm */ 
-  for (i = 0; i < k * 32; i += 32)
+  /* X; X1, X'1, ... Xm, X'm */ 
+  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  for (j = 0, i = 32; i < k * 32; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */ 
-    cipher(&C[i+16], &M[i+16], 1, j, state); 
+    cipher(&C[i+16], &M[i+16], 1, ++j, state); 
     xor_block(&C[i+16], &C[i+16], &M[i]); 
 
     cipher(&C[i], &C[i+16], 0, 0, state); 
     xor_block(&C[i], &C[i], &M[i+16]); 
 
     xor_block(X, X, &C[i]); 
-    xor_block(X, X, &C[i+16]); 
-    ++j; 
   }
+
+  // TODO odd number of blocks, partial last block
 
   /* R, R'; S */ 
   xor_block(R0, X, &M[16]);
@@ -269,12 +267,39 @@ void encipher_eme4(Byte C [],
   xor_block(R1, R1, X); // R' 
 
   xor_block(S, R0, R1); // S
+  zero_block(Y);
 
-  
-    // TODO 
-  
-  
+  /* Y; C1, C'1, ... Cm, C'm */ 
+  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  for (j = 0, i = 32; i < k * 32; i += 32)
+  {
+    /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
+    cipher(Z, S, 2, ++j, state); 
+    xor_block(Y0, &C[i+16], Z);
+    xor_block(Y1, &C[i], Z);
+    
+    cipher(&C[i+16], Y1, 0, 0, state); 
+    xor_block(&C[i+16], &C[i+16], Y0); 
 
+    cipher(&C[i], &C[i+16], 1, j, state); 
+    xor_block(&C[i], &C[i], Y1); 
+
+    xor_block(Y, Y, Y0); 
+  }
+
+  // TODO odd number of blocks, partial last block
+  
+  if (!inv) cipher(buff, R1, -1, 2, state); 
+  else      cipher(buff, R1, -1, 1, state); 
+  xor_block(&C[16], R0, buff); 
+
+  if (!inv) cipher(C, &C[16], 0, 2, state);
+  else      cipher(C, &C[16], 0, 1, state);
+  xor_block(C, C, R1); 
+  xor_block(C, C, delta); 
+  xor_block(&C[16], &C[16], Y); 
+
+  cp_block(state->L, state->Linit); /* Reset tweak. */ 
 }
 
 void encipher_ff0(Byte C [], 
@@ -301,17 +326,17 @@ void encipher(Byte C [],
     encipher_eme4(C, M, T, msg_len, tag_len, 0, state); 
 }
 
-void decipher(Byte C [], 
-              const Byte M [], 
+void decipher(Byte M [], 
+              const Byte C [], 
               const Byte T [], 
               unsigned msg_len,
               unsigned tag_len, 
               AezState *state)
 {
   if (msg_len < 32) 
-    encipher_ff0(C, M, T, msg_len, tag_len, 1, state); 
+    encipher_ff0(M, C, T, msg_len, tag_len, 1, state); 
   else
-    encipher_eme4(C, M, T, msg_len, tag_len, 1, state); 
+    encipher_eme4(M, C, T, msg_len, tag_len, 1, state); 
 }
 
 
@@ -372,7 +397,7 @@ int main()
   //display_state(&state); 
   
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "0123456789abcdef0123456789abcdef", 
+       message[1024] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefA dumb fixed keyA dumb fixed key", 
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
