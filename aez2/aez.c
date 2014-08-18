@@ -223,6 +223,9 @@ void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
 
 /*
  * EncipherEME4, the meat of AEZv2. 
+ *
+ * FIXME In first for loop, skip enciphering first two blocks. That seems 
+ *       to happen at the end. 
  */ 
 void encipher_eme4(Byte C [], 
                    const Byte M [], 
@@ -255,18 +258,13 @@ void encipher_eme4(Byte C [],
 
   /* R, R'; S */ 
   xor_block(R0, X, &M[16]);
-  if (!inv)
-    cipher(R0, R0, 0, 1, state); 
-  else
-    cipher(R0, R0, 0, 2, state); 
+  if (!inv) cipher(R0, R0, 0, 1, state); 
+  else      cipher(R0, R0, 0, 2, state); 
   xor_block(R0, R0, M); 
   xor_block(R0, R0, delta); // R
 
-  if (!inv)
-    cipher(R1, R0, -1, 1, state); 
-  else 
-    cipher(R1, R0, -1, 2, state); 
-
+  if (!inv) cipher(R1, R0, -1, 1, state); 
+  else      cipher(R1, R0, -1, 2, state); 
   xor_block(R1, R1, &M[16]); 
   xor_block(R1, R1, X); // R' 
 
