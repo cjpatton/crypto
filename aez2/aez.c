@@ -229,9 +229,10 @@ void encipher_eme4(Byte C [],
                    const Byte T [], 
                    unsigned msg_len,
                    unsigned tag_len, 
+                   unsigned inv,
                    AezState *state)
 {
-  Byte buff [16], delta [16], X [16], S [16]; 
+  Block delta, X, R0 /* R */, R1 /* R' */, S; 
   unsigned i, j = 0, k = msg_len / 32;  
   
   ahash(delta, T, tag_len, state);
@@ -252,18 +253,27 @@ void encipher_eme4(Byte C [],
     ++j; 
   }
 
-  /* S */ 
-  xor_block(buff, X, &M[16]);
-  cipher(buff, buff, 0, 1, state); 
-  xor_block(buff, buff, M); 
-  xor_block(S, buff, delta); // R
+  /* R, R'; S */ 
+  xor_block(R0, X, &M[16]);
+  if (!inv)
+    cipher(R0, R0, 0, 1, state); 
+  else
+    cipher(R0, R0, 0, 2, state); 
+  xor_block(R0, R0, M); 
+  xor_block(R0, R0, delta); // R
+
+  if (!inv)
+    cipher(R1, R0, -1, 1, state); 
+  else 
+    cipher(R1, R0, -1, 2, state); 
+
+  xor_block(R1, R1, &M[16]); 
+  xor_block(R1, R1, X); // R' 
+
+  xor_block(S, R0, R1); // S
+
   
-  cipher(buff, S, -1, 1, state); 
-  xor_block(buff, buff, &M[16]); 
-  xor_block(buff, buff, X); // R' 
-
-  xor_block(S, S, buff); 
-
+    // TODO 
   
   
 
@@ -274,6 +284,7 @@ void encipher_ff0(Byte C [],
                   const Byte T [], 
                   unsigned msg_len,
                   unsigned tag_len, 
+                  unsigned inv,
                   AezState *state)
 {
   printf("not implemented\n");  
@@ -287,9 +298,22 @@ void encipher(Byte C [],
               AezState *state)
 {
   if (msg_len < 32) 
-    encipher_ff0(C, M, T, msg_len, tag_len, state); 
+    encipher_ff0(C, M, T, msg_len, tag_len, 0, state); 
   else
-    encipher_eme4(C, M, T, msg_len, tag_len, state); 
+    encipher_eme4(C, M, T, msg_len, tag_len, 0, state); 
+}
+
+void decipher(Byte C [], 
+              const Byte M [], 
+              const Byte T [], 
+              unsigned msg_len,
+              unsigned tag_len, 
+              AezState *state)
+{
+  if (msg_len < 32) 
+    encipher_ff0(C, M, T, msg_len, tag_len, 1, state); 
+  else
+    encipher_eme4(C, M, T, msg_len, tag_len, 1, state); 
 }
 
 
@@ -353,13 +377,17 @@ int main()
        message[1024] = "0123456789abcdef0123456789abcdef", 
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
-           tag_len = strlen((const char *)tag); 
+           tag_len = strlen((const char *)tag), i; 
 
-  printf("Message length: %d\n", msg_len); 
-  
   /* Encipher(). */
   memset(ciphertext, 0, 1024); memset(plaintext, 0, 1024); 
   encipher(ciphertext, message, tag, msg_len, tag_len, &state); 
+  decipher(plaintext, ciphertext, tag, msg_len, tag_len, &state); 
+
+  printf("Message: "); 
+  for (i = 0; i < msg_len; i++)
+    printf("%c", plaintext[i]); 
+  printf(" (%d bytes)\n", msg_len); 
 
 
   /* AHash(). */
