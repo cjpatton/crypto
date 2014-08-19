@@ -157,14 +157,29 @@ void cipher(Byte C [], const Byte M [], int i, int j, AezState *state)
 
   else 
   {
-    unsigned res = j % 8; 
-    xor_block(C, M, state->J[res]); 
-    if (res == 0) 
-      dot2(state->L); 
+    xor_block(C, M, state->J[j % 8]); 
     xor_block(C, C, state->L); 
     rijndaelEncrypt((uint32_t *)state->Kshort, 4, C, C); 
   }
 
+}
+
+/*
+ * Update doubling tweak `T` if necessary. 
+ */
+static void variant(AezState *state, int i, int j) 
+{
+  unsigned res = j % 8;
+  if (res == 0)
+    dot2(state->L); 
+}
+
+/*
+ * Reset tweak. 
+ */
+static void reset(AezState *state)
+{
+  cp_block(state->L, state->Linit);
 }
 
 
@@ -180,7 +195,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
   Byte buff [16]; 
   unsigned i, j = 0, k = msg_len / 16;  
   
-  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  reset(state); 
   zero_block(H); 
 
   /* Unfragmented blocks. */ 
@@ -197,11 +212,12 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
     for (; i < msg_len; i++)
       buff[i - k] = M[i]; 
     buff[i - k] = 0x80;
-    cipher(buff, buff, 3, j++, state); 
+    variant(state, i, ++j); 
+    cipher(buff, buff, 3, j, state); 
     xor_block(H, H, buff); 
   }
   
-  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  reset(state); 
 }
 
 
@@ -239,11 +255,12 @@ void encipher_eme4(Byte C [],
   zero_block(X); 
 
   /* X; X1, X'1, ... Xm, X'm */ 
-  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  reset(state); 
   for (j = 0, i = 32; i < k * 32; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */ 
-    cipher(&C[i+16], &M[i+16], 1, ++j, state); 
+    variant(state, i, ++j); 
+    cipher(&C[i+16], &M[i+16], 1, j, state); 
     xor_block(&C[i+16], &C[i+16], &M[i]); 
 
     cipher(&C[i], &C[i+16], 0, 0, state); 
@@ -252,7 +269,33 @@ void encipher_eme4(Byte C [],
     xor_block(X, X, &C[i]); 
   }
 
-  // TODO odd number of blocks, partial last block
+  if (msg_len - i > 0 && msg_len - i < 16) /* M* */ 
+  {
+    zero_block(buff); 
+    for (j = i; i < msg_len; i++)
+      buff[i - j] = M[i]; 
+    buff[i - j] = 0x80; 
+    cipher(buff, buff, 0, 3, state); 
+    
+    for (j = i; i < msg_len; i++)
+      X[i - j] ^= buff[i - j];
+  }
+  
+  else if (msg_len - i > 0) /* M*, M** */
+  {
+    cipher(buff, &M[i], 0, 3, state); 
+    xor_block(X, X, buff); 
+  
+    i += 16; 
+    zero_block(buff); 
+    for (j = i; i < msg_len; i++)
+      buff[i - j] = M[i]; 
+    buff[i - j] = 0x80; 
+    cipher(buff, buff, 0, 4, state); 
+    
+    for (j = i; i < msg_len; i++)
+      X[i - j] ^= buff[i - j];
+  }
 
   /* R, R'; S */ 
   xor_block(R0, X, &M[16]);
@@ -270,11 +313,13 @@ void encipher_eme4(Byte C [],
   zero_block(Y);
 
   /* Y; C1, C'1, ... Cm, C'm */ 
-  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  reset(state); 
   for (j = 0, i = 32; i < k * 32; i += 32)
   {
+    variant(state, i, ++j); 
+
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
-    cipher(Z, S, 2, ++j, state); 
+    cipher(Z, S, 2, j, state); 
     xor_block(Y0, &C[i+16], Z);
     xor_block(Y1, &C[i], Z);
     
@@ -286,8 +331,44 @@ void encipher_eme4(Byte C [],
 
     xor_block(Y, Y, Y0); 
   }
+  
+  if (msg_len - i > 0 && msg_len - i < 16) /* C* */ 
+  {
+    cipher(buff, S, -1, 3, state); 
+    for (j = i; i < msg_len; i++) 
+      C[i] = M[i] ^ buff[i - j];
+    
+    zero_block(buff); 
+    for (j = i; i < msg_len; i++) 
+      buff[i - j] = C[i]; 
+    buff[i - j] = 0x80; 
+    cipher(buff, buff, 0, 3, state); 
 
-  // TODO odd number of blocks, partial last block
+    for (j = i; i < msg_len; i++)
+      Y[i- j] ^= buff[i - j];
+  }
+
+  else if (msg_len - i > 0) /* C*, C** */ 
+  {
+    cipher(buff, S, -1, 3, state); 
+    xor_block(&C[i], &M[i], buff); 
+    cipher(buff, &C[i], 0, 3, state); 
+    xor_block(Y, Y, buff); 
+
+    i += 16; 
+    cipher(buff, S, -1, 4, state); 
+    for (j = i; i < msg_len; i++) 
+      C[i] = M[i] ^ buff[i - j];
+    
+    zero_block(buff); 
+    for (j = i; i < msg_len; i++) 
+      buff[i - j] = C[i]; 
+    buff[i - j] = 0x80; 
+    cipher(buff, buff, 0, 4, state); 
+
+    for (j = i; i < msg_len; i++)
+      Y[i- j] ^= buff[i - j];
+  }
   
   if (!inv) cipher(buff, R1, -1, 2, state); 
   else      cipher(buff, R1, -1, 1, state); 
@@ -299,7 +380,7 @@ void encipher_eme4(Byte C [],
   xor_block(C, C, delta); 
   xor_block(&C[16], &C[16], Y); 
 
-  cp_block(state->L, state->Linit); /* Reset tweak. */ 
+  reset(state); 
 }
 
 void encipher_ff0(Byte C [], 
@@ -397,7 +478,7 @@ int main()
   //display_state(&state); 
   
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefA dumb fixed keyA dumb fixed key", 
+       message[1024] = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
@@ -407,7 +488,12 @@ int main()
   encipher(ciphertext, message, tag, msg_len, tag_len, &state); 
   decipher(plaintext, ciphertext, tag, msg_len, tag_len, &state); 
 
-  printf("Message: "); 
+  printf("Ciphertext: "); 
+  for (i = 0; i < msg_len; i++)
+    printf("%02x", ciphertext[i]); 
+  printf("\n"); 
+
+  printf("Message:    "); 
   for (i = 0; i < msg_len; i++)
     printf("%c", plaintext[i]); 
   printf(" (%d bytes)\n", msg_len); 
