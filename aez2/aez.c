@@ -240,7 +240,7 @@ void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
 }
 
 
-/* ---- Encipher() ----------------------------------------------------------- */
+/* ---- Encipher(), Decipher() ---------------------------------------------- */
 
 /*
  * EncipherEME4, the meat of AEZv2. 
@@ -396,8 +396,60 @@ void encipher_ff0(Byte C [],
                   unsigned inv,
                   AezState *state)
 {
-  printf("not implemented\n");  
+  unsigned i, j, k, n = msg_len / 2; 
+  Block delta, left, right, buff;
+  Byte ctr; 
+
+  if (msg_len == 1) k = 24;   
+  else if (msg_len == 2) k = 16; 
+  else if (msg_len < 16) k = 10;
+  else k = 8; 
+
+  k = 8; // FIXME
+
+  ahash(delta, T, tag_len, state); 
+  zero_block(left);
+  zero_block(right); 
+  if (!inv) ctr = 0; 
+  else      ctr = k - 1;
+
+  /* Partition the message. */ 
+  for (i = 0; i < n; i++)
+    left[i] = M[i]; 
+
+  for (j = i; i < msg_len; i++)
+    right[i - j] = M[i]; 
+
+  /* Feistel rounds. */ 
+  for(i = 0; i < k; i++)
+  {
+    zero_block(buff); 
+    for (j = 0; j < n; j++)
+      buff[j] = right[j];
+    buff[j] = 0x80; 
+    xor_block(buff, buff, delta); 
+    buff[0] ^= ctr; 
+ 
+    if (!inv) { cipher(buff, buff, 0, i, state); ctr ++; }
+    else      { cipher(buff, buff, 0, k - i - 1, state); ctr --; }
+    
+    xor_block(buff, buff, left); 
+
+    for (j = 0; j < n; j++)
+    {
+      left[j] = right[j]; 
+      right[j] = buff[j]; 
+    }
+  }
+  
+  for (i = 0; i < n; i++)
+    C[i] = right[i]; 
+
+  for (j = i; i < msg_len; i++)
+    C[i] = left[i - j];
+
 }
+
 
 void encipher(Byte C [], 
               const Byte M [], 
@@ -483,7 +535,7 @@ int main()
   //display_state(&state); 
   
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "I've tried a bunch of message lenghts and honestly, things are looking OK.",
+       message[1024] = "Shitty.",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
