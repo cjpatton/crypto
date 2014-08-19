@@ -6,6 +6,11 @@
  *
  * This program is dedicated to the public domain. 
  *
+ * TODO
+ *
+ *  - encipher_ff0()
+ *  - key extraction and AES4 key schedule tweak. 
+ *
  * Last modified 17 Aug 2014. 
  */
 
