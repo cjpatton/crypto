@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
-
+#include <string.h>
 
 /* ----- AEZ state --------------------------------------------------------- */
 
@@ -396,59 +396,63 @@ void encipher_ff0(Byte C [],
                   unsigned inv,
                   AezState *state)
 {
-  unsigned i, j, k, n = msg_len / 2; 
-  Block delta, left, right, buff;
-  Byte ctr; 
-
-  if (msg_len == 1) k = 24;   
-  else if (msg_len == 2) k = 16; 
-  else if (msg_len < 16) k = 10;
-  else k = 8; 
-
-  k = 8; // FIXME
-
-  ahash(delta, T, tag_len, state); 
-  zero_block(left);
-  zero_block(right); 
-  if (!inv) ctr = 0; 
-  else      ctr = k - 1;
-
-  /* Partition the message. */ 
-  for (i = 0; i < n; i++)
-    left[i] = M[i]; 
-
-  for (j = i; i < msg_len; i++)
-    right[i - j] = M[i]; 
-
-  /* Feistel rounds. */ 
-  for(i = 0; i < k; i++)
-  {
-    zero_block(buff); 
-    for (j = 0; j < n; j++)
-      buff[j] = right[j];
-    buff[j] = 0x80; 
-    xor_block(buff, buff, delta); 
-    buff[0] ^= ctr; 
- 
-    if (!inv) { cipher(buff, buff, 0, i, state); ctr ++; }
-    else      { cipher(buff, buff, 0, k - i - 1, state); ctr --; }
-    
-    xor_block(buff, buff, left); 
-
-    for (j = 0; j < n; j++)
-    {
-      left[j] = right[j]; 
-      right[j] = buff[j]; 
-    }
-  }
+  int i, j, k, l;
+  Byte mask=0x00, pad=0x80, *A, *B; 
+  Block delta, front, back, tmp;
   
-  for (i = 0; i < n; i++)
-    C[i] = right[i]; 
+  if (msg_len == 1) k = 24; 
+  else if (msg_len == 2) k = 16;
+  else k = 10; 
+  ahash(delta, T, tag_len, state); 
+  
+  l = (msg_len+1) /2; 
+  memcpy(front, M, l); 
+  memcpy(back, M + msg_len/2, l); 
 
-  for (j = i; i < msg_len; i++)
-    C[i] = left[i - j];
+  if (msg_len >= 16) j = 5; 
+  else               j = 6; 
 
+  if (msg_len & 1)
+  {
+    for (i=0; i < msg_len/2; i++)
+      back[i] = (Byte)((back[i] << 4) | (back[i+1] >> 4));
+    back[msg_len / 2] = (Byte)(back[msg_len/2] << 4);
+    pad = 0x08; mask = 0xf0;
+  }
+
+  if (inv) { B = front; A = back; } else { A = front; B = back; }
+
+  for (i = 1; i <= k; i+= 2)
+  {
+    zero_block(tmp); 
+    tmp[3] = (Byte)(inv ? k + 1 - i : i); 
+    memcpy(&tmp[4], B, l);
+    tmp[4+msg_len/2] = (tmp[4+msg_len/2] & mask) | pad;
+    xor_block(tmp, tmp, delta);
+    cipher(tmp, tmp, 1, j, state); 
+    xor_block(A, A, tmp); 
+
+    zero_block(tmp); 
+    tmp[3] = (Byte)(inv ? k - i: i + 1); 
+    memcpy(&tmp[4], A, l);
+    tmp[4+msg_len/2] = (tmp[4+msg_len/2] & mask) | pad;
+    xor_block(tmp, tmp, delta);
+    cipher(tmp, tmp, 1, j, state); 
+    xor_block(B, B, tmp); 
+  }
+    
+  memcpy(tmp,             front, msg_len/2);
+  memcpy(tmp+msg_len/2, back, (msg_len+1)/2);
+  if (msg_len & 1) 
+  {
+    for (i=msg_len - 1; i > msg_len/2; i--)
+       tmp[i] = (Byte)((tmp[i] >> 4) | (tmp[i-1] << 4));
+     tmp[msg_len/2] = (Byte)((back[0] >> 4) | (front[msg_len/2] & mask));
+  }
+  memcpy(C,tmp,msg_len);
+  reset(state); 
 }
+
 
 
 void encipher(Byte C [], 
@@ -535,7 +539,7 @@ int main()
   //display_state(&state); 
   
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "Shitty.",
+       message[1024] = "S",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
