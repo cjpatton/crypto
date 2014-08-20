@@ -8,7 +8,6 @@
  *
  * TODO
  *
- *  - encipher_ff0()
  *  - key extraction and AES4 key schedule tweak. 
  *
  * Last modified 17 Aug 2014. 
@@ -60,10 +59,11 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
 /*
  * Multiply by two operation for key tweaking. 
  *  
- *   TODO The spec requires reversing the byte order before multiplying,
- *        then reversing the byte order of the resulting string. 
+ *   NOTE The spec requires reversing the byte order before multiplying,
+ *        then reversing the byte order of the resulting string. This is 
+ *        done for efficient implemenation on little endian systems. We 
+ *        relax this here. 
  */
-
 static void dot2(Byte *b) {
   Byte tmp = b[0];
   for (int i = 0; i < 15; i++)
@@ -223,7 +223,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
   }
   
   reset(state); 
-}
+} // AHash()
 
 
 /* ---- AMac() ------------------------------------------------------------- */
@@ -237,7 +237,7 @@ void amac(Byte T [], const Byte M [], unsigned msg_len, AezState *state)
 {
   ahash(T, M, msg_len, state); 
   cipher(T, T, -1, 5, state); 
-}
+} // AMac() 
 
 
 /* ---- Encipher(), Decipher() ---------------------------------------------- */
@@ -386,8 +386,16 @@ void encipher_eme4(Byte C [],
   xor_block(&C[16], &C[16], Y); 
 
   reset(state); 
-}
+} // EncipherEME4()
 
+
+/*
+ * EncipherFF0() -- scheme for small messages (< 32). There are no 
+ * provable security results for this scheme ... the number of 
+ * Feistel round depends on the message length and is chosen 
+ * heurestically. The code is derived from Ted Krovetz' reference
+ * implementation of AEZv1. 
+ */
 void encipher_ff0(Byte C [], 
                   const Byte M [], 
                   const Byte T [], 
@@ -396,62 +404,69 @@ void encipher_ff0(Byte C [],
                   unsigned inv,
                   AezState *state)
 {
-  int i, j, k, l;
-  Byte mask=0x00, pad=0x80, *A, *B; 
-  Block delta, front, back, tmp;
+  int i, j, k, l, n = msg_len / 2;
+  Block delta, front, back, buff;
+  Byte mask=0x00, pad=0x80, *A, *B, ctr;  
   
-  if (msg_len == 1) k = 24; 
+  if (msg_len == 1)      k = 24; 
   else if (msg_len == 2) k = 16;
-  else k = 10; 
-  ahash(delta, T, tag_len, state); 
-  
-  l = (msg_len+1) /2; 
-  memcpy(front, M, l); 
-  memcpy(back, M + msg_len/2, l); 
+  else if (msg_len < 16) k = 10; 
+  else                   k = 8;
 
   if (msg_len >= 16) j = 5; 
   else               j = 6; 
 
+  ahash(delta, T, tag_len, state); 
+  
+  l = (msg_len + 1) / 2; 
+  
+  memcpy(front, M, l); 
+  memcpy(back, &M[n], l); 
+
   if (msg_len & 1)
   {
-    for (i=0; i < msg_len/2; i++)
+    for (i = 0; i < n; i++)
       back[i] = (Byte)((back[i] << 4) | (back[i+1] >> 4));
-    back[msg_len / 2] = (Byte)(back[msg_len/2] << 4);
+    back[n] = (Byte)(back[n] << 4);
     pad = 0x08; mask = 0xf0;
   }
 
-  if (inv) { B = front; A = back; } else { A = front; B = back; }
+  if (inv) { B = front; A = back; ctr = k - 1; } 
+  else     { A = front; B = back; ctr = 0; }
 
-  for (i = 1; i <= k; i+= 2)
+  for (i = 0; i < k; i += 2)
   {
-    zero_block(tmp); 
-    tmp[3] = (Byte)(inv ? k + 1 - i : i); 
-    memcpy(&tmp[4], B, l);
-    tmp[4+msg_len/2] = (tmp[4+msg_len/2] & mask) | pad;
-    xor_block(tmp, tmp, delta);
-    cipher(tmp, tmp, 1, j, state); 
-    xor_block(A, A, tmp); 
+    zero_block(buff);
+    memcpy(buff, B, l);
+    buff[n] = (buff[n] & mask) | pad; 
+    xor_block(buff, buff, delta);
+    buff[0] ^= ctr; 
+    cipher(buff, buff, 0, j, state); 
+    xor_block(A, A, buff); 
+    if (!inv) ++ctr;
+    else      --ctr; 
 
-    zero_block(tmp); 
-    tmp[3] = (Byte)(inv ? k - i: i + 1); 
-    memcpy(&tmp[4], A, l);
-    tmp[4+msg_len/2] = (tmp[4+msg_len/2] & mask) | pad;
-    xor_block(tmp, tmp, delta);
-    cipher(tmp, tmp, 1, j, state); 
-    xor_block(B, B, tmp); 
+    zero_block(buff); 
+    memcpy(buff, A, l); 
+    buff[n] = (buff[n] & mask) | pad; 
+    xor_block(buff, buff, delta);
+    buff[0] ^= ctr; 
+    cipher(buff, buff, 0, j, state); 
+    xor_block(B, B, buff); 
+    if (!inv) ++ctr;
+    else      --ctr; 
   }
     
-  memcpy(tmp,             front, msg_len/2);
-  memcpy(tmp+msg_len/2, back, (msg_len+1)/2);
+  memcpy(buff, front, n);
+  memcpy(&buff[n], back, l);
   if (msg_len & 1) 
   {
-    for (i=msg_len - 1; i > msg_len/2; i--)
-       tmp[i] = (Byte)((tmp[i] >> 4) | (tmp[i-1] << 4));
-     tmp[msg_len/2] = (Byte)((back[0] >> 4) | (front[msg_len/2] & mask));
+    for (i = msg_len - 1; i > n; i--)
+       buff[i] = (Byte)((buff[i] >> 4) | (buff[i-1] << 4));
+     buff[n] = (Byte)((back[0] >> 4) | (front[n] & mask));
   }
-  memcpy(C,tmp,msg_len);
-  reset(state); 
-}
+  memcpy(C, buff, msg_len);
+} // EncipherFF0() 
 
 
 
@@ -467,6 +482,7 @@ void encipher(Byte C [],
   else
     encipher_eme4(C, M, T, msg_len, tag_len, 0, state); 
 }
+
 
 void decipher(Byte M [], 
               const Byte C [], 
@@ -539,7 +555,7 @@ int main()
   //display_state(&state); 
   
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "S",
+       message[1024] = "This is working ldf dslfk323d2a",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
