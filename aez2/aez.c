@@ -405,8 +405,9 @@ void encipher_ff0(Byte C [],
                   AezState *state)
 {
   int i, j, k, l, n = msg_len / 2;
-  Block delta, front, back, buff;
-  Byte mask=0x00, pad=0x80, *A, *B, ctr;  
+  Block delta, front, back;
+  Byte mask=0x00, pad=0x80, ctr,
+       buff [32], *A, *B;  
   
   if (msg_len == 1)      k = 24; 
   else if (msg_len == 2) k = 16;
@@ -469,7 +470,6 @@ void encipher_ff0(Byte C [],
 } // EncipherFF0() 
 
 
-
 void encipher(Byte C [], 
               const Byte M [], 
               const Byte T [], 
@@ -482,7 +482,6 @@ void encipher(Byte C [],
   else
     encipher_eme4(C, M, T, msg_len, tag_len, 0, state); 
 }
-
 
 void decipher(Byte M [], 
               const Byte C [], 
