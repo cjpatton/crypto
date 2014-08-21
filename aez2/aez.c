@@ -2,9 +2,14 @@
  * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
  * Krovetz, and Phillip Rogaway. 
  *
- *   Written by Christopher Patton <chrispatton@gmail.com>.
+ *   Written by Chris Patton <chrispatton@gmail.com>.
  *
  * This program is dedicated to the public domain. 
+ *
+ * TODO 
+ *  - Byte order of custom AES keys. 
+ *  - Point swap in FF0. 
+ *  - Correct key schedule for AES call. 
  *
  * Last modified 17 Aug 2014. 
  */
@@ -73,7 +78,6 @@ static void dot2(Byte *b) {
   b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
 }
 
-
 /*
  * Incremental tweak generation. Used to precompute multiples 
  * of the tweaks. 
@@ -92,7 +96,7 @@ static void dot_inc(Block *Xs, int n)
     dot2(Xs[2]);
   }
 
-  else if ((n % 2) == 1) // odd FIXME n & 1
+  else if (n & 1) // odd
   {
     cp_block(Xs[n], Xs[n-1]); 
     xor_block(Xs[n], Xs[n], Xs[1]);    
@@ -106,7 +110,7 @@ static void dot_inc(Block *Xs, int n)
 }
 
 
-/* ----- AEZ initialization ------------------------------------------------ */ 
+/* ----- AEZ initialization, Extract(), Expand()  --------------------------- */ 
 
 void extract(Block J, Block L, const Byte K [], unsigned key_len)
 {
@@ -169,32 +173,64 @@ void extract(Block J, Block L, const Byte K [], unsigned key_len)
   }
 } // extract()
 
+/* 
+ * Expand extracted key (J, L) into AES4 key scheudle. 
+ */
+void expand(Block Kshort[], const Block J, const Block L)
+{
+  unsigned i;
+  Block k [5], buff;
+
+  cp_block(k[0], J); 
+  cp_block(k[1], L); 
+  cp_block(k[2], k[0]); dot2(k[2]); 
+  cp_block(k[3], L);
+  cp_block(k[4], k[2]); dot2(k[4]);
+  // FIXME Byte order of custom AES keys.
+
+  zero_block(Kshort[4]); 
+  zero_block(k[5]); 
+  zero_block(buff);
+  for (i = 0; i < 4; i++) 
+  {
+    buff[0] ++; 
+    rijndaelEncrypt((uint32_t *)k, 4, buff, Kshort[i]); 
+  }
+} // expand() 
+
+/*
+ * Extract key material, set up key schedules and tweak context.  
+ */
 void init(AezState *state, const Byte K [], unsigned key_len)
 {
-  int i; 
+  unsigned i; 
 
-  /* TODO K should be an arbitrary byte string expanded/extracted
-   * into (J, L, K0, K1, K2, K3). For now these are fixed. */ 
-  const Byte dumb [16] = "A dumb fixed key"; 
+  /* Get J, L, and Kshort from user key. */ 
+  // FIXME byte order of custom AES key. 
+  extract(state->J[1], state->L, K, key_len); 
+  expand(state->Kshort, state->J[1], state->L); 
 
-  cp_block(state->L, dumb);
-  cp_block(state->Linit, dumb); 
-  
+  /* We need to be able to reset doubling L tweak. */ 
+  cp_block(state->Linit, state->L);
+
+  /* Precompute tweaks on J. */ 
   zero_block(state->J[0]); 
-  cp_block(state->J[1], dumb); 
   for (i = 0; i < 8; i++)
     dot_inc(state->J, i); 
 
-  /* TODO Modify AES4 call to accept tweak, since the key schedule's 
-   * order depends on the tweak i. */ 
-  cp_block(state->Kshort[0], dumb); 
-  cp_block(state->Kshort[1], dumb); 
-  cp_block(state->Kshort[2], dumb); 
-  cp_block(state->Kshort[3], dumb); 
-  zero_block(state->Kshort[4]); 
-
-  rijndaelKeySetupEnc((uint32_t *)state->Klong, dumb, 128); 
-
+  /* Set up Klong. */ 
+  // FIXME byte order of custom AES key.
+  cp_block(state->Klong[0], state->L); // L
+  cp_block(state->Klong[1], state->J[1]); // J 
+  cp_block(state->Klong[2], state->Klong[1]); dot2(state->Klong[2]); // 2J
+  cp_block(state->Klong[3], state->Klong[2]); dot2(state->Klong[3]); // 4J
+  cp_block(state->Klong[4], state->Kshort[0]); // K0
+  cp_block(state->Klong[5], state->Kshort[1]); // K1
+  cp_block(state->Klong[6], state->Kshort[2]); // K2
+  cp_block(state->Klong[7], state->Kshort[3]); // K3
+  cp_block(state->Klong[8], state->Kshort[0]); // K0
+  cp_block(state->Klong[9], state->Kshort[1]); // K1
+  cp_block(state->Klong[10], state->Kshort[2]); // K2
 } // init() 
 
 
@@ -563,7 +599,6 @@ void decipher(Byte M [],
 }
 
 
-
 /* ----- Testing, testing ... ---------------------------------------------- */
 
 #include <string.h>
@@ -609,18 +644,13 @@ static void display_state(AezState *state)
 
 int main()
 {
-  AezState state; 
-  init(&state, NULL, 0); 
-  //display_state(&state); 
- 
   Byte K [] = "This is one snazzy key ... I loooovvvee it."; 
-  Block J, L; 
-  extract(J, L, K, strlen((const char *)K));  
-  display_block(J); printf("\n"); 
-  display_block(L); printf("\n"); 
+  
+  AezState state; 
+  init(&state, K, strlen((const char *)K)); 
 
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "This is working ldf dslfk323d2a",
+       message[1024] = "This is working which makes me really really 000000000000000000000000000000000 happy :-)",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
