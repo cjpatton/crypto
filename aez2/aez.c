@@ -6,10 +6,6 @@
  *
  * This program is dedicated to the public domain. 
  *
- * TODO
- *
- *  - key extraction and AES4 key schedule tweak. 
- *
  * Last modified 17 Aug 2014. 
  */
 
@@ -34,6 +30,12 @@ typedef struct {
   Block L, Linit, J [8]; 
 
 } AezState; 
+
+static void display_block(const Block X) 
+{
+  for (int i = 0; i < 4; i ++)
+    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+}
 
 
 /* ---- Various primitives ------------------------------------------------- */ 
@@ -71,6 +73,7 @@ static void dot2(Byte *b) {
   b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
 }
 
+
 /*
  * Incremental tweak generation. Used to precompute multiples 
  * of the tweaks. 
@@ -89,7 +92,7 @@ static void dot_inc(Block *Xs, int n)
     dot2(Xs[2]);
   }
 
-  else if ((n % 2) == 1) // odd
+  else if ((n % 2) == 1) // odd FIXME n & 1
   {
     cp_block(Xs[n], Xs[n-1]); 
     xor_block(Xs[n], Xs[n], Xs[1]);    
@@ -104,6 +107,67 @@ static void dot_inc(Block *Xs, int n)
 
 
 /* ----- AEZ initialization ------------------------------------------------ */ 
+
+void extract(Block J, Block L, const Byte K [], unsigned key_len)
+{
+  unsigned i, j; 
+  Block a[5], b[5], C[8], buff; 
+ 
+  for (i = 0; i < 5; i++) 
+  {
+    for (j = 0; j < 16; j++)
+      a[i][j] = (Byte)j;
+    // FIXME byte order of custom AES4 key.
+  }
+
+  zero_block(buff); 
+  for (i = 0; i < 7; i++)
+  {
+    buff[0] ++; 
+    rijndaelEncrypt((uint32_t *)a, 4, buff, C[i]); 
+  }
+
+  zero_block(a[0]); 
+  cp_block(a[1], C[0]); 
+  cp_block(a[2], C[1]); 
+  cp_block(a[3], C[2]); 
+  zero_block(a[4]);
+
+  zero_block(b[0]); 
+  cp_block(b[1], C[3]); 
+  cp_block(b[2], C[4]); 
+  cp_block(b[3], C[5]); 
+  zero_block(b[4]);
+  // FIXME byte order of custom AES4 keys `a` and `b`. 
+  
+  cp_block(C[2], C[6]); 
+  j = key_len - (key_len % 16); 
+  zero_block(J); zero_block(L);
+  for (i = 0; i < j; i += 16)
+  {
+    /* C = C[6], C[2] is the doubling version. 
+     * C[0], C[1] are used as buffers. */
+    xor_block(buff, &K[i], C[2]); 
+    rijndaelEncrypt((uint32_t *)a, 4, buff, C[0]); 
+    rijndaelEncrypt((uint32_t *)b, 4, buff, C[1]); 
+    xor_block(J, J, C[0]); 
+    xor_block(L, L, C[1]); 
+    dot2(C[2]); 
+  }
+
+  if (i < key_len) 
+  {
+    zero_block(buff);
+    for (j = i; i < key_len; i++) 
+      buff[i - j] = K[i]; 
+    buff[i - j] = 0x80; 
+    xor_block(buff, C[2], C[6]); /* dot(3, C) */  
+    rijndaelEncrypt((uint32_t *)a, 4, buff, C[0]); 
+    rijndaelEncrypt((uint32_t *)b, 4, buff, C[1]); 
+    xor_block(J, J, C[0]); 
+    xor_block(L, L, C[1]); 
+  }
+} // extract()
 
 void init(AezState *state, const Byte K [], unsigned key_len)
 {
@@ -131,7 +195,7 @@ void init(AezState *state, const Byte K [], unsigned key_len)
 
   rijndaelKeySetupEnc((uint32_t *)state->Klong, dumb, 128); 
 
-}
+} // init() 
 
 
 /* ---- E^{i,j}_k(), the tweakable blockcipher ----------------------------- */
@@ -395,6 +459,8 @@ void encipher_eme4(Byte C [],
  * Feistel round depends on the message length and is chosen 
  * heurestically. The code is derived from Ted Krovetz' reference
  * implementation of AEZv1. 
+ *
+ *   TODO Point swap. 
  */
 void encipher_ff0(Byte C [], 
                   const Byte M [], 
@@ -503,12 +569,6 @@ void decipher(Byte M [],
 #include <string.h>
 #include <time.h>
 
-static void display_block(const Block X) 
-{
-  for (int i = 0; i < 4; i ++)
-    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-}
-
 static void display_state(AezState *state)
 {
   unsigned i; 
@@ -552,7 +612,13 @@ int main()
   AezState state; 
   init(&state, NULL, 0); 
   //display_state(&state); 
-  
+ 
+  Byte K [] = "This is one snazzy key ... I loooovvvee it."; 
+  Block J, L; 
+  extract(J, L, K, strlen((const char *)K));  
+  display_block(J); printf("\n"); 
+  display_block(L); printf("\n"); 
+
   Byte tag [1024] = "This is a really, really great tag.",
        message[1024] = "This is working ldf dslfk323d2a",
        ciphertext[1024], plaintext [1024]; 

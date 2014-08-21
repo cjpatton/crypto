@@ -29,6 +29,7 @@
 #define MAXKC	(256/32)
 #define MAXKB	(256/8)
 #define MAXNR	14
+#define INTERMEDIATE_VALUE_KAT
 
 typedef unsigned char	u8;	
 typedef unsigned short	u16;	
