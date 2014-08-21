@@ -36,12 +36,6 @@ typedef struct {
 
 } AezState; 
 
-static void display_block(const Block X) 
-{
-  for (int i = 0; i < 4; i ++)
-    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-}
-
 
 /* ---- Various primitives ------------------------------------------------- */ 
 
@@ -604,43 +598,49 @@ void decipher(Byte M [],
 #include <string.h>
 #include <time.h>
 
-static void display_state(AezState *state)
-{
-  unsigned i; 
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 11; i++)
-  {
-    printf("| Klong[%-2d] = ", i); 
-    display_block(state->Klong[i]); 
-    printf("|\n"); 
-  }
+//static void display_block(const Block X) 
+//{
+//  for (int i = 0; i < 4; i ++)
+//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+//}
 
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 5; i++)
-  {
-    printf("| Kshort[%d] = ", i); 
-    display_block(state->Kshort[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 8; i++)
-  {
-    printf("| J[%-2d] =     ", i); 
-    display_block(state->J[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  printf("| L     =     "); 
-  display_block(state->L); 
-  printf("|\n"); 
-  
-  printf("| Linit =     "); 
-  display_block(state->Linit); 
-  printf("|\n"); 
-  printf("+---------------------------------------------------------+\n"); 
-}
+//static void display_state(AezState *state)
+//{
+//  unsigned i; 
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 11; i++)
+//  {
+//    printf("| Klong[%-2d] = ", i); 
+//    display_block(state->Klong[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 5; i++)
+//  {
+//    printf("| Kshort[%d] = ", i); 
+//    display_block(state->Kshort[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 8; i++)
+//  {
+//    printf("| J[%-2d] =     ", i); 
+//    display_block(state->J[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  printf("| L     =     "); 
+//  display_block(state->L); 
+//  printf("|\n"); 
+//  
+//  printf("| Linit =     "); 
+//  display_block(state->Linit); 
+//  printf("|\n"); 
+//  printf("+---------------------------------------------------------+\n"); 
+//}
 
 int main()
 {
