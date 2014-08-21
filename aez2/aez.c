@@ -10,6 +10,7 @@
  *  - Byte order of custom AES keys. 
  *  - Point swap in FF0. 
  *  - Correct key schedule for AES call. 
+ *  - Encrypt(), Decrypt(), Format()
  *
  * Last modified 17 Aug 2014. 
  */
