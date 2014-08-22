@@ -231,18 +231,18 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 
   /* Set up Klong. NOTE that we could expand the key in the full
    * key schedule and remove Kshort to reduce the context size. */ 
-  cp_block(context->Klong[0], context->L);    set_big_endian(context->Klong[0]); // L
-  cp_block(context->Klong[1], context->J[1]); set_big_endian(context->Klong[1]); // J
-  cp_block(context->Klong[2], context->Klong[1]); 
+  cp_block(context->Klong[0],  context->L);    set_big_endian(context->Klong[0]); // L
+  cp_block(context->Klong[1],  context->J[1]); set_big_endian(context->Klong[1]); // J
+  cp_block(context->Klong[2],  context->Klong[1]); 
   dot2(context->Klong[2]); set_big_endian(context->Klong[2]); // 2J
-  cp_block(context->Klong[3], context->Klong[2]); 
+  cp_block(context->Klong[3],  context->Klong[2]); 
   dot2(context->Klong[3]); set_big_endian(context->Klong[3]); // 4J
-  cp_block(context->Klong[4], context->Kshort[0]); // K0
-  cp_block(context->Klong[5], context->Kshort[1]); // K1
-  cp_block(context->Klong[6], context->Kshort[2]); // K2
-  cp_block(context->Klong[7], context->Kshort[3]); // K3
-  cp_block(context->Klong[8], context->Kshort[0]); // K0
-  cp_block(context->Klong[9], context->Kshort[1]); // K1
+  cp_block(context->Klong[4],  context->Kshort[0]); // K0
+  cp_block(context->Klong[5],  context->Kshort[1]); // K1
+  cp_block(context->Klong[6],  context->Kshort[2]); // K2
+  cp_block(context->Klong[7],  context->Kshort[3]); // K3
+  cp_block(context->Klong[8],  context->Kshort[0]); // K0
+  cp_block(context->Klong[9],  context->Kshort[1]); // K1
   cp_block(context->Klong[10], context->Kshort[2]); // K2
 } // init() 
 
@@ -338,7 +338,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 /* ---- AMac() ------------------------------------------------------------- */
 
 /*
- * A secure message authentication code based on AHash(). Output length of `H`
+ * A secure message authentication code based on AHash(). Output length of `T`
  * is 128 bits. `M` is an arbitrary length byte string of length `msg_bytes`. 
  */
 
@@ -540,10 +540,10 @@ void encipher_ff0(Byte C [],
   if (msg_bytes == 1)      k = 24; 
   else if (msg_bytes == 2) k = 16;
   else if (msg_bytes < 16) k = 10; 
-  else                   k = 8;
+  else                     k = 8;
 
   if (msg_bytes >= 16) j = 5; 
-  else               j = 6; 
+  else                 j = 6; 
 
   ahash(delta, T, tag_bytes, context); 
   l = (msg_bytes + 1) / 2; 
