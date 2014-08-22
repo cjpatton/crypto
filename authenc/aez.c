@@ -245,7 +245,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 {
   unsigned i; 
 
-  /* Get J, L, and key schedule from user key. */ 
+  /* Get J, L, and key schedule from user key (K[4], K[5], K[6], K[7}). */ 
   extract(context->J[1], context->L, K, key_bytes); 
   expand(&(context->Klong[4]), context->J[1], context->L); 
 
@@ -258,23 +258,20 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
     dot_inc(context->J, i); 
 
   /* Set up full key schedule. */
-  cp_block(context->Klong[0],  context->L);    
-  set_big_endian(context->Klong[0]); // L
-  cp_block(context->Klong[1],  context->J[1]); 
-  set_big_endian(context->Klong[1]); // J
-  cp_block(context->Klong[2],  context->Klong[1]); 
-  dot2(context->Klong[2]); set_big_endian(context->Klong[2]); // 2J
-  cp_block(context->Klong[3],  context->Klong[2]); 
-  dot2(context->Klong[3]); set_big_endian(context->Klong[3]); // 4J
+  cp_block(context->Klong[0],  context->L); // L 
+  cp_block(context->Klong[1],  context->J[1]); // J
+  cp_block(context->Klong[2],  context->Klong[1]); dot2(context->Klong[2]); // 2J
+  cp_block(context->Klong[3],  context->Klong[2]); dot2(context->Klong[3]); // 4J
   cp_block(context->Klong[8],  context->Klong[4]); // K0
   cp_block(context->Klong[9],  context->Klong[5]); // K1
   cp_block(context->Klong[10], context->Klong[6]); // K2
 
-  printf("Us\n"); 
   for (i = 0; i < 11; i++)
-  { 
-    display_block(context->Klong[i]); printf("\n"); 
-  }
+    set_big_endian(context->Klong[i])
+  
+  printf("----Key schedule----\n"); 
+  for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->Klong[i]); printf("\n");}
+  
 } // init() 
 
 
@@ -1048,11 +1045,8 @@ static void Elf(byte *K, unsigned kbytes, int i, unsigned j,
     memcpy((byte*)aes_key+128, expanded_key+32, 48);
     correct_key((byte*)aes_key,11*16,(byte*)aes_key);
   
-    printf("Them\n"); 
-    for (i = 0; i < 11; i++)
-    { 
-      display_block((Byte *)&aes_key[i * 4]); printf("\n"); 
-    }
+    printf("----Key schedule----\n"); 
+    for (i = 0; i < 11; i++) { printf("Them: "); display_block((Byte *)&aes_key[i * 4]); printf("\n"); }
     
     /* Encipher */
     mult_block(j%8, J, buf); xor_bytes(buf, src, 16, buf);
