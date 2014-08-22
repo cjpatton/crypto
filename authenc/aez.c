@@ -286,23 +286,31 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
  */ 
 static void E(Byte C [], const Byte M [], int i, int j, Context *context)
 {
+  Block tmp, *Kshort; 
+  printf("----Blockcipher (%d, %d)----\n", i, j); 
   if (i == -1) /* 0 <= j < 8 */ 
   {
-    xor_block(C, M, context->J[j]); 
+    xor_block(C, M, context->J[j % 8]);
     rijndaelEncrypt((uint32_t *)context->Klong, 10, C, C); 
   }
 
   else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
   {
-    xor_block(C, M, context->J[j]); 
-    rijndaelEncryptRound((uint32_t *)&(context->Klong[4]), 10, C, 4); 
+    xor_block(C, M, context->J[j % 8]);
+    Kshort = &(context->Klong[4 + i]); 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C, 4); 
+    cp_block(Kshort[4], tmp); 
   }
 
   else 
   {
     xor_block(C, M, context->J[j % 8]); 
     xor_block(C, C, context->L); 
-    rijndaelEncryptRound((uint32_t *)&(context->Klong[4]), 10, C, 4); 
+    Kshort = &(context->Klong[4 + i]); 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C, 4); 
+    cp_block(Kshort[4], tmp); 
   }
 } // E() 
 
@@ -1046,12 +1054,16 @@ static void Elf(byte *K, unsigned kbytes, int i, unsigned j,
     correct_key((byte*)aes_key,11*16,(byte*)aes_key);
   
     printf("----Key schedule----\n"); 
-    for (i = 0; i < 11; i++) { printf("Them: "); display_block((Byte *)&aes_key[i * 4]); printf("\n"); }
+    for (unsigned fella = 0; fella < 11; fella++) { printf("Them: "); display_block((Byte *)&aes_key[fella * 4]); printf("\n"); }
+  
+    printf("----Blockcipher (%d, %d)----\n", i, j); 
     
     /* Encipher */
-    mult_block(j%8, J, buf); xor_bytes(buf, src, 16, buf);
-    if (i < 0)
-        rijndaelEncrypt(aes_key, 10, buf, dst);
+    mult_block(j%8, J, buf);
+    xor_bytes(buf, src, 16, buf);
+    if (i < 0) {
+       rijndaelEncrypt(aes_key, 10, buf, dst);
+    }
     else {
         u32 aes4_key[4*5];
         memcpy((byte*)aes4_key, (byte*)aes_key+64+i*16, 64);
@@ -1353,13 +1365,14 @@ int main()
        plaintext[256]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
-           auth_bytes = 16, i; 
+           auth_bytes = 16; 
+  int i = -1, j = 5; 
 
   init(&context, key, key_bytes);
-  E(ciphertext, message, -1, 3, &context); 
+  E(ciphertext, message, i, j, &context); 
   display_block(ciphertext); printf("\n"); 
 
-  Elf(key, key_bytes, -1, 3, message, ciphertext); 
+  Elf(key, key_bytes, i, j, message, ciphertext); 
   display_block(ciphertext); printf("\n"); 
 
   

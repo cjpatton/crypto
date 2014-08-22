@@ -22,6 +22,11 @@ Comments on AEZ2 spec
       INTERMEDIATE_VALUE_KAT to get at it. Still, I prefer how it's done in
       the old verison ... 
 
+      EDIT: To Make the specified key scheduling work requries two copies and 
+      and a zero_block(), plust one block of state in E(). I would suggest we 
+      XOR in a tweak as in AEZv1 and store Kshort in the state. Eating this 
+      extra state seems preferrable to adding extra ops to the blockcipher. 
+
 
 Comments on the document
 
