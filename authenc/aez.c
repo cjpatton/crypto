@@ -198,9 +198,9 @@ static void expand(Block Kshort[], const Block J, const Block L)
   cp_block(k[2], k[0]); dot2(k[2]); set_big_endian(k[2]); 
   cp_block(k[3], L);                set_big_endian(k[3]); 
   cp_block(k[4], k[2]); dot2(k[4]); set_big_endian(k[4]); 
+  zero_block(k[5]); 
 
   zero_block(Kshort[4]); 
-  zero_block(k[5]); 
   zero_block(buff);
   for (i = 0; i < 4; i++) 
   {
