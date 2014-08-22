@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define INVALID -1 /* Reject plaintext (inauthentic). */ 
 #define ALIGN(n) __attribute__ ((aligned(n)))
@@ -37,6 +38,12 @@ typedef struct {
 
 } Context; 
 
+static void display_block(const Block X) 
+{
+  for (int i = 0; i < 4; i ++)
+    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+}
+
 
 /* ---- Various primitives ------------------------------------------------- */ 
 
@@ -45,18 +52,19 @@ typedef struct {
  * set_big_endian() operates on 128-bit blocks. 
  */
 #define reverse_u32(dst, src) { \
-  (dst)[0] = (src)[3]; \
-  (dst)[1] = (src)[2]; \
-  (dst)[2] = (src)[1]; \
-  (dst)[3] = (src)[0]; }
+  *u32_ptr(dst) = ((*u32_ptr(src) & 0x000000ffu) << 24) | \
+                  ((*u32_ptr(src) & 0x0000ff00u) <<  8) | \
+                  ((*u32_ptr(src) & 0x00ff0000u) >>  8) | \
+                  ((*u32_ptr(src) & 0xff000000u) >> 24); \
+}
 
 #define u8_ptr(X) ((uint8_t *)X)
 #define u32_ptr(X) ((uint32_t *)X) 
 
 #define set_big_endian(X) { \
-  reverse_u32(&u8_ptr(X)[0],  &u8_ptr(X)[0]); \
-  reverse_u32(&u8_ptr(X)[4],  &u8_ptr(X)[4]); \
-  reverse_u32(&u8_ptr(X)[8],  &u8_ptr(X)[8]); \
+  reverse_u32(&u8_ptr(X)[0],  &u8_ptr(X)[0]);  \
+  reverse_u32(&u8_ptr(X)[4],  &u8_ptr(X)[4]);  \
+  reverse_u32(&u8_ptr(X)[8],  &u8_ptr(X)[8]);  \
   reverse_u32(&u8_ptr(X)[12], &u8_ptr(X)[12]); \
 }
 
@@ -78,6 +86,12 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
     X[i] = Y[i] ^ Z[i]; 
 }
 
+static void rev(Byte *src, Byte *dst) {
+    Byte i, tmp[16];
+    memcpy(tmp,src,16);
+    for (i=0; i<16; i++) dst[i] = tmp[15-i];
+}
+
 /*
  * Multiply by two operation for key tweaking. 
  *  
@@ -86,10 +100,12 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
  *        done for efficient implemenation on little endian systems. 
  */
 static void dot2(Byte *b) {
+  rev(b, b); 
   Byte tmp = b[0];
   for (int i = 0; i < 15; i++)
     b[i] = (Byte)((b[i] << 1) | (b[i+1] >> 7));
   b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
+  rev(b, b); 
 }
 
 /*
@@ -136,36 +152,38 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
       a[i][j] = (Byte)j;
     set_big_endian(a[i]); 
   }
-
+  
   zero_block(buff); 
-  for (i = 0; i < 7; i++)
+  for (i = 0; i < 8; i++)
   {
-    buff[0] ++; 
-    rijndaelEncrypt((uint32_t *)a, 4, buff, C[i]); 
+    memset(C[i], (Byte)i, 16 * sizeof(Byte)); 
+    rijndaelEncryptRound((uint32_t *)a, 10, C[i], 4); 
   }
 
-  zero_block(a[0]);     set_big_endian(a[0]); 
-  cp_block(a[1], C[0]); set_big_endian(a[1]); 
-  cp_block(a[2], C[1]); set_big_endian(a[2]); 
-  cp_block(a[3], C[2]); set_big_endian(a[3]); 
-  zero_block(a[4]); 
+  zero_block(a[0]);   
+  cp_block(a[1], C[1]); set_big_endian(a[1]); 
+  cp_block(a[2], C[2]); set_big_endian(a[2]); 
+  cp_block(a[3], C[3]); set_big_endian(a[3]); 
+  zero_block(a[4]);
 
-  zero_block(b[0]);     set_big_endian(b[0]); 
-  cp_block(b[1], C[3]); set_big_endian(b[1]); 
-  cp_block(b[2], C[4]); set_big_endian(b[2]); 
-  cp_block(b[3], C[5]); set_big_endian(b[3]); 
+  zero_block(b[0]);
+  cp_block(b[1], C[4]); set_big_endian(b[1]); 
+  cp_block(b[2], C[5]); set_big_endian(b[2]); 
+  cp_block(b[3], C[6]); set_big_endian(b[3]); 
   zero_block(b[4]);
 
-  cp_block(C[2], C[6]); 
+  //for (i = 0; i < 5; i++) { printf("Us: "); display_block(b[i]); printf("\n"); }
+  cp_block(C[2], C[7]); 
+  cp_block(C[3], C[7]); dot2(C[3]); xor_block(C[3], C[3], C[2]); /* 3C */ 
   j = key_bytes - (key_bytes % 16); 
   zero_block(J); zero_block(L);
   for (i = 0; i < j; i += 16)
   {
-    /* C = C[6], C[2] is the doubling version. 
+    /* C = C[7], C[2] is the doubling version. 
      * C[0], C[1] are used as buffers. */
-    xor_block(buff, &K[i], C[2]); 
-    rijndaelEncrypt((uint32_t *)a, 4, buff, C[0]); 
-    rijndaelEncrypt((uint32_t *)b, 4, buff, C[1]); 
+    xor_block(buff, &K[i], C[2]);
+    cp_block(C[0], buff); rijndaelEncryptRound((uint32_t *)a, 10, C[0], 4); 
+    cp_block(C[1], buff); rijndaelEncryptRound((uint32_t *)b, 10, C[1], 4); 
     xor_block(J, J, C[0]); 
     xor_block(L, L, C[1]); 
     dot2(C[2]); 
@@ -177,12 +195,15 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
     for (j = i; i < key_bytes; i++) 
       buff[i - j] = K[i]; 
     buff[i - j] = 0x80; 
-    xor_block(buff, C[2], C[6]); /* dot(3, C) */  
-    rijndaelEncrypt((uint32_t *)a, 4, buff, C[0]); 
-    rijndaelEncrypt((uint32_t *)b, 4, buff, C[1]); 
+    xor_block(buff, buff, C[3]); 
+    cp_block(C[0], buff); rijndaelEncryptRound((uint32_t *)a, 10, C[0], 4); 
+    cp_block(C[1], buff); rijndaelEncryptRound((uint32_t *)b, 10, C[1], 4); 
     xor_block(J, J, C[0]); 
     xor_block(L, L, C[1]); 
   }
+    
+  printf("Us: "); display_block(J); printf("\n");
+  printf("Us: "); display_block(L); printf("\n");
 } // extract()
 
 /* 
@@ -241,6 +262,12 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   cp_block(context->Klong[8],  context->Klong[4]); // K0
   cp_block(context->Klong[9],  context->Klong[5]); // K1
   cp_block(context->Klong[10], context->Klong[6]); // K2
+
+  printf("Us\n"); 
+  for (i = 0; i < 11; i++)
+  { 
+    display_block(context->Klong[i]); printf("\n"); 
+  }
 } // init() 
 
 
@@ -253,7 +280,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
  * a two parameter tweak set, the first of which is a residue mod 8, the other 
  * doubling whenever 0 = j mod 8. Doubling is handled by variant() and reset().
  */ 
-static void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
+static void E(Byte C [], const Byte M [], int i, int j, Context *context)
 {
   if (i == -1) /* 0 <= j < 8 */ 
   {
@@ -273,7 +300,7 @@ static void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
     xor_block(C, C, context->L); 
     rijndaelEncryptRound((uint32_t *)&(context->Klong[4]), 10, C, 4); 
   }
-} // cipher() 
+} // E() 
 
 /*
  * Update doubling tweak `T` if necessary. `i` doesn't actually
@@ -313,7 +340,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
   for (i = 0; i < k * 16; i += 16)
   {
     variant(context, i, ++j); 
-    cipher(buff, &M[i], 3, j, context);  
+    E(buff, &M[i], 3, j, context);  
     xor_block(H, H, buff); 
   }
 
@@ -324,7 +351,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
     for (; i < msg_bytes; i++)
       buff[i - k] = M[i]; 
     buff[i - k] = 0x80;
-    cipher(buff, buff, 0, 1, context); 
+    E(buff, buff, 0, 1, context); 
     xor_block(H, H, buff); 
   }
   
@@ -342,7 +369,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 void amac(Byte T [], const Byte M [], unsigned msg_bytes, Context *context)
 {
   ahash(T, M, msg_bytes, context); 
-  cipher(T, T, -1, 5, context); 
+  E(T, T, -1, 5, context); 
 } // AMac() 
 
 
@@ -371,10 +398,10 @@ void encipher_eme4(Byte C [],
   {
     /* M = &M[i], M' = &M[i+16] */ 
     variant(context, i, ++j); 
-    cipher(&C[i+16], &M[i+16], 1, j, context); 
+    E(&C[i+16], &M[i+16], 1, j, context); 
     xor_block(&C[i+16], &C[i+16], &M[i]); 
 
-    cipher(&C[i], &C[i+16], 0, 0, context); 
+    E(&C[i], &C[i+16], 0, 0, context); 
     xor_block(&C[i], &C[i], &M[i+16]); 
 
     xor_block(X, X, &C[i]); 
@@ -386,7 +413,7 @@ void encipher_eme4(Byte C [],
     for (j = i; i < msg_bytes; i++)
       buff[i - j] = M[i]; 
     buff[i - j] = 0x80; 
-    cipher(buff, buff, 0, 3, context); 
+    E(buff, buff, 0, 3, context); 
     
     for (j = i; i < msg_bytes; i++)
       X[i - j] ^= buff[i - j];
@@ -394,7 +421,7 @@ void encipher_eme4(Byte C [],
   
   else if (msg_bytes - i > 0) /* M*, M** */
   {
-    cipher(buff, &M[i], 0, 3, context); 
+    E(buff, &M[i], 0, 3, context); 
     xor_block(X, X, buff); 
   
     i += 16; 
@@ -402,7 +429,7 @@ void encipher_eme4(Byte C [],
     for (j = i; i < msg_bytes; i++)
       buff[i - j] = M[i]; 
     buff[i - j] = 0x80; 
-    cipher(buff, buff, 0, 4, context); 
+    E(buff, buff, 0, 4, context); 
     
     for (j = i; i < msg_bytes; i++)
       X[i - j] ^= buff[i - j];
@@ -410,13 +437,13 @@ void encipher_eme4(Byte C [],
 
   /* R, R'; S */ 
   xor_block(R0, X, &M[16]);
-  if (!inv) cipher(R0, R0, 0, 1, context); 
-  else      cipher(R0, R0, 0, 2, context); 
+  if (!inv) E(R0, R0, 0, 1, context); 
+  else      E(R0, R0, 0, 2, context); 
   xor_block(R0, R0, M); 
   xor_block(R0, R0, delta); // R
 
-  if (!inv) cipher(R1, R0, -1, 1, context); 
-  else      cipher(R1, R0, -1, 2, context); 
+  if (!inv) E(R1, R0, -1, 1, context); 
+  else      E(R1, R0, -1, 2, context); 
   xor_block(R1, R1, &M[16]); 
   xor_block(R1, R1, X); // R' 
 
@@ -430,14 +457,14 @@ void encipher_eme4(Byte C [],
     variant(context, i, ++j); 
 
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
-    cipher(Z, S, 2, j, context); 
+    E(Z, S, 2, j, context); 
     xor_block(Y0, &C[i+16], Z);
     xor_block(Y1, &C[i], Z);
     
-    cipher(&C[i+16], Y1, 0, 0, context); 
+    E(&C[i+16], Y1, 0, 0, context); 
     xor_block(&C[i+16], &C[i+16], Y0); 
 
-    cipher(&C[i], &C[i+16], 1, j, context); 
+    E(&C[i], &C[i+16], 1, j, context); 
     xor_block(&C[i], &C[i], Y1); 
 
     xor_block(Y, Y, Y0); 
@@ -445,7 +472,7 @@ void encipher_eme4(Byte C [],
   
   if (msg_bytes - i > 0 && msg_bytes - i < 16) /* C* */ 
   {
-    cipher(buff, S, -1, 3, context); 
+    E(buff, S, -1, 3, context); 
     for (j = i; i < msg_bytes; i++) 
       C[i] = M[i] ^ buff[i - j];
     
@@ -453,7 +480,7 @@ void encipher_eme4(Byte C [],
     for (j = i; i < msg_bytes; i++) 
       buff[i - j] = C[i]; 
     buff[i - j] = 0x80; 
-    cipher(buff, buff, 0, 3, context); 
+    E(buff, buff, 0, 3, context); 
 
     for (j = i; i < msg_bytes; i++)
       Y[i- j] ^= buff[i - j];
@@ -461,13 +488,13 @@ void encipher_eme4(Byte C [],
 
   else if (msg_bytes - i > 0) /* C*, C** */ 
   {
-    cipher(buff, S, -1, 3, context); 
+    E(buff, S, -1, 3, context); 
     xor_block(&C[i], &M[i], buff); 
-    cipher(buff, &C[i], 0, 3, context); 
+    E(buff, &C[i], 0, 3, context); 
     xor_block(Y, Y, buff); 
 
     i += 16; 
-    cipher(buff, S, -1, 4, context); 
+    E(buff, S, -1, 4, context); 
     for (j = i; i < msg_bytes; i++) 
       C[i] = M[i] ^ buff[i - j];
     
@@ -475,18 +502,18 @@ void encipher_eme4(Byte C [],
     for (j = i; i < msg_bytes; i++) 
       buff[i - j] = C[i]; 
     buff[i - j] = 0x80; 
-    cipher(buff, buff, 0, 4, context); 
+    E(buff, buff, 0, 4, context); 
 
     for (j = i; i < msg_bytes; i++)
       Y[i- j] ^= buff[i - j];
   }
   
-  if (!inv) cipher(buff, R1, -1, 2, context); 
-  else      cipher(buff, R1, -1, 1, context); 
+  if (!inv) E(buff, R1, -1, 2, context); 
+  else      E(buff, R1, -1, 1, context); 
   xor_block(&C[16], R0, buff); 
 
-  if (!inv) cipher(C, &C[16], 0, 2, context);
-  else      cipher(C, &C[16], 0, 1, context);
+  if (!inv) E(C, &C[16], 0, 2, context);
+  else      E(C, &C[16], 0, 1, context);
   xor_block(C, C, R1); 
   xor_block(C, C, delta); 
   xor_block(&C[16], &C[16], Y); 
@@ -510,7 +537,7 @@ static void point_swap(Byte C [],
     buff[i] = C[i]; 
   buff[0] |= 0x01; 
   xor_block(buff, buff, delta); 
-  cipher(buff, buff, 0, 7, context); 
+  E(buff, buff, 0, 7, context); 
   C[0] ^= (buff[0] & 0x01);  
 }
 
@@ -570,7 +597,7 @@ void encipher_ff0(Byte C [],
     buff[n] = (buff[n] & mask) | pad; 
     xor_block(buff, buff, delta);
     buff[0] ^= ctr; 
-    cipher(buff, buff, 0, j, context); 
+    E(buff, buff, 0, j, context); 
     xor_block(A, A, buff); 
     if (!inv) ++ctr;
     else      --ctr; 
@@ -580,7 +607,7 @@ void encipher_ff0(Byte C [],
     buff[n] = (buff[n] & mask) | pad; 
     xor_block(buff, buff, delta);
     buff[0] ^= ctr; 
-    cipher(buff, buff, 0, j, context); 
+    E(buff, buff, 0, j, context); 
     xor_block(B, B, buff); 
     if (!inv) ++ctr;
     else      --ctr; 
@@ -765,12 +792,6 @@ int decrypt(Byte M [],
 #include <time.h>
 #include <stdio.h>
 
-//static void display_block(const Block X) 
-//{
-//  for (int i = 0; i < 4; i ++)
-//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-//}
-
 //static void display_context(Context *context)
 //{
 //  unsigned i; 
@@ -870,9 +891,10 @@ void benchmark() {
 /* ------------------------------------------------------------------------- */ 
 
 
-typedef unsigned char byte;
 
-/* Endian adjust 32-bit words on little-endian cpu's for rijndael-alg-fst    */
+
+/* ------------------------------------------------------------------------- */
+typedef unsigned char byte;
 static void correct_key(byte *src, unsigned nbytes, byte *dst) {
     const union { int x; char e; } l = { 1 };
     if (l.e) {
@@ -883,19 +905,11 @@ static void correct_key(byte *src, unsigned nbytes, byte *dst) {
     }
 }
 
-/* ------------------------------------------------------------------------- */
-
 static void xor_bytes(byte *src1, byte *src2, unsigned n, byte *dst) {
     while (n) { n--; dst[n] = src1[n] ^ src2[n]; }
 }
 
 /* ------------------------------------------------------------------------- */
-
-static void rev(byte *src, byte *dst) {
-    byte i, tmp[16];
-    memcpy(tmp,src,16);
-    for (i=0; i<16; i++) dst[i] = tmp[15-i];
-}
 
 /* ------------------------------------------------------------------------- */
 
@@ -936,7 +950,8 @@ static void Extract(byte *K, unsigned kbytes, byte extracted_key[2*16]) {
     
     /* Setup key schedules and offsets */
     for (i=0; i<5; i++) memcpy((byte*)aes4_key+i*16,key_constant,16);
-    correct_key((byte*)aes4_key, 5*16, (byte*)aes4_key);    
+    correct_key((byte*)aes4_key, 5*16, (byte*)aes4_key); 
+    //for (i = 0; i < 5; i++) {  printf("Them: "); display_block((Byte *)aes4_key+i*16); printf("\n"); }
     memset(aes4_key_a,0,80); memset(aes4_key_b,0,80);      
     memset((byte*)aes4_key_a+16, 1, 16);
     rijndaelEncryptRound(aes4_key, 10, (byte*)aes4_key_a+16, 4);
@@ -953,6 +968,8 @@ static void Extract(byte *K, unsigned kbytes, byte extracted_key[2*16]) {
     memset(C,7,16); rijndaelEncryptRound(aes4_key, 10, C, 4);
     correct_key((byte*)aes4_key_a+16, 3*16, (byte*)aes4_key_a+16);
     correct_key((byte*)aes4_key_b+16, 3*16, (byte*)aes4_key_b+16);
+    //for (i = 0; i < 5; i++) { printf("Them: "); display_block((byte*)aes4_key_b+i*16); printf("\n"); }
+    
     mult_block(2,C,buf); xor_bytes(C,buf,16,C3);
     
     memset(extracted_key,0,32);
@@ -975,6 +992,8 @@ static void Extract(byte *K, unsigned kbytes, byte extracted_key[2*16]) {
         rijndaelEncryptRound(aes4_key_b, 10, buf, 4);
         xor_bytes(extracted_key+16, buf, 16, extracted_key+16);
     }
+    printf("Them: "); display_block((byte *)extracted_key); printf("\n");
+    printf("Them: "); display_block((byte *)extracted_key+16); printf("\n");
 }
 
 /* ------------------------------------------------------------------------- */
@@ -999,7 +1018,7 @@ static void Expand(byte extracted_key[2*16], byte expanded_key[6*16]) {
 
 /* ------------------------------------------------------------------------- */
 
-static void E(byte *K, unsigned kbytes, int i, unsigned j,
+static void Elf(byte *K, unsigned kbytes, int i, unsigned j,
                                                 byte src[16], byte dst[16]) {
     byte extracted_key[2*16], expanded_key[6*16], J[16], L[16], buf[16];
     u32 aes_key[4*11];
@@ -1015,6 +1034,12 @@ static void E(byte *K, unsigned kbytes, int i, unsigned j,
     memcpy((byte*)aes_key+64, expanded_key+32, 64);
     memcpy((byte*)aes_key+128, expanded_key+32, 48);
     correct_key((byte*)aes_key,11*16,(byte*)aes_key);
+  
+    printf("Them\n"); 
+    for (i = 0; i < 11; i++)
+    { 
+      display_block((Byte *)&aes_key[i * 4]); printf("\n"); 
+    }
     
     /* Encipher */
     mult_block(j%8, J, buf); xor_bytes(buf, src, 16, buf);
@@ -1042,11 +1067,11 @@ static void AHash(byte *K, unsigned kbytes, byte *A,
     
     memset(sum,0,16);
     for (j=0; abytes >= 16; abytes -= 16, A += 16, j += 1) {
-        E(K,kbytes,3,j,A,buf); xor_bytes(sum, buf, 16, sum);
+        Elf(K,kbytes,3,j,A,buf); xor_bytes(sum, buf, 16, sum);
     }
     if (abytes) {
         memset(buf,0,16); memcpy(buf,A,abytes); buf[abytes]=0x80;
-        E(K,kbytes,1,0,buf,buf);
+        Elf(K,kbytes,1,0,buf,buf);
         xor_bytes(sum, buf, 16, result);
     } else
         memcpy(result, sum, 16);
@@ -1058,7 +1083,7 @@ static void AMac(byte *K, unsigned kbytes, byte *A,
                                             unsigned abytes, byte *result) {
     byte buf[16];
     AHash(K, kbytes, A, abytes, buf); 
-    E(K,kbytes,-1,5,buf,result);
+    Elf(K,kbytes,-1,5,buf,result);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1076,62 +1101,62 @@ static void CipherEME4(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
     /* Pass 1 over in[32..], store intermediate values in out[32..] */
     inbytes = inbytes_orig - 32; out = out_orig + 32; in = in_orig + 32;
     for (j=1; inbytes >= 32; j++, inbytes-=32, in+=32, out+=32) {
-        E(K, kbytes, 1, j, in+16, tmp); xor_bytes(in, tmp, 16, out);
-        E(K, kbytes, 0, 0, out, tmp); xor_bytes(in+16, tmp, 16, out+16);
+        Elf(K, kbytes, 1, j, in+16, tmp); xor_bytes(in, tmp, 16, out);
+        Elf(K, kbytes, 0, 0, out, tmp); xor_bytes(in+16, tmp, 16, out+16);
         xor_bytes(out+16, X, 16, X);
     }
     
     /* Finish X calculation */
     if (inbytes >= 16) {
-        E(K, kbytes, 0, 3, in, tmp); xor_bytes(X, tmp, 16, X);
+        Elf(K, kbytes, 0, 3, in, tmp); xor_bytes(X, tmp, 16, X);
         inbytes -= 16; in += 16; out += 16;
         memset(tmp,0,16); memcpy(tmp,in,inbytes); tmp[inbytes] = 0x80;
-        E(K, kbytes, 0, 4, tmp, tmp); xor_bytes(X, tmp, 16, X);
+        Elf(K, kbytes, 0, 4, tmp, tmp); xor_bytes(X, tmp, 16, X);
     } else if (inbytes > 0) {
         memset(tmp,0,16); memcpy(tmp,in,inbytes); tmp[inbytes] = 0x80;
-        E(K, kbytes, 0, 3, tmp, tmp); xor_bytes(X, tmp, 16, X);
+        Elf(K, kbytes, 0, 3, tmp, tmp); xor_bytes(X, tmp, 16, X);
     }
     
     /* Calculate S */
     xor_bytes(Delta, in_orig, 16, out_orig);
     xor_bytes(X, in_orig+16, 16, out_orig+16);
-    E(K, kbytes, 0, 1+d, out_orig+16, tmp);
+    Elf(K, kbytes, 0, 1+d, out_orig+16, tmp);
     xor_bytes(out_orig, tmp, 16, out_orig);
-    E(K, kbytes, -1, 1+d, out_orig, tmp);
+    Elf(K, kbytes, -1, 1+d, out_orig, tmp);
     xor_bytes(out_orig+16, tmp, 16, out_orig+16);
     xor_bytes(out_orig, out_orig+16, 16, S);
     
     /* Pass 2 over intermediate values in out[32..]. Final values written */
     inbytes = inbytes_orig - 32; out = out_orig + 32; in = in_orig + 32;
     for (j=1; inbytes >= 32; j++, inbytes-=32, in+=32, out+=32) {
-        E(K, kbytes, 2, j, S, tmp);
+        Elf(K, kbytes, 2, j, S, tmp);
         xor_bytes(out, tmp, 16, out); xor_bytes(out+16, tmp, 16, out+16);
         xor_bytes(out, Y, 16, Y);
-        E(K, kbytes, 0, 0, out+16, tmp); xor_bytes(out, tmp, 16, out);
-        E(K, kbytes, 1, j, out, tmp); xor_bytes(out+16, tmp, 16, out+16);
+        Elf(K, kbytes, 0, 0, out+16, tmp); xor_bytes(out, tmp, 16, out);
+        Elf(K, kbytes, 1, j, out, tmp); xor_bytes(out+16, tmp, 16, out+16);
         memcpy(tmp, out, 16); memcpy(out, out+16, 16); memcpy(out+16, tmp, 16);
     }
 
     /* Finish Y calculation and finish encryption of tail bytes */
     if (inbytes >= 16) {
-        E(K, kbytes, -1, 3, S, tmp); xor_bytes(in, tmp, 16, out);
-        E(K, kbytes, 0, 3, out, tmp); xor_bytes(Y, tmp, 16, Y);
+        Elf(K, kbytes, -1, 3, S, tmp); xor_bytes(in, tmp, 16, out);
+        Elf(K, kbytes, 0, 3, out, tmp); xor_bytes(Y, tmp, 16, Y);
         inbytes -= 16; in += 16; out += 16;
-        E(K, kbytes, -1, 4, S, tmp); xor_bytes(in, tmp, inbytes, tmp);
+        Elf(K, kbytes, -1, 4, S, tmp); xor_bytes(in, tmp, inbytes, tmp);
         memcpy(out,tmp,inbytes);
         memset(tmp+inbytes,0,16-inbytes); tmp[inbytes] = 0x80;
-        E(K, kbytes, 0, 4, tmp, tmp); xor_bytes(Y, tmp, 16, Y);
+        Elf(K, kbytes, 0, 4, tmp, tmp); xor_bytes(Y, tmp, 16, Y);
     } else if (inbytes > 0) {
-        E(K, kbytes, -1, 3, S, tmp); xor_bytes(in, tmp, inbytes, tmp);
+        Elf(K, kbytes, -1, 3, S, tmp); xor_bytes(in, tmp, inbytes, tmp);
         memcpy(out,tmp,inbytes);
         memset(tmp+inbytes,0,16-inbytes); tmp[inbytes] = 0x80;
-        E(K, kbytes, 0, 3, tmp, tmp); xor_bytes(Y, tmp, 16, Y);
+        Elf(K, kbytes, 0, 3, tmp, tmp); xor_bytes(Y, tmp, 16, Y);
     }
     
     /* Finish encryption of first two blocks */
-    E(K, kbytes, -1, 2-d, out_orig+16, tmp);
+    Elf(K, kbytes, -1, 2-d, out_orig+16, tmp);
     xor_bytes(out_orig, tmp, 16, out_orig);
-    E(K, kbytes, 0, 2-d, out_orig, tmp);
+    Elf(K, kbytes, 0, 2-d, out_orig, tmp);
     xor_bytes(out_orig+16, tmp, 16, out_orig+16);
     xor_bytes(Y, out_orig, 16, out_orig);
     xor_bytes(Delta, out_orig+16, 16, out_orig+16);
@@ -1166,7 +1191,7 @@ static void CipherFF0(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
         if (inbytes < 16) {
             memset(buf,0,16); memcpy(buf,in,inbytes); buf[0] |= 0x80;
             xor_bytes(Delta, buf, 16, buf);
-            E(K, kbytes,0,7,buf,buf);
+            Elf(K, kbytes,0,7,buf,buf);
             L[0] ^= (buf[0] & 0x80);
         }
         i = rounds-1; step = -1;
@@ -1179,7 +1204,7 @@ static void CipherFF0(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
         buf[inbytes/2] = (buf[inbytes/2] & mask) | pad;
         xor_bytes(buf, Delta, 16, buf);
         buf[15] ^= (byte)i;
-        E(K, kbytes,0,j,buf,buf);
+        Elf(K, kbytes,0,j,buf,buf);
         xor_bytes(L, buf, 16, L);
 
         memset(buf, 0, 16);
@@ -1187,7 +1212,7 @@ static void CipherFF0(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
         buf[inbytes/2] = (buf[inbytes/2] & mask) | pad;
         xor_bytes(buf, Delta, 16, buf);
         buf[15] ^= (byte)((int)i+step);
-        E(K, kbytes,0,j,buf,buf);
+        Elf(K, kbytes,0,j,buf,buf);
         xor_bytes(R, buf, 16, R);
     }
     memcpy(buf,           R, inbytes/2);
@@ -1201,7 +1226,7 @@ static void CipherFF0(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
     if ((inbytes < 16) && !d) {
         memset(buf+inbytes,0,16-inbytes); buf[0] |= 0x80;
         xor_bytes(Delta, buf, 16, buf);
-        E(K, kbytes,0,7,buf,buf);
+        Elf(K, kbytes,0,7,buf,buf);
         out[0] ^= (buf[0] & 0x80);
     }
 }
@@ -1312,9 +1337,9 @@ int main()
   //benchmark(); 
 
   Context context; 
-  Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  Byte key []   = "What a wonderful cryptographic key this is."; 
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-  unsigned key_bytes = 16, nonce_bytes = 16; 
+  unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
   Byte message [] = "0000000000000000000000000000000000000000000",
        ciphertext[256], 
@@ -1323,33 +1348,40 @@ int main()
   unsigned msg_bytes = strlen((const char *)message), 
            auth_bytes = 16, i; 
 
- 
-  
-  Encrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
-      message, msg_bytes, auth_bytes, ciphertext); 
-                         
-  for (i = 0; i < msg_bytes + auth_bytes; i++)
-    printf("%02x", ciphertext[i]); 
-  printf("\n"); 
-
   init(&context, key, key_bytes);
-  encrypt(ciphertext, message, nonce, NULL, 
-             msg_bytes, nonce_bytes, 0, auth_bytes, &context); 
+  E(ciphertext, message, -1, 3, &context); 
+  display_block(ciphertext); printf("\n"); 
+
+  Elf(key, key_bytes, -1, 3, message, ciphertext); 
+  display_block(ciphertext); printf("\n"); 
+
   
-  for (i = 0; i < msg_bytes + auth_bytes; i++)
-    printf("%02x", ciphertext[i]); 
-  printf("\n"); 
-
-  int res = decrypt(plaintext, ciphertext, nonce, NULL, 
-              msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context); 
-
-  if (res == INVALID) printf("Reject!"); 
-  else 
-  {
-    for (i = 0; i < msg_bytes; i++) 
-      printf("%c", plaintext[i]); 
-  }
-  printf("\n"); 
+  printf("-------------------------------------------\n"); 
+  
+//  Encrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
+//      message, msg_bytes, auth_bytes, ciphertext); 
+//                         
+//  for (i = 0; i < msg_bytes + auth_bytes; i++)
+//    printf("%02x", ciphertext[i]); 
+//  printf("\n"); 
+//
+//  encrypt(ciphertext, message, nonce, NULL, 
+//             msg_bytes, nonce_bytes, 0, auth_bytes, &context); 
+//
+//  for (i = 0; i < msg_bytes + auth_bytes; i++)
+//    printf("%02x", ciphertext[i]); 
+//  printf("\n"); 
+//
+//  int res = decrypt(plaintext, ciphertext, nonce, NULL, 
+//              msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context); 
+//
+//  if (res == INVALID) printf("Reject!"); 
+//  else 
+//  {
+//    for (i = 0; i < msg_bytes; i++) 
+//      printf("%c", plaintext[i]); 
+//  }
+//  printf("\n"); 
 
 
   return 0; 
