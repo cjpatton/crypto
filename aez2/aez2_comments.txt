@@ -1,3 +1,12 @@
+Code TODOs 
+  
+  - Could reduce context size since Kshort key schedule is a 
+    subset of Klong.
+
+  - Double check that AES4 calls are doing what we expect them
+    to do. 
+
+
 Comments on AEZ2 spec
 
   Tweakable blockcipher instantiation
@@ -9,6 +18,12 @@ Comments on AEZ2 spec
     the AES call to change its key schedule based on the value of $i$. Neither of
     these solutions are desirable ... it would be preferable to build the tweak into 
     the offset, as in XE,XEX and AEZv1. 
+
+      EDIT: It seems that rijndaelEncryptRound() in rijndael-alg-fst.h gives
+      us the functionality we need without modificaiton. I just had to #define 
+      INTERMEDIATE_VALUE_KAT to get at it. Still, I prefer how it's done in
+      the old verison ... 
+
 
 Comments on the document
 

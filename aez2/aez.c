@@ -1,15 +1,15 @@
 /**
  * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
- * Krovetz, and Phillip Rogaway. 
+ * Krovetz, and Phillip Rogaway. This implementation conforms to the 
+ * sepcification except on one point; in the tweak computation, we don't 
+ * reverse the byte order. 
  *
  *   Written by Chris Patton <chrispatton@gmail.com>.
  *
  * This program is dedicated to the public domain. 
  *
- * TODO 
- *  - Could reduce context size since Kshort key schedule is a 
- *    subset of Klong.
- *  - Double check AES4 calls. 
+ * To run benchmarks, compile with 
+ *   gcc -Wall -O3 -std=c99 aez.c rijndael-alg-fst.c
  *
  * Last modified 21 Aug 2014. 
  */
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 
 #define INVALID -1 /* Reject plaintext (inauthentic). */ 
+#define ALIGN(n) __attribute__ ((aligned(n)))
 
 /* ----- AEZ context -------------------------------------------------------- */
 
@@ -82,8 +83,7 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
  *  
  *   NOTE The spec requires reversing the byte order before multiplying,
  *        then reversing the byte order of the resulting string. This is 
- *        done for efficient implemenation on little endian systems. We 
- *        relax this here. 
+ *        done for efficient implemenation on little endian systems. 
  */
 static void dot2(Byte *b) {
   Byte tmp = b[0];
@@ -93,8 +93,7 @@ static void dot2(Byte *b) {
 }
 
 /*
- * Incremental tweak generation. Used to precompute multiples 
- * of the tweaks. 
+ * Incremental tweak generation. Used to precompute multiples of the tweaks. 
  */
 static void dot_inc(Block *Xs, int n)
 {
@@ -126,7 +125,7 @@ static void dot_inc(Block *Xs, int n)
 
 /* ----- AEZ initialization, Extract(), Expand()  --------------------------- */ 
 
-void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
+static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
 {
   unsigned i, j; 
   Block a[5], b[5], C[8], buff; 
@@ -189,7 +188,7 @@ void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
 /* 
  * Expand extracted key (J, L) into AES4 key schedule.
  */
-void expand(Block Kshort[], const Block J, const Block L)
+static void expand(Block Kshort[], const Block J, const Block L)
 {
   unsigned i;
   Block k [5], buff;
@@ -257,7 +256,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
  * a two parameter tweak set, the first of which is a residue mod 8, the other 
  * doubling whenever 0 = j mod 8. Doubling is handled by variant() and reset().
  */ 
-void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
+static void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
 {
   if (i == -1) /* 0 <= j < 8 */ 
   {
@@ -277,8 +276,7 @@ void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
     xor_block(C, C, context->L); 
     rijndaelEncryptRound((uint32_t *)context->Kshort, 4, C, i+1); 
   }
-
-}
+} // cipher() 
 
 /*
  * Update doubling tweak `T` if necessary. `i` doesn't actually
@@ -503,10 +501,10 @@ void encipher_eme4(Byte C [],
 /*
  * Only-even-cycles correction for FF0.
  */
-void point_swap(Byte C [], 
-                const Block delta, 
-                unsigned msg_bytes,
-                Context *context)
+static void point_swap(Byte C [], 
+                       const Block delta, 
+                       unsigned msg_bytes,
+                       Context *context)
 {
   unsigned i; 
   Block buff; 
@@ -679,7 +677,7 @@ unsigned format(Byte *T [],
   }
 
   return tag_bytes;
-}
+} // Format() 
 
 #define MAX(a, b) (a < b) ? b : a
 
@@ -717,7 +715,7 @@ int encrypt(Byte C [],
 
   free(X); free(T); 
   return msg_bytes + auth_bytes;
-}
+} // Encrypt(); 
 
 /*
  * AEZ decryption. `msg_bytes` should be the length of the enciphered message 
@@ -761,7 +759,7 @@ int decrypt(Byte M [],
     
   free(X); free(T); 
   return res;
-}
+} // Decrypt() 
 
 
 
@@ -814,49 +812,62 @@ int decrypt(Byte M [],
 //  printf("+---------------------------------------------------------+\n"); 
 //}
 
+#define HZ (2.9e9) 
+#define TRIALS 1000000
 
+void benchmark() {
+
+  static const int msg_len [] = {64,     128,  256,   512, 
+                                 1024,   4096, 10000, 100000,
+                                 1000000}; 
+  static const int num_msg_lens = 7; 
+  unsigned i, j, auth_bytes = 16, key_bytes = 16; 
+  
+  Context context; 
+  ALIGN(16) Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  ALIGN(16) Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+  init(&context, key, key_bytes);
+
+  Byte *message = malloc(auth_bytes + msg_len[num_msg_lens-1]); 
+  Byte *ciphertext = malloc(auth_bytes + msg_len[num_msg_lens-1]); 
+  Byte *plaintext = malloc(auth_bytes + msg_len[num_msg_lens-1]); 
+
+  clock_t t; 
+  double total_cycles; 
+  double total_bytes; 
+
+  for (i = 0; i < num_msg_lens; i++)
+  {
+    t = clock(); 
+    for (j = 0; j < TRIALS; j++)
+    {
+      encrypt(ciphertext, message, nonce, NULL, 
+                  msg_len[i], 16, 0, auth_bytes, &context); 
+      ((unsigned long *)nonce)[0] ++; 
+    }
+    t = clock() - t; 
+    total_cycles = t * HZ / CLOCKS_PER_SEC; 
+    total_bytes = (double)TRIALS * msg_len[i]; 
+    printf("%8d bytes, %.2f cycles per byte\n", msg_len[i], 
+                               total_cycles/total_bytes); 
+  }
+  
+  //ciphertext[343] = 'o';
+  ((unsigned long *)nonce)[0] --; i --; 
+  if (decrypt(plaintext, ciphertext, nonce, NULL, 
+               msg_len[i] + auth_bytes, 16, 0, auth_bytes, &context) != INVALID)
+    printf("Success! ");
+  else 
+    printf("Tag mismatch. ");
+  printf("\n"); 
+
+  free(message); 
+  free(ciphertext); 
+  free(plaintext); 
+}
 
 int main()
 {
-  Byte K [] = "This is one snazzy key ... I loooovvvee it."; 
-  
-  Context context; 
-  init(&context, K, strlen((const char *)K)); 
-
-  Byte message[1024] = "Short.",
-       ciphertext[1024], plaintext [1024], 
-       nonce [] = "This is a really great nonce"; 
-
-  unsigned msg_bytes = strlen((const char *)message),
-           nonce_bytes = strlen((const char *)nonce),
-           auth_bytes = 3, i; 
-
-  /* Encipher(). */
-  memset(ciphertext, 0, 1024); memset(plaintext, 0, 1024); 
-  encrypt(ciphertext, message, nonce, NULL, msg_bytes, nonce_bytes, 0, auth_bytes, &context);  
-  int res = decrypt(plaintext, ciphertext, nonce, NULL, msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context);  
-
-  printf("Ciphertext: ");
-  for (i = 0; i < msg_bytes + auth_bytes; i++)
-    printf("%02x", ciphertext[i]); 
-  if (res < 0) printf(" Reject!!"); 
-  printf("\n"); 
-
-  printf("Message:    "); 
-  for (i = 0; i < msg_bytes; i++)
-    printf("%c", plaintext[i]); 
-  printf(" (%d bytes)\n", msg_bytes); 
-
-
-  /* AHash(). */
-  //ahash(tag, message, msg_bytes, &context); 
-  //printf("Hash: "); display_block(tag); printf("\n");  
-  
-  /* AMac(). */
-  //amac(tag, message, msg_bytes, &context); 
-  //printf("Mac:  "); display_block(tag); printf("\n");  
-
-
+  benchmark(); 
   return 0; 
 }
-
