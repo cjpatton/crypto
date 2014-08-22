@@ -7,6 +7,8 @@
  * This program is dedicated to the public domain. 
  *
  * TODO 
+ *  - Could reduce context size since Kshort key schedule is a 
+ *    subset of Klong. 
  *  - Point swap in FF0. 
  *  - Encrypt(), Decrypt(), Format()
  *
@@ -35,56 +37,13 @@ typedef struct {
 
 } AezState; 
 
-static void display_block(const Block X) 
-{
-  for (int i = 0; i < 4; i ++)
-    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-}
-
-static void display_state(AezState *state)
-{
-  unsigned i; 
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 11; i++)
-  {
-    printf("| Klong[%-2d] = ", i); 
-    display_block(state->Klong[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 5; i++)
-  {
-    printf("| Kshort[%d] = ", i); 
-    display_block(state->Kshort[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 8; i++)
-  {
-    printf("| J[%-2d] =     ", i); 
-    display_block(state->J[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  printf("| L     =     "); 
-  display_block(state->L); 
-  printf("|\n"); 
-  
-  printf("| Linit =     "); 
-  display_block(state->Linit); 
-  printf("|\n"); 
-  printf("+---------------------------------------------------------+\n"); 
-}
 
 
 /* ---- Various primitives ------------------------------------------------- */ 
 
 /*
- * rinjdael-alg-fst.{h,c} requires big endian byte order. 
- * Inputs are byte arrays of length at least four.  
+ * rinjdael-alg-fst.{h,c} requires words in big endian byte order. 
+ * set_big_endian() operates on 128-bit blocks. 
  */
 #define reverse_u32(dst, src) { \
   (dst)[0] = (src)[3]; \
@@ -542,7 +501,6 @@ void encipher_eme4(Byte C [],
   reset(state); 
 } // EncipherEME4()
 
-
 /*
  * EncipherFF0() -- scheme for small messages (< 32). There are no 
  * provable security results for this scheme ... the number of 
@@ -653,11 +611,55 @@ void decipher(Byte M [],
 }
 
 
+
 /* ----- Testing, testing ... ---------------------------------------------- */
 
 #include <string.h>
 #include <time.h>
 
+//static void display_block(const Block X) 
+//{
+//  for (int i = 0; i < 4; i ++)
+//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+//}
+
+//static void display_state(AezState *state)
+//{
+//  unsigned i; 
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 11; i++)
+//  {
+//    printf("| Klong[%-2d] = ", i); 
+//    display_block(state->Klong[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 5; i++)
+//  {
+//    printf("| Kshort[%d] = ", i); 
+//    display_block(state->Kshort[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 8; i++)
+//  {
+//    printf("| J[%-2d] =     ", i); 
+//    display_block(state->J[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  printf("| L     =     "); 
+//  display_block(state->L); 
+//  printf("|\n"); 
+//  
+//  printf("| Linit =     "); 
+//  display_block(state->Linit); 
+//  printf("|\n"); 
+//  printf("+---------------------------------------------------------+\n"); 
+//}
 
 int main()
 {
@@ -667,7 +669,7 @@ int main()
   init(&state, K, strlen((const char *)K)); 
 
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+       message[1024] = "00000000000000000000",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
