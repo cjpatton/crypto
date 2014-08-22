@@ -9,7 +9,6 @@
  * TODO 
  *  - Byte order of custom AES keys. 
  *  - Point swap in FF0. 
- *  - Correct key schedule for AES call. 
  *  - Encrypt(), Decrypt(), Format()
  *
  * Last modified 17 Aug 2014. 
@@ -213,7 +212,8 @@ void init(AezState *state, const Byte K [], unsigned key_len)
   for (i = 0; i < 8; i++)
     dot_inc(state->J, i); 
 
-  /* Set up Klong. */ 
+  /* Set up Klong. NOTE that we could expand the key in the full
+   * key schedule and remove Kshort to reduce the state size. */ 
   // FIXME byte order of custom AES key.
   cp_block(state->Klong[0], state->L); // L
   cp_block(state->Klong[1], state->J[1]); // J 
@@ -233,44 +233,43 @@ void init(AezState *state, const Byte K [], unsigned key_len)
 
 /*
  * A tweakable blockcipher with two parameters. `i` determines the key 
- * schedule and number of rounds for the AES call, and is any of {-1, 0, 1, 
- * 2, 3}. `j` actually corresponds to a two parameter tweak set, the first 
- * of which is a residue mod 8, the other doubling whenever 0 = j mod 8.
+ * schedule and number of rounds for the AES4 call, and is any of {-1, 0, 1, 
+ * 2, 3}. -1 signals standard 10-round AES. `j` actually corresponds to a point in
+ * a two parameter tweak set, the first of which is a residue mod 8, the other 
+ * doubling whenever 0 = j mod 8. Doubling is handled by variant() and reset().
  *
- *   TODO Use appropriate key schedule for AES4 calls.
+ *   TODO Double check AES4 calls.
  */ 
 void cipher(Byte C [], const Byte M [], int i, int j, AezState *state)
 {
-  if (i == -1) 
+  if (i == -1) /* 0 <= j < 8 */ 
   {
-    assert(0 <= j && j < 8);  
     xor_block(C, M, state->J[j]); 
     rijndaelEncrypt((uint32_t *)state->Klong, 10, C, C); 
   }
 
-  else if (i == 0 || j == 0)
+  else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
   {
-    assert(0 <= j && j < 8);  
     xor_block(C, M, state->J[j]); 
-    rijndaelEncrypt((uint32_t *)state->Kshort, 4, C, C); 
+    rijndaelEncryptRound((uint32_t *)state->Kshort, 4, C, i+1); 
   }
 
   else 
   {
     xor_block(C, M, state->J[j % 8]); 
     xor_block(C, C, state->L); 
-    rijndaelEncrypt((uint32_t *)state->Kshort, 4, C, C); 
+    rijndaelEncryptRound((uint32_t *)state->Kshort, 4, C, i+1); 
   }
 
 }
 
 /*
- * Update doubling tweak `T` if necessary. 
+ * Update doubling tweak `T` if necessary. `i` doesn't actually
+ * have an affect on the tweak. 
  */
 static void variant(AezState *state, int i, int j) 
 {
-  unsigned res = j % 8;
-  if (res == 0)
+  if (j % 8 == 0)
     dot2(state->L); 
 }
 
@@ -301,7 +300,8 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
   /* Unfragmented blocks. */ 
   for (i = 0; i < k * 16; i += 16)
   {
-    cipher(buff, &M[i], 3, j++, state);  
+    variant(state, i, ++j); 
+    cipher(buff, &M[i], 3, j, state);  
     xor_block(H, H, buff); 
   }
 
@@ -312,8 +312,7 @@ void ahash(Byte H [], const Byte M [], unsigned msg_len, AezState *state)
     for (; i < msg_len; i++)
       buff[i - k] = M[i]; 
     buff[i - k] = 0x80;
-    variant(state, i, ++j); 
-    cipher(buff, buff, 3, j, state); 
+    cipher(buff, buff, 0, 1, state); 
     xor_block(H, H, buff); 
   }
   
@@ -651,7 +650,7 @@ int main()
   init(&state, K, strlen((const char *)K)); 
 
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "This is working which makes me really really 000000000000000000000000000000000 happy :-)",
+       message[1024] = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
