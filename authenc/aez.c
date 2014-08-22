@@ -231,8 +231,10 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 
   /* Set up Klong. NOTE that we could expand the key in the full
    * key schedule and remove Kshort to reduce the context size. */ 
-  cp_block(context->Klong[0],  context->L);    set_big_endian(context->Klong[0]); // L
-  cp_block(context->Klong[1],  context->J[1]); set_big_endian(context->Klong[1]); // J
+  cp_block(context->Klong[0],  context->L);    
+  set_big_endian(context->Klong[0]); // L
+  cp_block(context->Klong[1],  context->J[1]); 
+  set_big_endian(context->Klong[1]); // J
   cp_block(context->Klong[2],  context->Klong[1]); 
   dot2(context->Klong[2]); set_big_endian(context->Klong[2]); // 2J
   cp_block(context->Klong[3],  context->Klong[2]); 
