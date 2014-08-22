@@ -1,7 +1,7 @@
 /**
  * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
  * Krovetz, and Phillip Rogaway. This implementation conforms to the 
- * sepcification except on one point; in the tweak computation, we don't 
+ * specification except on one point; in the tweak computation, we don't 
  * reverse the byte order. 
  *
  *   Written by Chris Patton <chrispatton@gmail.com>.
