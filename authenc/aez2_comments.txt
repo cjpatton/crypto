@@ -1,11 +1,5 @@
 Code TODOs 
   
-  - Could reduce context size since Kshort key schedule is a 
-    subset of Klong.
-
-  - Double check that AES4 calls are doing what we expect them
-    to do. 
-
   - Less stupid for-loop condition in ahash().
 
   - Can probably make EME4() partial block code more compact. 

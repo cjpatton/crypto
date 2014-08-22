@@ -30,7 +30,7 @@ typedef Byte Block [16];
 typedef struct {
 
   /* Key */ 
-  Block Klong [11], Kshort [5]; 
+  Block Klong [11]; 
 
   /* Tweak context */
   Block L, Linit, J [8]; 
@@ -217,9 +217,9 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 {
   unsigned i; 
 
-  /* Get J, L, and Kshort from user key. */ 
+  /* Get J, L, and key schedule from user key. */ 
   extract(context->J[1], context->L, K, key_bytes); 
-  expand(context->Kshort, context->J[1], context->L); 
+  expand(&(context->Klong[4]), context->J[1], context->L); 
 
   /* We need to be able to reset doubling L tweak. */ 
   cp_block(context->Linit, context->L);
@@ -229,8 +229,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   for (i = 0; i < 8; i++)
     dot_inc(context->J, i); 
 
-  /* Set up Klong. NOTE that we could expand the key in the full
-   * key schedule and remove Kshort to reduce the context size. */ 
+  /* Set up full key schedule. */
   cp_block(context->Klong[0],  context->L);    
   set_big_endian(context->Klong[0]); // L
   cp_block(context->Klong[1],  context->J[1]); 
@@ -239,13 +238,9 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   dot2(context->Klong[2]); set_big_endian(context->Klong[2]); // 2J
   cp_block(context->Klong[3],  context->Klong[2]); 
   dot2(context->Klong[3]); set_big_endian(context->Klong[3]); // 4J
-  cp_block(context->Klong[4],  context->Kshort[0]); // K0
-  cp_block(context->Klong[5],  context->Kshort[1]); // K1
-  cp_block(context->Klong[6],  context->Kshort[2]); // K2
-  cp_block(context->Klong[7],  context->Kshort[3]); // K3
-  cp_block(context->Klong[8],  context->Kshort[0]); // K0
-  cp_block(context->Klong[9],  context->Kshort[1]); // K1
-  cp_block(context->Klong[10], context->Kshort[2]); // K2
+  cp_block(context->Klong[8],  context->Klong[4]); // K0
+  cp_block(context->Klong[9],  context->Klong[5]); // K1
+  cp_block(context->Klong[10], context->Klong[6]); // K2
 } // init() 
 
 
@@ -269,14 +264,14 @@ static void cipher(Byte C [], const Byte M [], int i, int j, Context *context)
   else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
   {
     xor_block(C, M, context->J[j]); 
-    rijndaelEncryptRound((uint32_t *)context->Kshort, 4, C, i+1); 
+    rijndaelEncryptRound((uint32_t *)&(context->Klong[4]), 10, C, 4); 
   }
 
   else 
   {
     xor_block(C, M, context->J[j % 8]); 
     xor_block(C, C, context->L); 
-    rijndaelEncryptRound((uint32_t *)context->Kshort, 4, C, i+1); 
+    rijndaelEncryptRound((uint32_t *)&(context->Klong[4]), 10, C, 4); 
   }
 } // cipher() 
 
@@ -870,7 +865,7 @@ void benchmark() {
 
 int main()
 {
-  //benchmark(); 
+  benchmark(); 
 
   Context context; 
   Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
