@@ -37,6 +37,49 @@ typedef struct {
 
 } AezState; 
 
+static void display_block(const Block X) 
+{
+  for (int i = 0; i < 4; i ++)
+    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+}
+
+static void display_state(AezState *state)
+{
+  unsigned i; 
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 11; i++)
+  {
+    printf("| Klong[%-2d] = ", i); 
+    display_block(state->Klong[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 5; i++)
+  {
+    printf("| Kshort[%d] = ", i); 
+    display_block(state->Kshort[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 8; i++)
+  {
+    printf("| J[%-2d] =     ", i); 
+    display_block(state->J[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  printf("| L     =     "); 
+  display_block(state->L); 
+  printf("|\n"); 
+  
+  printf("| Linit =     "); 
+  display_block(state->Linit); 
+  printf("|\n"); 
+  printf("+---------------------------------------------------------+\n"); 
+}
 
 
 /* ---- Various primitives ------------------------------------------------- */ 
@@ -501,14 +544,32 @@ void encipher_eme4(Byte C [],
   reset(state); 
 } // EncipherEME4()
 
+
+/*
+ * Only-even-cycles correction for FF0.
+ */
+void point_swap(Byte C [], 
+                const Block delta, 
+                unsigned msg_len,
+                AezState *state)
+{
+  unsigned i; 
+  Block buff; 
+  zero_block(buff); 
+  for (i = 0; i < msg_len; i++)
+    buff[i] = C[i]; 
+  buff[0] |= 0x01; 
+  xor_block(buff, buff, delta); 
+  cipher(buff, buff, 0, 7, state); 
+  C[0] ^= (buff[0] & 0x01);  
+}
+
 /*
  * EncipherFF0() -- scheme for small messages (< 32). There are no 
  * provable security results for this scheme ... the number of 
  * Feistel round depends on the message length and is chosen 
  * heurestically. The code is derived from Ted Krovetz' reference
  * implementation of AEZv1. 
- *
- *   TODO Point swap. 
  */
 void encipher_ff0(Byte C [], 
                   const Byte M [], 
@@ -532,11 +593,14 @@ void encipher_ff0(Byte C [],
   else               j = 6; 
 
   ahash(delta, T, tag_len, state); 
-  
   l = (msg_len + 1) / 2; 
-  
-  memcpy(front, M, l); 
-  memcpy(back, &M[n], l); 
+  memcpy(C, M, msg_len);
+
+  if (inv && msg_len < 16) 
+    point_swap(C, delta, msg_len, state); 
+
+  memcpy(front, C, l); 
+  memcpy(back, &C[n], l); 
 
   if (msg_len & 1)
   {
@@ -581,9 +645,14 @@ void encipher_ff0(Byte C [],
      buff[n] = (Byte)((back[0] >> 4) | (front[n] & mask));
   }
   memcpy(C, buff, msg_len);
+  
+  if (!inv && msg_len < 16) 
+    point_swap(C, delta, msg_len, state);  
 } // EncipherFF0() 
 
-
+/*
+ * AEZ enciphering. If |M| < 32, use FF0; otherwise, use EME4. 
+ */
 void encipher(Byte C [], 
               const Byte M [], 
               const Byte T [], 
@@ -597,6 +666,9 @@ void encipher(Byte C [],
     encipher_eme4(C, M, T, msg_len, tag_len, 0, state); 
 }
 
+/*
+ * AEZ deciphering. 
+ */
 void decipher(Byte M [], 
               const Byte C [], 
               const Byte T [], 
@@ -617,49 +689,6 @@ void decipher(Byte M [],
 #include <string.h>
 #include <time.h>
 
-//static void display_block(const Block X) 
-//{
-//  for (int i = 0; i < 4; i ++)
-//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-//}
-
-//static void display_state(AezState *state)
-//{
-//  unsigned i; 
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 11; i++)
-//  {
-//    printf("| Klong[%-2d] = ", i); 
-//    display_block(state->Klong[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 5; i++)
-//  {
-//    printf("| Kshort[%d] = ", i); 
-//    display_block(state->Kshort[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 8; i++)
-//  {
-//    printf("| J[%-2d] =     ", i); 
-//    display_block(state->J[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  printf("| L     =     "); 
-//  display_block(state->L); 
-//  printf("|\n"); 
-//  
-//  printf("| Linit =     "); 
-//  display_block(state->Linit); 
-//  printf("|\n"); 
-//  printf("+---------------------------------------------------------+\n"); 
-//}
 
 int main()
 {
@@ -669,12 +698,13 @@ int main()
   init(&state, K, strlen((const char *)K)); 
 
   Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "00000000000000000000",
+       message[1024] = "000",
        ciphertext[1024], plaintext [1024]; 
   unsigned msg_len = strlen((const char *)message),
            tag_len = strlen((const char *)tag), i; 
 
   /* Encipher(). */
+  display_state(&state); 
   memset(ciphertext, 0, 1024); memset(plaintext, 0, 1024); 
   encipher(ciphertext, message, tag, msg_len, tag_len, &state); 
   decipher(plaintext, ciphertext, tag, msg_len, tag_len, &state); 
