@@ -8,18 +8,19 @@
  *
  * TODO 
  *  - Could reduce context size since Kshort key schedule is a 
- *    subset of Klong. 
- *  - Point swap in FF0. 
- *  - Encrypt(), Decrypt(), Format()
+ *    subset of Klong.
+ *  - Double check AES4 calls. 
  *
  * Last modified 17 Aug 2014. 
  */
 
 #include "rijndael-alg-fst.h"
 #include <stdint.h>
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+#define INVALID -1 /* Reject plaintext (inauthentic). */ 
 
 /* ----- AEZ state --------------------------------------------------------- */
 
@@ -37,49 +38,49 @@ typedef struct {
 
 } AezState; 
 
-static void display_block(const Block X) 
-{
-  for (int i = 0; i < 4; i ++)
-    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-}
-
-static void display_state(AezState *state)
-{
-  unsigned i; 
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 11; i++)
-  {
-    printf("| Klong[%-2d] = ", i); 
-    display_block(state->Klong[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 5; i++)
-  {
-    printf("| Kshort[%d] = ", i); 
-    display_block(state->Kshort[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  for (i = 0; i < 8; i++)
-  {
-    printf("| J[%-2d] =     ", i); 
-    display_block(state->J[i]); 
-    printf("|\n"); 
-  }
-
-  printf("+---------------------------------------------------------+\n"); 
-  printf("| L     =     "); 
-  display_block(state->L); 
-  printf("|\n"); 
-  
-  printf("| Linit =     "); 
-  display_block(state->Linit); 
-  printf("|\n"); 
-  printf("+---------------------------------------------------------+\n"); 
-}
+//static void display_block(const Block X) 
+//{
+//  for (int i = 0; i < 4; i ++)
+//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+//}
+//
+//static void display_state(AezState *state)
+//{
+//  unsigned i; 
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 11; i++)
+//  {
+//    printf("| Klong[%-2d] = ", i); 
+//    display_block(state->Klong[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 5; i++)
+//  {
+//    printf("| Kshort[%d] = ", i); 
+//    display_block(state->Kshort[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  for (i = 0; i < 8; i++)
+//  {
+//    printf("| J[%-2d] =     ", i); 
+//    display_block(state->J[i]); 
+//    printf("|\n"); 
+//  }
+//
+//  printf("+---------------------------------------------------------+\n"); 
+//  printf("| L     =     "); 
+//  display_block(state->L); 
+//  printf("|\n"); 
+//  
+//  printf("| Linit =     "); 
+//  display_block(state->Linit); 
+//  printf("|\n"); 
+//  printf("+---------------------------------------------------------+\n"); 
+//}
 
 
 /* ---- Various primitives ------------------------------------------------- */ 
@@ -299,8 +300,6 @@ void init(AezState *state, const Byte K [], unsigned key_len)
  * 2, 3}. -1 signals standard 10-round AES. `j` actually corresponds to a point in
  * a two parameter tweak set, the first of which is a residue mod 8, the other 
  * doubling whenever 0 = j mod 8. Doubling is handled by variant() and reset().
- *
- *   TODO Double check AES4 calls.
  */ 
 void cipher(Byte C [], const Byte M [], int i, int j, AezState *state)
 {
@@ -683,6 +682,132 @@ void decipher(Byte M [],
 }
 
 
+/* ----- Encrypt(), Decrypt(), Format() ------------------------------------- */
+
+/*
+ * Format nonce `N` and additional data `A`. Dynamically allocate an 
+ * appropriate size buffer and assign it to `tag`; return the number of
+ * bytes in the buffer. (Caller should free `tag`.) Copied from the 
+ * reference implementation of AEZv1. 
+ */
+unsigned format(Byte *T [], 
+                const Byte N[],
+                const Byte A[],
+                unsigned nonce_len,
+                unsigned data_len,
+                unsigned auth_len)
+{
+  unsigned tag_len;
+  if (nonce_len <= 12) {
+      Byte *res = malloc(data_len+16);
+      memset(res,0,16);
+      res[0] = (Byte)(nonce_len == 12 ? auth_len | 0x40 : auth_len);
+      memcpy(res+4, N, nonce_len);
+      if (nonce_len < 12) res[nonce_len+4] = 0x80;
+      memcpy(res+16, A, data_len);
+      tag_len = data_len+16;
+      *T = res;
+  } else {
+      unsigned pdata_len = 16 - (data_len % 16);
+      Byte *res = malloc(5+nonce_len+data_len+pdata_len);
+      res[0] = (Byte)(auth_len | 0x80);
+      res[1] = res[2] = res[3] = 0;
+      memcpy(res+4, N, 12);
+      memcpy(res+16, A, data_len);
+      res[16+data_len] = 0x80;
+      memset(res+16+data_len+1,0,pdata_len-1);
+      memcpy(res+16+data_len+pdata_len,N+12,nonce_len-12);
+      res[4+nonce_len+data_len+pdata_len] = (Byte)nonce_len;
+      tag_len = 5+nonce_len+data_len+pdata_len;
+      *T = res;
+  }
+
+  return tag_len;
+}
+
+#define MAX(a, b) (a < b) ? b : a
+
+/*
+ * AEZ encryption. The length of the ciphertext (`C`) will be the length of
+ * the input message plus the length of the authentication code (`auth_bytes`). 
+ * `C` is expected to be at least max(msg_bytes + auth_bytes, 16), where 
+ * auth_bytes <= 16. 
+ */
+int encrypt(Byte C [], 
+            const Byte M [], 
+            const Byte N [], 
+            const Byte A [], 
+            unsigned msg_len, 
+            unsigned nonce_len, 
+            unsigned data_len, 
+            unsigned auth_len, 
+            AezState *state)
+{
+  Byte *T, *X = malloc(MAX(msg_len + auth_len, 16)); 
+  unsigned tag_len = format(&T, N, A, nonce_len, data_len, auth_len); 
+  
+  if (msg_len == 0)
+  {
+    amac(X, T, tag_len, state); 
+    memcpy(C, X, auth_len); 
+  }
+
+  else
+  {
+    memcpy(X, M, msg_len); 
+    memset(X + msg_len, 0, auth_len);
+    encipher(C, X, T, msg_len + auth_len, tag_len, state); 
+  }
+
+  free(X); free(T); 
+  return msg_len + auth_len;
+}
+
+/*
+ * AEZ decryption. `msg_bytes` should be the length of the enciphered message 
+ * and message authenticaiton code (output of aez_encrypt()). If the MAC is 
+ * correct, then the plaintext is copied to `out` (This is expected to be at 
+ * least msg_bytes - auth_bytes long.) Otherwise the plaintext is witheld and
+ * the function returns -1.
+ */
+int decrypt(Byte M [], 
+            const Byte C [], 
+            const Byte N [], 
+            const Byte A [], 
+            unsigned msg_len, 
+            unsigned nonce_len, 
+            unsigned data_len, 
+            unsigned auth_len, 
+            AezState *state)
+{
+  int res = msg_len - auth_len;  
+  Byte *T, *X = malloc(MAX(msg_len, 16)); 
+  unsigned i, tag_len = format(&T, N, A, nonce_len, data_len, auth_len); 
+  
+  if (msg_len == auth_len)
+  {
+    amac(X, T, tag_len, state); 
+    for (i = 0; i < msg_len; i++)
+      if (X[i] != C[i])
+        res = INVALID;  
+  }
+
+  else 
+  {
+    decipher(X, C, T, msg_len, tag_len, state); 
+    for (i = msg_len - auth_len; i < msg_len; i++)
+      if (X[i] != 0)
+        res = INVALID; 
+  } 
+
+  if (res != INVALID)
+    memcpy(M, X, msg_len - auth_len); 
+    
+  free(X); free(T); 
+  return res;
+}
+
+
 
 /* ----- Testing, testing ... ---------------------------------------------- */
 
@@ -697,21 +822,23 @@ int main()
   AezState state; 
   init(&state, K, strlen((const char *)K)); 
 
-  Byte tag [1024] = "This is a really, really great tag.",
-       message[1024] = "000",
-       ciphertext[1024], plaintext [1024]; 
+  Byte message[1024] = "",
+       ciphertext[1024], plaintext [1024], 
+       nonce [] = "This is a really great nonce"; 
+
   unsigned msg_len = strlen((const char *)message),
-           tag_len = strlen((const char *)tag), i; 
+           nonce_len = strlen((const char *)nonce),
+           auth_len = 3, i; 
 
   /* Encipher(). */
-  display_state(&state); 
   memset(ciphertext, 0, 1024); memset(plaintext, 0, 1024); 
-  encipher(ciphertext, message, tag, msg_len, tag_len, &state); 
-  decipher(plaintext, ciphertext, tag, msg_len, tag_len, &state); 
+  encrypt(ciphertext, message, nonce, NULL, msg_len, nonce_len, 0, auth_len, &state);  
+  int res = decrypt(plaintext, ciphertext, nonce, NULL, msg_len + auth_len, nonce_len, 0, auth_len, &state);  
 
-  printf("Ciphertext: "); 
-  for (i = 0; i < msg_len; i++)
+  printf("Ciphertext: ");
+  for (i = 0; i < msg_len + auth_len; i++)
     printf("%02x", ciphertext[i]); 
+  if (res < 0) printf(" Reject!!"); 
   printf("\n"); 
 
   printf("Message:    "); 
