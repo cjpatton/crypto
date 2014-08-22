@@ -7,7 +7,6 @@
  * This program is dedicated to the public domain. 
  *
  * TODO 
- *  - Byte order of custom AES keys. 
  *  - Point swap in FF0. 
  *  - Encrypt(), Decrypt(), Format()
  *
@@ -36,8 +35,70 @@ typedef struct {
 
 } AezState; 
 
+static void display_block(const Block X) 
+{
+  for (int i = 0; i < 4; i ++)
+    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+}
+
+static void display_state(AezState *state)
+{
+  unsigned i; 
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 11; i++)
+  {
+    printf("| Klong[%-2d] = ", i); 
+    display_block(state->Klong[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 5; i++)
+  {
+    printf("| Kshort[%d] = ", i); 
+    display_block(state->Kshort[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  for (i = 0; i < 8; i++)
+  {
+    printf("| J[%-2d] =     ", i); 
+    display_block(state->J[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+---------------------------------------------------------+\n"); 
+  printf("| L     =     "); 
+  display_block(state->L); 
+  printf("|\n"); 
+  
+  printf("| Linit =     "); 
+  display_block(state->Linit); 
+  printf("|\n"); 
+  printf("+---------------------------------------------------------+\n"); 
+}
+
 
 /* ---- Various primitives ------------------------------------------------- */ 
+
+/*
+ * rinjdael-alg-fst.{h,c} requires big endian byte order. 
+ * Inputs are byte arrays of length at least four.  
+ */
+#define reverse_u32(dst, src) { \
+  (dst)[0] = (src)[3]; \
+  (dst)[1] = (src)[2]; \
+  (dst)[2] = (src)[1]; \
+  (dst)[3] = (src)[0]; }
+
+#define byte_ptr(X) ((Byte *)X)
+
+#define set_big_endian(X) { \
+  reverse_u32(&byte_ptr(X)[0],  &byte_ptr(X)[0]); \
+  reverse_u32(&byte_ptr(X)[4],  &byte_ptr(X)[4]); \
+  reverse_u32(&byte_ptr(X)[8],  &byte_ptr(X)[8]); \
+  reverse_u32(&byte_ptr(X)[12], &byte_ptr(X)[12]); }
 
 static void cp_block(Byte X [], const Byte Y [])
 {
@@ -110,12 +171,12 @@ void extract(Block J, Block L, const Byte K [], unsigned key_len)
 {
   unsigned i, j; 
   Block a[5], b[5], C[8], buff; 
- 
+
   for (i = 0; i < 5; i++) 
   {
     for (j = 0; j < 16; j++)
       a[i][j] = (Byte)j;
-    // FIXME byte order of custom AES4 key.
+    set_big_endian(a[i]); 
   }
 
   zero_block(buff); 
@@ -125,19 +186,18 @@ void extract(Block J, Block L, const Byte K [], unsigned key_len)
     rijndaelEncrypt((uint32_t *)a, 4, buff, C[i]); 
   }
 
-  zero_block(a[0]); 
-  cp_block(a[1], C[0]); 
-  cp_block(a[2], C[1]); 
-  cp_block(a[3], C[2]); 
-  zero_block(a[4]);
+  zero_block(a[0]);     set_big_endian(a[0]); 
+  cp_block(a[1], C[0]); set_big_endian(a[1]); 
+  cp_block(a[2], C[1]); set_big_endian(a[2]); 
+  cp_block(a[3], C[2]); set_big_endian(a[3]); 
+  zero_block(a[4]); 
 
-  zero_block(b[0]); 
-  cp_block(b[1], C[3]); 
-  cp_block(b[2], C[4]); 
-  cp_block(b[3], C[5]); 
+  zero_block(b[0]);     set_big_endian(b[0]); 
+  cp_block(b[1], C[3]); set_big_endian(b[1]); 
+  cp_block(b[2], C[4]); set_big_endian(b[2]); 
+  cp_block(b[3], C[5]); set_big_endian(b[3]); 
   zero_block(b[4]);
-  // FIXME byte order of custom AES4 keys `a` and `b`. 
-  
+
   cp_block(C[2], C[6]); 
   j = key_len - (key_len % 16); 
   zero_block(J); zero_block(L);
@@ -168,19 +228,18 @@ void extract(Block J, Block L, const Byte K [], unsigned key_len)
 } // extract()
 
 /* 
- * Expand extracted key (J, L) into AES4 key scheudle. 
+ * Expand extracted key (J, L) into AES4 key schedule.
  */
 void expand(Block Kshort[], const Block J, const Block L)
 {
   unsigned i;
   Block k [5], buff;
 
-  cp_block(k[0], J); 
-  cp_block(k[1], L); 
-  cp_block(k[2], k[0]); dot2(k[2]); 
-  cp_block(k[3], L);
-  cp_block(k[4], k[2]); dot2(k[4]);
-  // FIXME Byte order of custom AES keys.
+  cp_block(k[0], J);                set_big_endian(k[0]); 
+  cp_block(k[1], L);                set_big_endian(k[1]); 
+  cp_block(k[2], k[0]); dot2(k[2]); set_big_endian(k[2]); 
+  cp_block(k[3], L);                set_big_endian(k[3]); 
+  cp_block(k[4], k[2]); dot2(k[4]); set_big_endian(k[4]); 
 
   zero_block(Kshort[4]); 
   zero_block(k[5]); 
@@ -189,6 +248,7 @@ void expand(Block Kshort[], const Block J, const Block L)
   {
     buff[0] ++; 
     rijndaelEncrypt((uint32_t *)k, 4, buff, Kshort[i]); 
+    set_big_endian(Kshort[i]); 
   }
 } // expand() 
 
@@ -200,7 +260,6 @@ void init(AezState *state, const Byte K [], unsigned key_len)
   unsigned i; 
 
   /* Get J, L, and Kshort from user key. */ 
-  // FIXME byte order of custom AES key. 
   extract(state->J[1], state->L, K, key_len); 
   expand(state->Kshort, state->J[1], state->L); 
 
@@ -214,11 +273,12 @@ void init(AezState *state, const Byte K [], unsigned key_len)
 
   /* Set up Klong. NOTE that we could expand the key in the full
    * key schedule and remove Kshort to reduce the state size. */ 
-  // FIXME byte order of custom AES key.
-  cp_block(state->Klong[0], state->L); // L
-  cp_block(state->Klong[1], state->J[1]); // J 
-  cp_block(state->Klong[2], state->Klong[1]); dot2(state->Klong[2]); // 2J
-  cp_block(state->Klong[3], state->Klong[2]); dot2(state->Klong[3]); // 4J
+  cp_block(state->Klong[0], state->L);    set_big_endian(state->Klong[0]); // L
+  cp_block(state->Klong[1], state->J[1]); set_big_endian(state->Klong[1]); // J
+  cp_block(state->Klong[2], state->Klong[1]); 
+  dot2(state->Klong[2]); set_big_endian(state->Klong[2]); // 2J
+  cp_block(state->Klong[3], state->Klong[2]); 
+  dot2(state->Klong[3]); set_big_endian(state->Klong[3]); // 4J
   cp_block(state->Klong[4], state->Kshort[0]); // K0
   cp_block(state->Klong[5], state->Kshort[1]); // K1
   cp_block(state->Klong[6], state->Kshort[2]); // K2
@@ -598,49 +658,6 @@ void decipher(Byte M [],
 #include <string.h>
 #include <time.h>
 
-//static void display_block(const Block X) 
-//{
-//  for (int i = 0; i < 4; i ++)
-//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-//}
-
-//static void display_state(AezState *state)
-//{
-//  unsigned i; 
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 11; i++)
-//  {
-//    printf("| Klong[%-2d] = ", i); 
-//    display_block(state->Klong[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 5; i++)
-//  {
-//    printf("| Kshort[%d] = ", i); 
-//    display_block(state->Kshort[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 8; i++)
-//  {
-//    printf("| J[%-2d] =     ", i); 
-//    display_block(state->J[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  printf("| L     =     "); 
-//  display_block(state->L); 
-//  printf("|\n"); 
-//  
-//  printf("| Linit =     "); 
-//  display_block(state->Linit); 
-//  printf("|\n"); 
-//  printf("+---------------------------------------------------------+\n"); 
-//}
 
 int main()
 {
