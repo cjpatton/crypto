@@ -172,7 +172,6 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
   cp_block(b[3], C[6]); set_big_endian(b[3]); 
   zero_block(b[4]);
 
-  //for (i = 0; i < 5; i++) { printf("Us: "); display_block(b[i]); printf("\n"); }
   cp_block(C[2], C[7]); 
   cp_block(C[3], C[7]); dot2(C[3]); xor_block(C[3], C[3], C[2]); /* 3C */ 
   j = key_bytes - (key_bytes % 16); 
@@ -201,7 +200,8 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
     xor_block(J, J, C[0]); 
     xor_block(L, L, C[1]); 
   }
-    
+  
+  printf("----Extract-----\n"); 
   printf("Us: "); display_block(J); printf("\n");
   printf("Us: "); display_block(L); printf("\n");
 } // extract()
@@ -214,21 +214,28 @@ static void expand(Block Kshort[], const Block J, const Block L)
   unsigned i;
   Block k [5], buff;
 
-  cp_block(k[0], J);                set_big_endian(k[0]); 
-  cp_block(k[1], L);                set_big_endian(k[1]); 
-  cp_block(k[2], k[0]); dot2(k[2]); set_big_endian(k[2]); 
-  cp_block(k[3], L);                set_big_endian(k[3]); 
-  cp_block(k[4], k[2]); dot2(k[4]); set_big_endian(k[4]); 
-  zero_block(k[5]); 
+  cp_block(k[0], J);                
+  cp_block(k[1], L);                
+  cp_block(k[2], k[0]); dot2(k[2]); 
+  cp_block(k[3], L);                
+  cp_block(k[4], k[2]); dot2(k[4]); 
+  set_big_endian(k[0]); 
+  set_big_endian(k[1]); 
+  set_big_endian(k[2]); 
+  set_big_endian(k[3]); 
+  set_big_endian(k[4]); 
+  
 
-  zero_block(Kshort[4]); 
   zero_block(buff);
   for (i = 0; i < 4; i++) 
   {
-    buff[0] ++; 
-    rijndaelEncrypt((uint32_t *)k, 4, buff, Kshort[i]); 
-    set_big_endian(Kshort[i]); 
+    memset(Kshort[i], (Byte)i, 16); 
+    rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i], 4); 
   }
+  
+  printf("----Expand-----\n"); 
+  for (i = 0; i < 4; i++) { printf("Us: "); display_block(Kshort[i]); printf("\n"); }
+  
 } // expand() 
 
 /*
@@ -992,6 +999,8 @@ static void Extract(byte *K, unsigned kbytes, byte extracted_key[2*16]) {
         rijndaelEncryptRound(aes4_key_b, 10, buf, 4);
         xor_bytes(extracted_key+16, buf, 16, extracted_key+16);
     }
+    
+    printf("----Extract-----\n"); 
     printf("Them: "); display_block((byte *)extracted_key); printf("\n");
     printf("Them: "); display_block((byte *)extracted_key+16); printf("\n");
 }
@@ -1007,6 +1016,7 @@ static void Expand(byte extracted_key[2*16], byte expanded_key[6*16]) {
     memcpy((byte*)aes4_key+48, extracted_key+16, 16);        /* L to K3      */
     mult_block(2, (byte*)aes4_key+32, (byte*)aes4_key+64);   /* 4J to K4     */
     correct_key((byte*)aes4_key,5*16,(byte*)aes4_key);
+  
     
     /* Generate bytes */
     memcpy(expanded_key, extracted_key, 32);
@@ -1014,6 +1024,9 @@ static void Expand(byte extracted_key[2*16], byte expanded_key[6*16]) {
         memset(expanded_key+i*16+32, (char)i, 16);
         rijndaelEncryptRound(aes4_key, 10, expanded_key+i*16+32, 4);
     }
+    
+    printf("----Expand-----\n"); 
+    for (i = 0; i < 4; i++) { printf("Them: "); display_block((byte*)expanded_key+i*16+32); printf("\n"); }
 }
 
 /* ------------------------------------------------------------------------- */
