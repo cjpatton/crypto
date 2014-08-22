@@ -11,7 +11,7 @@
  *    subset of Klong.
  *  - Double check AES4 calls. 
  *
- * Last modified 17 Aug 2014. 
+ * Last modified 21 Aug 2014. 
  */
 
 #include "rijndael-alg-fst.h"
@@ -21,7 +21,7 @@
 
 #define INVALID -1 /* Reject plaintext (inauthentic). */ 
 
-/* ----- AEZ context --------------------------------------------------------- */
+/* ----- AEZ context -------------------------------------------------------- */
 
 typedef unsigned char Byte; 
 typedef Byte Block [16]; 
@@ -49,13 +49,15 @@ typedef struct {
   (dst)[2] = (src)[1]; \
   (dst)[3] = (src)[0]; }
 
-#define byte_ptr(X) ((Byte *)X)
+#define u8_ptr(X) ((uint8_t *)X)
+#define u32_ptr(X) ((uint32_t *)X) 
 
 #define set_big_endian(X) { \
-  reverse_u32(&byte_ptr(X)[0],  &byte_ptr(X)[0]); \
-  reverse_u32(&byte_ptr(X)[4],  &byte_ptr(X)[4]); \
-  reverse_u32(&byte_ptr(X)[8],  &byte_ptr(X)[8]); \
-  reverse_u32(&byte_ptr(X)[12], &byte_ptr(X)[12]); }
+  reverse_u32(&u8_ptr(X)[0],  &u8_ptr(X)[0]); \
+  reverse_u32(&u8_ptr(X)[4],  &u8_ptr(X)[4]); \
+  reverse_u32(&u8_ptr(X)[8],  &u8_ptr(X)[8]); \
+  reverse_u32(&u8_ptr(X)[12], &u8_ptr(X)[12]); \
+}
 
 static void cp_block(Byte X [], const Byte Y [])
 {
