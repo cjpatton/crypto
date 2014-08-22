@@ -870,6 +870,39 @@ void benchmark() {
 
 int main()
 {
-  benchmark(); 
+  //benchmark(); 
+
+  Context context; 
+  Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+  unsigned key_bytes = 16, nonce_bytes = 16; 
+  
+  Byte message [] = "0000000000000000000000000000000000000000000",
+       ciphertext[256], 
+       plaintext[256]; 
+
+  unsigned msg_bytes = strlen((const char *)message), 
+           auth_bytes = 16, i; 
+
+  init(&context, key, key_bytes);
+  encrypt(ciphertext, message, nonce, NULL, 
+             msg_bytes, nonce_bytes, 0, auth_bytes, &context); 
+ 
+  for (i = 0; i < msg_bytes + auth_bytes; i++)
+    printf("%02x", ciphertext[i]); 
+  printf("\n"); 
+
+  int res = decrypt(plaintext, ciphertext, nonce, NULL, 
+              msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context); 
+
+  if (res == INVALID) printf("Reject!"); 
+  else 
+  {
+    for (i = 0; i < msg_bytes; i++) 
+      printf("%c", plaintext[i]); 
+  }
+  printf("\n"); 
+
+
   return 0; 
 }
