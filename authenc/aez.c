@@ -406,12 +406,13 @@ void encipher_eme4(Byte C [],
   ahash(delta, T, tag_bytes, context);
   zero_block(X); 
 
+  //printf("Us: "); display_block(delta); printf("\n"); 
+
   /* X; X1, X'1, ... Xm, X'm */ 
   reset(context); 
   for (j = 0, i = 32; i < k * 32; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */ 
-    variant(context, i, ++j); 
     E(&C[i+16], &M[i+16], 1, j, context); 
     xor_block(&C[i+16], &C[i+16], &M[i]); 
 
@@ -419,10 +420,11 @@ void encipher_eme4(Byte C [],
     xor_block(&C[i], &C[i], &M[i+16]); 
 
     xor_block(X, X, &C[i]); 
+    variant(context, i, ++j); 
   }
 
   if (msg_bytes - i > 0 && msg_bytes - i < 16) /* M* */ 
-  {
+  { 
     zero_block(buff); 
     for (j = i; i < msg_bytes; i++)
       buff[i - j] = M[i]; 
@@ -468,8 +470,6 @@ void encipher_eme4(Byte C [],
   reset(context); 
   for (j = 0, i = 32; i < k * 32; i += 32)
   {
-    variant(context, i, ++j); 
-
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
     E(Z, S, 2, j, context); 
     xor_block(Y0, &C[i+16], Z);
@@ -482,6 +482,7 @@ void encipher_eme4(Byte C [],
     xor_block(&C[i], &C[i], Y1); 
 
     xor_block(Y, Y, Y0); 
+    variant(context, i, ++j); 
   }
   
   if (msg_bytes - i > 0 && msg_bytes - i < 16) /* C* */ 
@@ -689,31 +690,34 @@ unsigned format(Byte *T [],
                 unsigned data_bytes,
                 unsigned auth_bytes)
 {
-  unsigned tag_bytes;
-  if (nonce_bytes <= 12) {
-      Byte *res = malloc(data_bytes+16);
-      memset(res,0,16);
-      res[0] = (Byte)(nonce_bytes == 12 ? auth_bytes | 0x40 : auth_bytes);
-      memcpy(res+4, N, nonce_bytes);
-      if (nonce_bytes < 12) res[nonce_bytes+4] = 0x80;
-      memcpy(res+16, A, data_bytes);
-      tag_bytes = data_bytes+16;
-      *T = res;
-  } else {
-      unsigned pdata_bytes = 16 - (data_bytes % 16);
-      Byte *res = malloc(5+nonce_bytes+data_bytes+pdata_bytes);
-      res[0] = (Byte)(auth_bytes | 0x80);
-      res[1] = res[2] = res[3] = 0;
-      memcpy(res+4, N, 12);
-      memcpy(res+16, A, data_bytes);
-      res[16+data_bytes] = 0x80;
-      memset(res+16+data_bytes+1,0,pdata_bytes-1);
-      memcpy(res+16+data_bytes+pdata_bytes,N+12,nonce_bytes-12);
-      res[4+nonce_bytes+data_bytes+pdata_bytes] = (Byte)nonce_bytes;
-      tag_bytes = 5+nonce_bytes+data_bytes+pdata_bytes;
-      *T = res;
-  }
-
+    unsigned tag_bytes; 
+    if (nonce_bytes <= 12) {
+        Byte *res = (Byte *)malloc(data_bytes+16);
+        memset(res,0,16);
+        res[0] = (Byte)(nonce_bytes == 12 ? auth_bytes | 0x40 : auth_bytes);
+        memcpy(res+4, N, nonce_bytes);
+        if (nonce_bytes < 12) res[nonce_bytes+4] = 0x80;
+        memcpy(res+16, A, data_bytes);
+        tag_bytes = data_bytes+16;
+        *T = res;
+    } else {
+        unsigned pdata_bytes = 16 - (data_bytes % 16);
+        Byte *res = (Byte *)malloc(12+nonce_bytes+data_bytes+pdata_bytes);
+        res[0] = (Byte)(auth_bytes | 0x80);
+        res[1] = res[2] = res[3] = 0;
+        memcpy(res+4, N, 12);
+        memcpy(res+16, A, data_bytes);
+        res[16+data_bytes] = 0x80;
+        memset(res+16+data_bytes+1,0,pdata_bytes-1);
+        memcpy(res+16+data_bytes+pdata_bytes,N+12,nonce_bytes-12);
+        memset(res+4+nonce_bytes+data_bytes+pdata_bytes, 0, 4);
+        res[8+nonce_bytes+data_bytes+pdata_bytes] = (Byte)(nonce_bytes >> 24);
+        res[9+nonce_bytes+data_bytes+pdata_bytes] = (Byte)(nonce_bytes >> 16);
+        res[10+nonce_bytes+data_bytes+pdata_bytes] = (Byte)(nonce_bytes >> 8);
+        res[11+nonce_bytes+data_bytes+pdata_bytes] = (Byte)nonce_bytes;
+        tag_bytes = 12+nonce_bytes+data_bytes+pdata_bytes;
+        *T = res;
+    }
   return tag_bytes;
 } // Format() 
 
@@ -738,6 +742,10 @@ int encrypt(Byte C [],
   Byte *T, *X = malloc(MAX(msg_bytes + auth_bytes, 16)); 
   unsigned tag_bytes = format(&T, N, A, nonce_bytes, data_bytes, auth_bytes); 
   
+  //printf("Our tag: "); 
+  //for (unsigned i = 0; i < tag_bytes; i++)
+  //  printf("%02x", T[i]); 
+
   if (msg_bytes == 0)
   {
     amac(X, T, tag_bytes, context); 
@@ -1119,6 +1127,7 @@ static void CipherEME4(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
     
     memset(X,0,16); memset(Y,0,16);
     AHash(K, kbytes, T, tbytes, Delta);
+    //printf("Them: "); display_block(Delta); printf("\n"); 
     
     /* Pass 1 over in[32..], store intermediate values in out[32..] */
     inbytes = inbytes_orig - 32; out = out_orig + 32; in = in_orig + 32;
@@ -1325,7 +1334,7 @@ int Decrypt(byte *K, unsigned kbytes, byte *N, unsigned nbytes,
         free(X);
     }
     free(T);
-    return (sum == 0 ? 0 : -1);  /* return 0 if valid, -1 if invalid */
+    return (sum == 0 ? 0 : INVALID);  /* return 0 if valid, -1 if invalid */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1336,6 +1345,11 @@ void Encrypt(byte *K, unsigned kbytes, byte *N, unsigned nbytes,
     byte buf[16], *T, *X;
     unsigned tbytes;
     Format(N, nbytes, AD, adbytes, abytes, &T, &tbytes);
+  
+    //printf("Their tag: "); 
+    //for (unsigned i = 0; i < tbytes; i++)
+    //  printf("%02x", T[i]); 
+
     if (mbytes==0) {
         AMac(K, kbytes, T, tbytes, buf);
         memcpy(C,buf,abytes);
@@ -1363,12 +1377,12 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "This is starting to come together for realz now.", 
+  Byte message [] = "This is starting to come together.", 
        ciphertext[1024], 
        plaintext[1024]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
-           auth_bytes = 16; 
+           auth_bytes = 2; 
   int i = -1, j = 5; 
 
   init(&context, key, key_bytes);
@@ -1388,32 +1402,43 @@ int main()
 
   AMac(key, key_bytes, message, msg_bytes, ciphertext); 
   display_block(ciphertext); printf("\n"); 
+
+  printf("-------------------------------------------\n"); 
+  Encrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
+      message, msg_bytes, auth_bytes, ciphertext); 
+                         
+  for (i = 0; i < msg_bytes + auth_bytes; i++)
+    printf("%02x", ciphertext[i]); 
+  printf("\n"); 
   
-  
-//  Encrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
-//      message, msg_bytes, auth_bytes, ciphertext); 
-//                         
-//  for (i = 0; i < msg_bytes + auth_bytes; i++)
-//    printf("%02x", ciphertext[i]); 
-//  printf("\n"); 
-//
-//  encrypt(ciphertext, message, nonce, NULL, 
-//             msg_bytes, nonce_bytes, 0, auth_bytes, &context); 
-//
-//  for (i = 0; i < msg_bytes + auth_bytes; i++)
-//    printf("%02x", ciphertext[i]); 
-//  printf("\n"); 
-//
-//  int res = decrypt(plaintext, ciphertext, nonce, NULL, 
-//              msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context); 
-//
-//  if (res == INVALID) printf("Reject!"); 
-//  else 
-//  {
-//    for (i = 0; i < msg_bytes; i++) 
-//      printf("%c", plaintext[i]); 
-//  }
-//  printf("\n"); 
+  int res = Decrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
+      ciphertext, msg_bytes + auth_bytes, auth_bytes, plaintext); 
+
+  if (res == INVALID) printf("Reject!"); 
+  else 
+  {
+    for (i = 0; i < msg_bytes; i++) 
+      printf("%c", plaintext[i]); 
+  }
+  printf("\n"); 
+
+  encrypt(ciphertext, message, nonce, NULL, 
+             msg_bytes, nonce_bytes, 0, auth_bytes, &context); 
+
+  for (i = 0; i < msg_bytes + auth_bytes; i++)
+    printf("%02x", ciphertext[i]); 
+  printf("\n"); 
+
+  res = decrypt(plaintext, ciphertext, nonce, NULL, 
+              msg_bytes + auth_bytes, nonce_bytes, 0, auth_bytes, &context); 
+
+  if (res == INVALID) printf("Reject!"); 
+  else 
+  {
+    for (i = 0; i < msg_bytes; i++) 
+      printf("%c", plaintext[i]); 
+  }
+  printf("\n"); 
 
 
   return 0; 
