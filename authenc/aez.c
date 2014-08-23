@@ -320,8 +320,10 @@ static void E(Byte C [], const Byte M [], int i, int j, Context *context)
  */
 static void variant(Context *context, int i, int j) 
 {
-  if (j % 8 == 0)
+  if (j > 8 && (j - 1) % 8 == 0)
+  {
     dot2(context->L); 
+  }
 }
 
 /*
@@ -352,8 +354,8 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
   for (i = 0; i < k; i += 16)
   {
     E(buff, &M[i], 3, j, context);  
-    xor_block(H, H, buff); 
-    variant(context, i, ++j); 
+    xor_block(H, H, buff);
+    variant(context, 0, ++j); 
   }
 
   /* Fragmented last block. */
@@ -1068,7 +1070,9 @@ static void Elf(byte *K, unsigned kbytes, int i, unsigned j,
         memcpy((byte*)aes4_key, (byte*)aes_key+64+i*16, 64);
         memset((byte*)aes4_key+64, 0, 16);
         if ((i > 0) && (j > 0)) {
-            for ( ; j > 8; j-=8) mult_block(2,L,L);  /* L = 2^((j-1)/8) L */
+            for ( ; j > 8; j-=8) 
+             {mult_block(2,L,L);  /* L = 2^((j-1)/8) L */
+              /*printf("Them\n");*/ }
             xor_bytes(buf, L, 16, buf);
         }
         rijndaelEncryptRound(aes4_key, 10, buf, 4);
@@ -1359,9 +1363,9 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-       ciphertext[256], 
-       plaintext[256]; 
+  Byte message [] = "This is starting to come together for realz now.", 
+       ciphertext[1024], 
+       plaintext[1024]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
            auth_bytes = 16; 
