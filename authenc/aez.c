@@ -201,9 +201,9 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
     xor_block(L, L, C[1]); 
   }
   
-  printf("----Extract-----\n"); 
-  printf("Us: "); display_block(J); printf("\n");
-  printf("Us: "); display_block(L); printf("\n");
+  //printf("----Extract-----\n"); 
+  //printf("Us: "); display_block(J); printf("\n");
+  //printf("Us: "); display_block(L); printf("\n");
 } // extract()
 
 /* 
@@ -233,8 +233,8 @@ static void expand(Block Kshort[], const Block J, const Block L)
     rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i], 4); 
   }
   
-  printf("----Expand-----\n"); 
-  for (i = 0; i < 4; i++) { printf("Us: "); display_block(Kshort[i]); printf("\n"); }
+  //printf("----Expand-----\n"); 
+  //for (i = 0; i < 4; i++) { printf("Us: "); display_block(Kshort[i]); printf("\n"); }
   
 } // expand() 
 
@@ -269,8 +269,8 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   for (i = 0; i < 11; i++)
     set_big_endian(context->Klong[i])
   
-  printf("----Key schedule----\n"); 
-  for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->Klong[i]); printf("\n");}
+  //printf("----Key schedule----\n"); 
+  //for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->Klong[i]); printf("\n");}
   
 } // init() 
 
@@ -287,7 +287,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 static void E(Byte C [], const Byte M [], int i, int j, Context *context)
 {
   Block tmp, *Kshort; 
-  printf("----Blockcipher (%d, %d)----\n", i, j); 
+  //printf("----Blockcipher (%d, %d)----\n", i, j); 
   if (i == -1) /* 0 <= j < 8 */ 
   {
     xor_block(C, M, context->J[j % 8]);
@@ -343,27 +343,27 @@ static void reset(Context *context)
 void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 {
   Byte buff [16]; 
-  unsigned i, j = 0, k = msg_bytes / 16;  
+  unsigned i, j = 0, k = msg_bytes - (msg_bytes % 16);  
   
   reset(context); 
   zero_block(H); 
 
   /* Unfragmented blocks. */ 
-  for (i = 0; i < k * 16; i += 16)
+  for (i = 0; i < k; i += 16)
   {
-    variant(context, i, ++j); 
     E(buff, &M[i], 3, j, context);  
     xor_block(H, H, buff); 
+    variant(context, i, ++j); 
   }
 
   /* Fragmented last block. */
   if (i < msg_bytes || i == 0) 
   {
-    k = i; 
-    for (; i < msg_bytes; i++)
-      buff[i - k] = M[i]; 
-    buff[i - k] = 0x80;
-    E(buff, buff, 0, 1, context); 
+    zero_block(buff); 
+    for (j = i; i < msg_bytes; i++)
+      buff[i - j] = M[i]; 
+    buff[i - j] = 0x80;
+    E(buff, buff, 1, 0, context); 
     xor_block(H, H, buff); 
   }
   
@@ -1005,9 +1005,9 @@ static void Extract(byte *K, unsigned kbytes, byte extracted_key[2*16]) {
         xor_bytes(extracted_key+16, buf, 16, extracted_key+16);
     }
     
-    printf("----Extract-----\n"); 
-    printf("Them: "); display_block((byte *)extracted_key); printf("\n");
-    printf("Them: "); display_block((byte *)extracted_key+16); printf("\n");
+    //printf("----Extract-----\n"); 
+    //printf("Them: "); display_block((byte *)extracted_key); printf("\n");
+    //printf("Them: "); display_block((byte *)extracted_key+16); printf("\n");
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1030,8 +1030,8 @@ static void Expand(byte extracted_key[2*16], byte expanded_key[6*16]) {
         rijndaelEncryptRound(aes4_key, 10, expanded_key+i*16+32, 4);
     }
     
-    printf("----Expand-----\n"); 
-    for (i = 0; i < 4; i++) { printf("Them: "); display_block((byte*)expanded_key+i*16+32); printf("\n"); }
+    //printf("----Expand-----\n"); 
+    //for (i = 0; i < 4; i++) { printf("Them: "); display_block((byte*)expanded_key+i*16+32); printf("\n"); }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1053,10 +1053,9 @@ static void Elf(byte *K, unsigned kbytes, int i, unsigned j,
     memcpy((byte*)aes_key+128, expanded_key+32, 48);
     correct_key((byte*)aes_key,11*16,(byte*)aes_key);
   
-    printf("----Key schedule----\n"); 
-    for (unsigned fella = 0; fella < 11; fella++) { printf("Them: "); display_block((Byte *)&aes_key[fella * 4]); printf("\n"); }
-  
-    printf("----Blockcipher (%d, %d)----\n", i, j); 
+    //printf("----Key schedule----\n"); 
+    //for (unsigned fella = 0; fella < 11; fella++) { printf("Them: "); display_block((Byte *)&aes_key[fella * 4]); printf("\n"); }
+    //printf("----Blockcipher (%d, %d)----\n", i, j); 
     
     /* Encipher */
     mult_block(j%8, J, buf);
@@ -1360,7 +1359,7 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "0000000000000000000000000000000000000000000",
+  Byte message [] = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
        ciphertext[256], 
        plaintext[256]; 
 
@@ -1369,14 +1368,23 @@ int main()
   int i = -1, j = 5; 
 
   init(&context, key, key_bytes);
+  
+  printf("Message bytes: %d\n", msg_bytes); 
+  
+  printf("-------------------------------------------\n"); 
   E(ciphertext, message, i, j, &context); 
   display_block(ciphertext); printf("\n"); 
 
   Elf(key, key_bytes, i, j, message, ciphertext); 
   display_block(ciphertext); printf("\n"); 
 
-  
   printf("-------------------------------------------\n"); 
+  ahash(ciphertext, message, msg_bytes, &context); 
+  display_block(ciphertext); printf("\n"); 
+
+  AHash(key, key_bytes, message, msg_bytes, ciphertext); 
+  display_block(ciphertext); printf("\n"); 
+  
   
 //  Encrypt(key, key_bytes, nonce, nonce_bytes, NULL, 0, 
 //      message, msg_bytes, auth_bytes, ciphertext); 
