@@ -406,11 +406,9 @@ void encipher_eme4(Byte C [],
   ahash(delta, T, tag_bytes, context);
   zero_block(X); 
 
-  //printf("Us: "); display_block(delta); printf("\n"); 
-
   /* X; X1, X'1, ... Xm, X'm */ 
   reset(context); 
-  for (j = 0, i = 32; i < k * 32; i += 32)
+  for (j = 1, i = 32; i < k * 32; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */ 
     E(&C[i+16], &M[i+16], 1, j, context); 
@@ -420,7 +418,7 @@ void encipher_eme4(Byte C [],
     xor_block(&C[i], &C[i], &M[i+16]); 
 
     xor_block(X, X, &C[i]); 
-    variant(context, i, ++j); 
+    variant(context, 0, ++j); 
   }
 
   if (msg_bytes - i > 0 && msg_bytes - i < 16) /* M* */ 
@@ -430,9 +428,11 @@ void encipher_eme4(Byte C [],
       buff[i - j] = M[i]; 
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 3, context); 
-    
-    for (j = i; i < msg_bytes; i++)
-      X[i - j] ^= buff[i - j];
+   
+    // FIXME
+    //for (j = i; i < msg_bytes; i++)
+    //  X[i - j] ^= buff[i - j];
+    xor_block(X, X, buff); 
   }
   
   else if (msg_bytes - i > 0) /* M*, M** */
@@ -447,8 +447,10 @@ void encipher_eme4(Byte C [],
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 4, context); 
     
-    for (j = i; i < msg_bytes; i++)
-      X[i - j] ^= buff[i - j];
+    // FIXME
+    //for (j = i; i < msg_bytes; i++)
+    //  X[i - j] ^= buff[i - j];
+    xor_block(X, X, buff); 
   }
 
   /* R, R'; S */ 
@@ -468,7 +470,7 @@ void encipher_eme4(Byte C [],
 
   /* Y; C1, C'1, ... Cm, C'm */ 
   reset(context); 
-  for (j = 0, i = 32; i < k * 32; i += 32)
+  for (j = 1, i = 32; i < k * 32; i += 32)
   {
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
     E(Z, S, 2, j, context); 
@@ -482,14 +484,15 @@ void encipher_eme4(Byte C [],
     xor_block(&C[i], &C[i], Y1); 
 
     xor_block(Y, Y, Y0); 
-    variant(context, i, ++j); 
+    variant(context, 0, ++j); 
   }
   
   if (msg_bytes - i > 0 && msg_bytes - i < 16) /* C* */ 
   {
-    E(buff, S, -1, 3, context); 
-    for (j = i; i < msg_bytes; i++) 
-      C[i] = M[i] ^ buff[i - j];
+    E(buff, S, -1, 3, context);
+    // FIXME What does the spec say?  
+    //for (j = i; i < msg_bytes; i++) 
+    //  C[i] = M[i] ^ buff[i - j];
     
     zero_block(buff); 
     for (j = i; i < msg_bytes; i++) 
@@ -497,8 +500,10 @@ void encipher_eme4(Byte C [],
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 3, context); 
 
-    for (j = i; i < msg_bytes; i++)
-      Y[i- j] ^= buff[i - j];
+    // FIXME 
+    //for (j = i; i < msg_bytes; i++)
+    //  Y[i- j] ^= buff[i - j];
+    xor_block(Y, Y, buff); 
   }
 
   else if (msg_bytes - i > 0) /* C*, C** */ 
@@ -510,17 +515,20 @@ void encipher_eme4(Byte C [],
 
     i += 16; 
     E(buff, S, -1, 4, context); 
-    for (j = i; i < msg_bytes; i++) 
-      C[i] = M[i] ^ buff[i - j];
+    // FIXME What does the spec say? 
+    //for (j = i; i < msg_bytes; i++) 
+    //  C[i] = M[i] ^ buff[i - j];
     
     zero_block(buff); 
     for (j = i; i < msg_bytes; i++) 
       buff[i - j] = C[i]; 
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 4, context); 
-
-    for (j = i; i < msg_bytes; i++)
-      Y[i- j] ^= buff[i - j];
+    
+    // FIXME 
+    //for (j = i; i < msg_bytes; i++)
+    //  Y[i- j] ^= buff[i - j];
+    xor_block(Y, Y, buff); 
   }
   
   if (!inv) E(buff, R1, -1, 2, context); 
@@ -1156,7 +1164,8 @@ static void CipherEME4(byte *K, unsigned kbytes, byte *T, unsigned tbytes,
     Elf(K, kbytes, -1, 1+d, out_orig, tmp);
     xor_bytes(out_orig+16, tmp, 16, out_orig+16);
     xor_bytes(out_orig, out_orig+16, 16, S);
-    
+  
+   
     /* Pass 2 over intermediate values in out[32..]. Final values written */
     inbytes = inbytes_orig - 32; out = out_orig + 32; in = in_orig + 32;
     for (j=1; inbytes >= 32; j++, inbytes-=32, in+=32, out+=32) {
@@ -1377,12 +1386,12 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "This is starting to come together.", 
+  Byte message [] = "EME appears to be working quite well.", 
        ciphertext[1024], 
        plaintext[1024]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
-           auth_bytes = 2; 
+           auth_bytes = 16; 
   int i = -1, j = 5; 
 
   init(&context, key, key_bytes);
