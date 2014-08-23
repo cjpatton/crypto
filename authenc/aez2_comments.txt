@@ -1,7 +1,7 @@
 Code TODOs 
   
-  Remove if/else's related to inverting in EncipherEME4(). 
-
+  - Remove if/else's related to inverting in EncipherEME4(). 
+  - New version of FF0. 
 
 Comments on AEZ2 spec
 

@@ -1,8 +1,6 @@
 /**
  * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
- * Krovetz, and Phillip Rogaway. This implementation conforms to the 
- * specification except on one point; in the tweak computation, we don't 
- * reverse the byte order. 
+ * Krovetz, and Phillip Rogaway.
  *
  *   Written by Chris Patton <chrispatton@gmail.com>.
  *
@@ -11,7 +9,7 @@
  * To run benchmarks, compile with 
  *   gcc -Wall -O3 -std=c99 aez.c rijndael-alg-fst.c
  *
- * Last modified 21 Aug 2014. 
+ * Last modified 22 Aug 2014. 
  */
 
 #include "rijndael-alg-fst.h"
@@ -21,7 +19,6 @@
 #include <stdio.h>
 
 #define INVALID -1 /* Reject plaintext (inauthentic). */ 
-#define ALIGN(n) __attribute__ ((aligned(n)))
 
 /* ----- AEZ context -------------------------------------------------------- */
 
@@ -86,19 +83,19 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
     X[i] = Y[i] ^ Z[i]; 
 }
 
+/*
+ * Reverse byte order when computing tweaks. This is meant as an 
+ * optimization for little endian systems. 
+ */
 static void rev_block(Byte X []) 
 {
   Byte i, tmp[16];
-  memcpy(tmp,X,16);
+  memcpy(tmp, X, 16);
   for (i=0; i<16; i++) X[i] = tmp[15-i];
 }
 
 /*
  * Multiply by two operation for key tweaking. 
- *  
- *   NOTE The spec requires reversing the byte order before multiplying,
- *        then reversing the byte order of the resulting string. This is 
- *        done for efficient implemenation on little endian systems. 
  */
 static void dot2(Byte *b) {
   rev_block(b); 
@@ -157,7 +154,7 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
   zero_block(buff); 
   for (i = 0; i < 8; i++)
   {
-    memset(C[i], (Byte)i, 16 * sizeof(Byte)); 
+    memset(C[i], (Byte)i, 16); 
     rijndaelEncryptRound((uint32_t *)a, 10, C[i], 4); 
   }
 
@@ -225,7 +222,6 @@ static void expand(Block Kshort[], const Block J, const Block L)
   set_big_endian(k[2]); 
   set_big_endian(k[3]); 
   set_big_endian(k[4]); 
-  
 
   zero_block(buff);
   for (i = 0; i < 4; i++) 
@@ -322,9 +318,7 @@ static void E(Byte C [], const Byte M [], int i, int j, Context *context)
 static void variant(Context *context, int i, int j) 
 {
   if (j > 8 && (j - 1) % 8 == 0)
-  {
     dot2(context->L); 
-  }
 }
 
 /*
@@ -434,7 +428,6 @@ void encipher_eme4(Byte C [],
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 4, context); 
     
-    // FIXME
     //for (j = i; i < msg_bytes; i++)
     //  X[i - j] ^= buff[i - j];
     xor_block(X, X, buff); 
@@ -448,7 +441,6 @@ void encipher_eme4(Byte C [],
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 3, context); 
    
-    // FIXME
     //for (j = i; i < msg_bytes; i++)
     //  X[i - j] ^= buff[i - j];
     xor_block(X, X, buff); 
@@ -497,17 +489,16 @@ void encipher_eme4(Byte C [],
 
     i += 16; 
     E(buff, S, -1, 4, context); 
-    // FIXME What does the spec say? 
-    //for (j = i; i < msg_bytes; i++) 
-    //  C[i] = M[i] ^ buff[i - j];
+    for (j = i; i < msg_bytes; i++) 
+      C[i] = M[i] ^ buff[i - j];
     
+    i = j; 
     zero_block(buff); 
     for (j = i; i < msg_bytes; i++) 
       buff[i - j] = C[i]; 
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 4, context); 
     
-    // FIXME 
     //for (j = i; i < msg_bytes; i++)
     //  Y[i- j] ^= buff[i - j];
     xor_block(Y, Y, buff); 
@@ -516,17 +507,16 @@ void encipher_eme4(Byte C [],
   else if (msg_bytes - i > 0) /* C* */ 
   {
     E(buff, S, -1, 3, context);
-    // FIXME What does the spec say?  
-    //for (j = i; i < msg_bytes; i++) 
-    //  C[i] = M[i] ^ buff[i - j];
+    for (j = i; i < msg_bytes; i++) 
+      C[i] = M[i] ^ buff[i - j];
     
+    i = j;
     zero_block(buff); 
     for (j = i; i < msg_bytes; i++) 
       buff[i - j] = C[i]; 
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 3, context); 
 
-    // FIXME 
     //for (j = i; i < msg_bytes; i++)
     //  Y[i- j] ^= buff[i - j];
     xor_block(Y, Y, buff); 
@@ -559,10 +549,10 @@ static void point_swap(Byte C [],
   zero_block(buff); 
   for (i = 0; i < msg_bytes; i++)
     buff[i] = C[i]; 
-  buff[0] |= 0x01; 
+  buff[0] |= 0x80; 
   xor_block(buff, buff, delta); 
   E(buff, buff, 0, 7, context); 
-  C[0] ^= (buff[0] & 0x01);  
+  C[0] ^= (buff[0] & 0x80);  
 }
 
 /*
@@ -764,7 +754,7 @@ int encrypt(Byte C [],
   else
   {
     memcpy(X, M, msg_bytes); 
-    memset(X + msg_bytes, 0, auth_bytes);
+    memset(&X[msg_bytes], 0, auth_bytes);
     encipher(C, X, T, msg_bytes + auth_bytes, tag_bytes, context); 
   }
 
@@ -865,8 +855,8 @@ void benchmark() {
   unsigned i, j, auth_bytes = 16, key_bytes = 16; 
   
   Context context; 
-  ALIGN(16) Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
-  ALIGN(16) Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+  Block key   = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};  
+  Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   init(&context, key, key_bytes);
 
   Byte *message = malloc(auth_bytes + msg_len[num_msg_lens-1]); 
@@ -1383,12 +1373,12 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "00000000000000000000000000000000000000000000000000000000000000000000000000000000", 
+  Byte message [] = "00000000000000000000000000000000000000000000000000000000",
        ciphertext[1024], 
        plaintext[1024]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
-           auth_bytes = 0; 
+           auth_bytes = 16; 
   int i = -1, j = 5; 
 
   init(&context, key, key_bytes);
