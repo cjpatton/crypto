@@ -31,7 +31,7 @@ typedef Byte Block [16];
 typedef struct {
 
   /* Key */ 
-  Block Klong [11]; 
+  Block K [11]; 
 
   /* Tweak context */
   Block L, Linit, J [8]; 
@@ -86,10 +86,11 @@ static void xor_block(Byte X [], const Byte Y [], const Byte Z [])
     X[i] = Y[i] ^ Z[i]; 
 }
 
-static void rev(Byte *src, Byte *dst) {
-    Byte i, tmp[16];
-    memcpy(tmp,src,16);
-    for (i=0; i<16; i++) dst[i] = tmp[15-i];
+static void rev_block(Byte X []) 
+{
+  Byte i, tmp[16];
+  memcpy(tmp,X,16);
+  for (i=0; i<16; i++) X[i] = tmp[15-i];
 }
 
 /*
@@ -100,12 +101,12 @@ static void rev(Byte *src, Byte *dst) {
  *        done for efficient implemenation on little endian systems. 
  */
 static void dot2(Byte *b) {
-  rev(b, b); 
+  rev_block(b); 
   Byte tmp = b[0];
   for (int i = 0; i < 15; i++)
     b[i] = (Byte)((b[i] << 1) | (b[i+1] >> 7));
   b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
-  rev(b, b); 
+  rev_block(b); 
 }
 
 /*
@@ -247,7 +248,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
 
   /* Get J, L, and key schedule from user key (K[4], K[5], K[6], K[7}). */ 
   extract(context->J[1], context->L, K, key_bytes); 
-  expand(&(context->Klong[4]), context->J[1], context->L); 
+  expand(&(context->K[4]), context->J[1], context->L); 
 
   /* We need to be able to reset doubling L tweak. */ 
   cp_block(context->Linit, context->L);
@@ -258,19 +259,19 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
     dot_inc(context->J, i); 
 
   /* Set up full key schedule. */
-  cp_block(context->Klong[0],  context->L); // L 
-  cp_block(context->Klong[1],  context->J[1]); // J
-  cp_block(context->Klong[2],  context->Klong[1]); dot2(context->Klong[2]); // 2J
-  cp_block(context->Klong[3],  context->Klong[2]); dot2(context->Klong[3]); // 4J
-  cp_block(context->Klong[8],  context->Klong[4]); // K0
-  cp_block(context->Klong[9],  context->Klong[5]); // K1
-  cp_block(context->Klong[10], context->Klong[6]); // K2
+  cp_block(context->K[0],  context->L); // L 
+  cp_block(context->K[1],  context->J[1]); // J
+  cp_block(context->K[2],  context->K[1]); dot2(context->K[2]); // 2J
+  cp_block(context->K[3],  context->K[2]); dot2(context->K[3]); // 4J
+  cp_block(context->K[8],  context->K[4]); // K0
+  cp_block(context->K[9],  context->K[5]); // K1
+  cp_block(context->K[10], context->K[6]); // K2
 
   for (i = 0; i < 11; i++)
-    set_big_endian(context->Klong[i])
+    set_big_endian(context->K[i])
   
   //printf("----Key schedule----\n"); 
-  //for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->Klong[i]); printf("\n");}
+  //for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->K[i]); printf("\n");}
   
 } // init() 
 
@@ -291,13 +292,13 @@ static void E(Byte C [], const Byte M [], int i, int j, Context *context)
   if (i == -1) /* 0 <= j < 8 */ 
   {
     xor_block(C, M, context->J[j % 8]);
-    rijndaelEncrypt((uint32_t *)context->Klong, 10, C, C); 
+    rijndaelEncrypt((uint32_t *)context->K, 10, C, C); 
   }
 
   else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
   {
     xor_block(C, M, context->J[j % 8]);
-    Kshort = &(context->Klong[4 + i]); 
+    Kshort = &(context->K[4 + i]); 
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C, 4); 
     cp_block(Kshort[4], tmp); 
@@ -307,7 +308,7 @@ static void E(Byte C [], const Byte M [], int i, int j, Context *context)
   {
     xor_block(C, M, context->J[j % 8]); 
     xor_block(C, C, context->L); 
-    Kshort = &(context->Klong[4 + i]); 
+    Kshort = &(context->K[4 + i]); 
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C, 4); 
     cp_block(Kshort[4], tmp); 
@@ -401,14 +402,14 @@ void encipher_eme4(Byte C [],
                    Context *context)
 {
   Block buff, delta, X, Y, Z, R0 /* R */, R1 /* R' */, S, Y0, Y1; 
-  unsigned i, j, k = msg_bytes / 32;  
+  unsigned i, j, k = msg_bytes - (msg_bytes % 32);  
   
   ahash(delta, T, tag_bytes, context);
   zero_block(X); 
 
   /* X; X1, X'1, ... Xm, X'm */ 
   reset(context); 
-  for (j = 1, i = 32; i < k * 32; i += 32)
+  for (j = 1, i = 32; i < k; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */ 
     E(&C[i+16], &M[i+16], 1, j, context); 
@@ -421,21 +422,7 @@ void encipher_eme4(Byte C [],
     variant(context, 0, ++j); 
   }
 
-  if (msg_bytes - i > 0 && msg_bytes - i < 16) /* M* */ 
-  { 
-    zero_block(buff); 
-    for (j = i; i < msg_bytes; i++)
-      buff[i - j] = M[i]; 
-    buff[i - j] = 0x80; 
-    E(buff, buff, 0, 3, context); 
-   
-    // FIXME
-    //for (j = i; i < msg_bytes; i++)
-    //  X[i - j] ^= buff[i - j];
-    xor_block(X, X, buff); 
-  }
-  
-  else if (msg_bytes - i > 0) /* M*, M** */
+  if (msg_bytes - i >= 16) /* M*, M** */
   {
     E(buff, &M[i], 0, 3, context); 
     xor_block(X, X, buff); 
@@ -447,6 +434,20 @@ void encipher_eme4(Byte C [],
     buff[i - j] = 0x80; 
     E(buff, buff, 0, 4, context); 
     
+    // FIXME
+    //for (j = i; i < msg_bytes; i++)
+    //  X[i - j] ^= buff[i - j];
+    xor_block(X, X, buff); 
+  }
+  
+  else if (msg_bytes - i > 0) /* M* */ 
+  { 
+    zero_block(buff); 
+    for (j = i; i < msg_bytes; i++)
+      buff[i - j] = M[i]; 
+    buff[i - j] = 0x80; 
+    E(buff, buff, 0, 3, context); 
+   
     // FIXME
     //for (j = i; i < msg_bytes; i++)
     //  X[i - j] ^= buff[i - j];
@@ -470,7 +471,7 @@ void encipher_eme4(Byte C [],
 
   /* Y; C1, C'1, ... Cm, C'm */ 
   reset(context); 
-  for (j = 1, i = 32; i < k * 32; i += 32)
+  for (j = 1, i = 32; i < k; i += 32)
   {
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
     E(Z, S, 2, j, context); 
@@ -487,26 +488,7 @@ void encipher_eme4(Byte C [],
     variant(context, 0, ++j); 
   }
   
-  if (msg_bytes - i > 0 && msg_bytes - i < 16) /* C* */ 
-  {
-    E(buff, S, -1, 3, context);
-    // FIXME What does the spec say?  
-    //for (j = i; i < msg_bytes; i++) 
-    //  C[i] = M[i] ^ buff[i - j];
-    
-    zero_block(buff); 
-    for (j = i; i < msg_bytes; i++) 
-      buff[i - j] = C[i]; 
-    buff[i - j] = 0x80; 
-    E(buff, buff, 0, 3, context); 
-
-    // FIXME 
-    //for (j = i; i < msg_bytes; i++)
-    //  Y[i- j] ^= buff[i - j];
-    xor_block(Y, Y, buff); 
-  }
-
-  else if (msg_bytes - i > 0) /* C*, C** */ 
+  if (msg_bytes - i >= 16) /* C*, C** */ 
   {
     E(buff, S, -1, 3, context); 
     xor_block(&C[i], &M[i], buff); 
@@ -531,6 +513,25 @@ void encipher_eme4(Byte C [],
     xor_block(Y, Y, buff); 
   }
   
+  else if (msg_bytes - i > 0) /* C* */ 
+  {
+    E(buff, S, -1, 3, context);
+    // FIXME What does the spec say?  
+    //for (j = i; i < msg_bytes; i++) 
+    //  C[i] = M[i] ^ buff[i - j];
+    
+    zero_block(buff); 
+    for (j = i; i < msg_bytes; i++) 
+      buff[i - j] = C[i]; 
+    buff[i - j] = 0x80; 
+    E(buff, buff, 0, 3, context); 
+
+    // FIXME 
+    //for (j = i; i < msg_bytes; i++)
+    //  Y[i- j] ^= buff[i - j];
+    xor_block(Y, Y, buff); 
+  }
+
   if (!inv) E(buff, R1, -1, 2, context); 
   else      E(buff, R1, -1, 1, context); 
   xor_block(&C[16], R0, buff); 
@@ -828,16 +829,8 @@ int decrypt(Byte M [],
 //  printf("+---------------------------------------------------------+\n"); 
 //  for (i = 0; i < 11; i++)
 //  {
-//    printf("| Klong[%-2d] = ", i); 
-//    display_block(context->Klong[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 5; i++)
-//  {
-//    printf("| Kshort[%d] = ", i); 
-//    display_block(context->Kshort[i]); 
+//    printf("| K[%-2d] = ", i); 
+//    display_block(context->K[i]); 
 //    printf("|\n"); 
 //  }
 //
@@ -920,7 +913,11 @@ void benchmark() {
 /* ------ Reference code START --------------------------------------------- */ 
 /* ------------------------------------------------------------------------- */ 
 
-
+static void rev(Byte *src, Byte *dst) {
+      Byte i, tmp[16];
+      memcpy(tmp,src,16);
+      for (i=0; i<16; i++) dst[i] = tmp[15-i];
+}
 
 
 /* ------------------------------------------------------------------------- */
@@ -1386,12 +1383,12 @@ int main()
   Block nonce = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
   unsigned key_bytes = strlen((const char *)key), nonce_bytes = 16; 
   
-  Byte message [] = "EME appears to be working quite well.", 
+  Byte message [] = "00000000000000000000000000000000000000000000000000000000000000000000000000000000", 
        ciphertext[1024], 
        plaintext[1024]; 
 
   unsigned msg_bytes = strlen((const char *)message), 
-           auth_bytes = 16; 
+           auth_bytes = 0; 
   int i = -1, j = 5; 
 
   init(&context, key, key_bytes);

@@ -1,8 +1,6 @@
 Code TODOs 
   
-  - Less stupid for-loop condition in ahash().
-
-  - Can probably make EME4() partial block code more compact. 
+  Remove if/else's related to inverting in EncipherEME4(). 
 
 
 Comments on AEZ2 spec
