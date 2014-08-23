@@ -1383,10 +1383,10 @@ int main()
   display_block(ciphertext); printf("\n"); 
 
   printf("-------------------------------------------\n"); 
-  ahash(ciphertext, message, msg_bytes, &context); 
+  amac(ciphertext, message, msg_bytes, &context); 
   display_block(ciphertext); printf("\n"); 
 
-  AHash(key, key_bytes, message, msg_bytes, ciphertext); 
+  AMac(key, key_bytes, message, msg_bytes, ciphertext); 
   display_block(ciphertext); printf("\n"); 
   
   
