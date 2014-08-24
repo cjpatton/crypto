@@ -79,5 +79,9 @@ int main()
   Oset_big_endian(Y); 
   Odisplay_block(Y); printf("\n"); 
 
+  printf("%08x\n", &X); 
+  printf("%08x\n", X.byte); 
+  printf("%08x\n", X.word); 
+
   return 0; 
 }
