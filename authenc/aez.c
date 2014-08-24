@@ -905,7 +905,7 @@ void verify()
   
   Block sum; 
   memset(sum, 0, 16); 
-  memset(ciphertext, 0, 16); 
+  memset(ciphertext, 0, 1024); 
   memset(message, 0, 1024); 
 
   unsigned key_bytes = strlen((const char *)key), 
@@ -914,7 +914,7 @@ void verify()
 
   Context context; 
   init(&context, key, key_bytes); 
-  for (i = 0; i < 891/*max length*/; i++)
+  for (i = 32; i < 33/*max length*/; i++)
   {
     encrypt(ciphertext, message, nonce, nonce, 
                 i, nonce_bytes, nonce_bytes, auth_bytes, &context); 
