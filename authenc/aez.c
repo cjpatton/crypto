@@ -135,7 +135,7 @@ static void dot_inc(Block *Xs, int n)
 
 /* ----- AEZ initialization, Extract(), Expand()  --------------------------- */ 
 
-static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
+static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
 {
   unsigned i, j; 
   Block a[5], b[5], C[8], buff; 
@@ -169,7 +169,7 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
   cp_block(C[2].byte, C[7].byte); 
   cp_block(C[3].byte, C[7].byte); dot2(C[3].byte); xor_block(C[3].byte, C[3].byte, C[2].byte); /* 3C */ 
   j = key_bytes - (key_bytes % 16); 
-  zero_block(J.byte); zero_block(L.byte);
+  zero_block(J->byte); zero_block(L->byte);
   for (i = 0; i < j; i += 16)
   {
     /* C = C[7], C[2] is the doubling version. 
@@ -177,8 +177,8 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
     xor_block(buff.byte, &K[i], C[2].byte);
     cp_block(C[0].byte, buff.byte); rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
     cp_block(C[1].byte, buff.byte); rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
-    xor_block(J.byte, J.byte, C[0].byte); 
-    xor_block(L.byte, L.byte, C[1].byte); 
+    xor_block(J->byte, J->byte, C[0].byte); 
+    xor_block(L->byte, L->byte, C[1].byte); 
     dot2(C[2].byte); 
   }
 
@@ -191,8 +191,8 @@ static void extract(Block J, Block L, const Byte K [], unsigned key_bytes)
     xor_block(buff.byte, buff.byte, C[3].byte); 
     cp_block(C[0].byte, buff.byte); rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
     cp_block(C[1].byte, buff.byte); rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
-    xor_block(J.byte, J.byte, C[0].byte); 
-    xor_block(L.byte, L.byte, C[1].byte); 
+    xor_block(J->byte, J->byte, C[0].byte); 
+    xor_block(L->byte, L->byte, C[1].byte); 
   }
   
   //printf("----Extract-----\n"); 
@@ -239,8 +239,8 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   unsigned i; 
 
   /* Get J, L, and key schedule from user key (K[4], K[5], K[6], K[7}). */ 
-  extract(context->J[1], context->L, K, key_bytes); 
-  expand(&(context->K[4]), context->J[1], context->L); 
+  extract(&context->J[1], &context->L, K, key_bytes); 
+  expand(&context->K[4], context->J[1], context->L); 
 
   /* We need to be able to reset doubling L tweak. */ 
   cp_block(context->Linit.byte, context->L.byte);
