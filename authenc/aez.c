@@ -915,7 +915,7 @@ void verify()
   Context context; 
   init(&context, key, key_bytes); 
   display_context(&context); 
-  for (i = 32; i < 33/*max length*/; i++)
+  for (i = 0; i < 891/*max length*/; i++)
   {
     encrypt(ciphertext, message, nonce, nonce, 
                 i, nonce_bytes, nonce_bytes, auth_bytes, &context); 
