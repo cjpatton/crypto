@@ -813,35 +813,35 @@ static void display_block(const Block X)
     printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
 }
 
-//static void display_context(Context *context)
-//{
-//  unsigned i; 
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 11; i++)
-//  {
-//    printf("| K[%-2d] = ", i); 
-//    display_block(context->K[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 8; i++)
-//  {
-//    printf("| J[%-2d] =     ", i); 
-//    display_block(context->J[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  printf("| L     =     "); 
-//  display_block(context->L); 
-//  printf("|\n"); 
-//  
-//  printf("| Linit =     "); 
-//  display_block(context->Linit); 
-//  printf("|\n"); 
-//  printf("+---------------------------------------------------------+\n"); 
-//}
+static void display_context(Context *context)
+{
+  unsigned i; 
+  printf("+-----------------------------------------------------+\n"); 
+  for (i = 0; i < 11; i++)
+  {
+    printf("| K[%-2d] = ", i); 
+    display_block(context->K[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+-----------------------------------------------------+\n"); 
+  for (i = 0; i < 8; i++)
+  {
+    printf("| J[%-2d] = ", i); 
+    display_block(context->J[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+-----------------------------------------------------+\n"); 
+  printf("| L     = "); 
+  display_block(context->L); 
+  printf("|\n"); 
+  
+  printf("| Linit = "); 
+  display_block(context->Linit); 
+  printf("|\n"); 
+  printf("+-----------------------------------------------------+\n"); 
+}
 
 #define HZ (2.9e9) 
 #define TRIALS 1000000
@@ -914,6 +914,7 @@ void verify()
 
   Context context; 
   init(&context, key, key_bytes); 
+  display_context(&context); 
   for (i = 32; i < 33/*max length*/; i++)
   {
     encrypt(ciphertext, message, nonce, nonce, 
