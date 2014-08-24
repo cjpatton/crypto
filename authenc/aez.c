@@ -807,11 +807,11 @@ int decrypt(Byte M [],
 #include <time.h>
 #include <stdio.h>
 
-//static void display_block(const Block X) 
-//{
-//  for (int i = 0; i < 4; i ++)
-//    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
-//}
+static void display_block(const Block X) 
+{
+  for (int i = 0; i < 4; i ++)
+    printf("0x%08x ", *(uint32_t *)&X[i * 4]); 
+}
 
 //static void display_context(Context *context)
 //{
@@ -897,8 +897,40 @@ void benchmark() {
   free(plaintext); 
 }
 
+  
+void verify() 
+{
+  Byte message [1024], ciphertext [1024], plaintext[1024], 
+       key [] = "One day we will.", nonce [] = "Things are occuring!"; 
+  
+  Block sum; 
+  memset(sum, 0, 16); 
+  memset(ciphertext, 0, 16); 
+
+  unsigned key_bytes = strlen((const char *)key), 
+           nonce_bytes = strlen((const char *)nonce), 
+           auth_bytes = 7, i, res; 
+
+  Context context; 
+  init(&context, key, key_bytes); 
+  for (i = 0; i < 891/*max length*/; i++)
+  {
+    encrypt(ciphertext, message, nonce, nonce, 
+                i, nonce_bytes, nonce_bytes, auth_bytes, &context); 
+    xor_block(sum, sum, ciphertext); 
+  
+    res = decrypt(plaintext, ciphertext, nonce, nonce, 
+           i + auth_bytes, nonce_bytes, nonce_bytes, auth_bytes, &context); 
+
+    if (res == INVALID || memcmp(plaintext, message, i) != 0)
+      printf("msg length %d: plaintext mismatch!\n", i + auth_bytes); 
+  }
+  display_block(sum); printf("\n");
+}
+
 int main()
 {
-  benchmark(); 
+  //benchmark(); 
+  verify();  
   return 0; 
 }
