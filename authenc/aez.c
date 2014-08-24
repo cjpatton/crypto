@@ -68,6 +68,8 @@ typedef struct {
   (X).word[3] = (Y).word[3]; \
 }
 
+#define cp_bytes(dst, src, n) memcpy((Byte *)dst, (Byte *)src, n)
+
 #define zero_block(X) { \
   (X).word[0] = 0; \
   (X).word[1] = 0; \
@@ -336,31 +338,31 @@ static void reset(Context *context)
 
 void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 {
-  Byte buff [16]; 
+  Block buff, sigma; 
   unsigned i, j = 0, k = msg_bytes - (msg_bytes % 16);  
   
   reset(context); 
-  memset(H, 0, 16); //zero_block(H); FIXME 
+  zero_block(sigma); 
 
   /* Unfragmented blocks. */ 
   for (i = 0; i < k; i += 16)
   {
-    E(buff, &M[i], 3, j, context);  
-    xor_block(H, H, buff);
+    E(buff.byte, &M[i], 3, j, context);  
+    xor_block(sigma.byte, sigma.byte, buff.byte);
     variant(context, 0, ++j); 
   }
 
   /* Fragmented last block. */
   if (i < msg_bytes || i == 0) 
   {
-    memset(buff, 0, 16); // zero_block(buff); FIXME
-    for (j = i; i < msg_bytes; i++)
-      buff[i - j] = M[i]; 
-    buff[i - j] = 0x80;
-    E(buff, buff, 1, 0, context); 
-    xor_block(H, H, buff); 
+    zero_block(buff); 
+    cp_bytes(buff.byte, &M[i], msg_bytes - i); 
+    buff.byte[i - j] = 0x80;
+    E(buff.byte, buff.byte, 1, 0, context); 
+    xor_block(sigma.byte, sigma.byte, buff.byte); 
   }
   
+  cp_bytes(H, sigma.byte, 16); 
   reset(context); 
 } // AHash()
 
