@@ -906,6 +906,7 @@ void verify()
   Block sum; 
   memset(sum, 0, 16); 
   memset(ciphertext, 0, 16); 
+  memset(message, 0, 1024); 
 
   unsigned key_bytes = strlen((const char *)key), 
            nonce_bytes = strlen((const char *)nonce), 
