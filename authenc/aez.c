@@ -815,35 +815,35 @@ static void display_block(const Block X)
     printf("0x%08x ", X.word[i]); 
 }
 
-//static void display_context(Context *context)
-//{
-//  unsigned i; 
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 11; i++)
-//  {
-//    printf("| K[%-2d] = ", i); 
-//    display_block(context->K[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  for (i = 0; i < 8; i++)
-//  {
-//    printf("| J[%-2d] =     ", i); 
-//    display_block(context->J[i]); 
-//    printf("|\n"); 
-//  }
-//
-//  printf("+---------------------------------------------------------+\n"); 
-//  printf("| L     =     "); 
-//  display_block(context->L); 
-//  printf("|\n"); 
-//  
-//  printf("| Linit =     "); 
-//  display_block(context->Linit); 
-//  printf("|\n"); 
-//  printf("+---------------------------------------------------------+\n"); 
-//}
+static void display_context(Context *context)
+{
+  unsigned i; 
+  printf("+-----------------------------------------------------+\n"); 
+  for (i = 0; i < 11; i++)
+  {
+    printf("| K[%-2d] = ", i); 
+    display_block(context->K[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+-----------------------------------------------------+\n"); 
+  for (i = 0; i < 8; i++)
+  {
+    printf("| J[%-2d] = ", i); 
+    display_block(context->J[i]); 
+    printf("|\n"); 
+  }
+
+  printf("+-----------------------------------------------------+\n"); 
+  printf("| L     = "); 
+  display_block(context->L); 
+  printf("|\n"); 
+  
+  printf("| Linit = "); 
+  display_block(context->Linit); 
+  printf("|\n"); 
+  printf("+-----------------------------------------------------+\n"); 
+}
 
 #define HZ (2.9e9) 
 #define TRIALS 1000000
@@ -907,7 +907,7 @@ void verify()
   
   Block sum; 
   memset(sum.byte, 0, 16); 
-  memset(ciphertext, 0, 16); 
+  memset(ciphertext, 0, 1024); 
   memset(message, 0, 1024); 
 
   unsigned key_bytes = strlen((const char *)key), 
@@ -916,7 +916,8 @@ void verify()
 
   Context context; 
   init(&context, key, key_bytes); 
-  for (i = 0; i < 891/*max length*/; i++)
+  display_context(&context); 
+  for (i = 32; i < 33/*max length*/; i++)
   {
     encrypt(ciphertext, message, nonce, nonce, 
                 i, nonce_bytes, nonce_bytes, auth_bytes, &context); 
