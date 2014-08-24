@@ -844,14 +844,14 @@ static void display_context(Context *context)
 }
 
 #define HZ (2.9e9) 
-#define TRIALS 1000000
+#define TRIALS 100000
 
 void benchmark() {
 
   static const int msg_len [] = {64,     128,  256,   512, 
                                  1024,   4096, 10000, 100000,
                                  1000000}; 
-  static const int num_msg_lens = 7; 
+  static const int num_msg_lens = 6; 
   unsigned i, j, auth_bytes = 16, key_bytes = 16; 
   
   Context context; 
