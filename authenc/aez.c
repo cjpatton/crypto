@@ -318,6 +318,36 @@ static void E(Byte C [], const Byte M [], int i, int j, Context *context)
   }
 } // E() 
 
+
+static void fella(Block *C, const Block M, int i, int j, Context *context)
+{
+  Block tmp, *Kshort; 
+  //printf("----Blockcipher (%d, %d)----\n", i, j); 
+  if (i == -1) /* 0 <= j < 8 */ 
+  {
+    xor_block(*C, M, context->J[j % 8]);
+    rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
+  }
+
+  else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
+  {
+    xor_block(*C, M, context->J[j % 8]);
+    Kshort = &(context->K[4 + i]); 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
+    cp_block(Kshort[4], tmp); 
+  }
+
+  else 
+  {
+    xor_block(*C, M, context->J[j % 8]); 
+    xor_block(*C, *C, context->L); 
+    Kshort = &(context->K[4 + i]); 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
+    cp_block(Kshort[4], tmp); 
+  }
+} // E() 
 /*
  * Update doubling tweak `T` if necessary. `i` doesn't actually
  * have an affect on the tweak. 
@@ -355,7 +385,8 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
   /* Unfragmented blocks. */ 
   for (i = 0; i < k; i += 16)
   {
-    E(buff.byte, &M[i], 3, j, context);  
+    cp_bytes(buff.byte, &M[i], 16); 
+    fella(&buff, buff, 3, j, context);  
     xor_block(sigma, sigma, buff);
     variant(context, 0, ++j); 
   }
@@ -365,8 +396,8 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
   {
     zero_block(buff); 
     cp_bytes(buff.byte, &M[i], msg_bytes - i); 
-    buff.byte[i] = 0x80;
-    E(buff.byte, buff.byte, 1, 0, context); 
+    buff.byte[msg_bytes - i] = 0x80;
+    fella(&buff, buff, 1, 0, context); 
     xor_block(sigma, sigma, buff); 
   }
   
@@ -384,8 +415,12 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 
 void amac(Byte T [], const Byte M [], unsigned msg_bytes, Context *context)
 {
+  Block tmp; /* FIXME This is not so nice. ahash() 
+                should probalby output to a `Block`. */  
   ahash(T, M, msg_bytes, context); 
-  E(T, T, -1, 5, context); 
+  cp_bytes(tmp.byte, T, 16); 
+  fella(&tmp, tmp, -1, 5, context); 
+  cp_bytes(T, tmp.byte, 16); 
 } // AMac() 
 
 
@@ -402,7 +437,9 @@ void encipher_eme4(Byte C [],
                    unsigned inv,
                    Context *context)
 {
-  Block buff, delta, X, Y, Z, R0 /* R */, R1 /* R' */, S, Y0, Y1; 
+  Block buff, delta, X, Y, Z, 
+        R0 /* R */, R1 /* R' */, 
+        S, Y0, Y1, M0, M1, C0, C1; 
   unsigned i, j, k = msg_bytes - (msg_bytes % 32);  
   
   ahash(delta.byte, T, tag_bytes, context);
@@ -412,44 +449,40 @@ void encipher_eme4(Byte C [],
   reset(context); 
   for (j = 1, i = 32; i < k; i += 32)
   {
-    /* M = &M[i], M' = &M[i+16] */ 
-    E(&C[i+16], &M[i+16], 1, j, context); 
-    xor_bytes(&C[i+16], &C[i+16], &M[i], 16); 
+    /* M = &M[i], M' = &M[i+16] */
+    cp_bytes(M0.byte, &M[i], 16);  cp_bytes(M1.byte, &M[i+16], 16); 
+    
+    fella(&C1, M1, 1, j, context); 
+    xor_block(C1, C1, M0); 
 
-    E(&C[i], &C[i+16], 0, 0, context); 
-    xor_bytes(&C[i], &C[i], &M[i+16], 16); 
-
-    xor_bytes(X.byte, X.byte, &C[i], 16); 
+    fella(&C0, C1, 0, 0, context); 
+    xor_block(C0, C0, M1); 
+  
+    xor_block(X, X, C0); 
+   
+    cp_bytes(&C[i], C0.byte, 16), cp_bytes(&C[i+16], C1.byte, 16); 
     variant(context, 0, ++j); 
   }
 
   if (msg_bytes - i >= 16) /* M*, M** */
   {
-    E(buff.byte, &M[i], 0, 3, context); 
+    cp_bytes(buff.byte, &M[i], 16); 
+    fella(&buff, buff, 0, 3, context); 
     xor_block(X, X, buff); 
   
-    i += 16; 
-    zero_block(buff); 
-    for (j = i; i < msg_bytes; i++)
-      buff.byte[i - j] = M[i]; 
-    buff.byte[i - j] = 0x80; 
-    E(buff.byte, buff.byte, 0, 4, context); 
-    
-    //for (j = i; i < msg_bytes; i++)
-    //  X[i - j] ^= buff[i - j];
+    zero_block(buff); i += 16;  
+    cp_bytes(buff.byte, &M[i], msg_bytes - i); 
+    buff.byte[msg_bytes - i] = 0x80; 
+    fella(&buff, buff, 0, 4, context); 
     xor_block(X, X, buff); 
   }
   
   else if (msg_bytes - i > 0) /* M* */ 
   { 
     zero_block(buff); 
-    for (j = i; i < msg_bytes; i++)
-      buff.byte[i - j] = M[i]; 
-    buff.byte[i - j] = 0x80; 
-    E(buff.byte, buff.byte, 0, 3, context); 
-   
-    //for (j = i; i < msg_bytes; i++)
-    //  X[i - j] ^= buff[i - j];
+    cp_bytes(buff.byte, &M[i], msg_bytes - i); 
+    buff.byte[msg_bytes - i] = 0x80; 
+    fella(&buff, buff, 0, 3, context); 
     xor_block(X, X, buff); 
   }
 
@@ -467,7 +500,7 @@ void encipher_eme4(Byte C [],
 
   xor_block(S, R0, R1); // S
   zero_block(Y);
-
+  
   /* Y; C1, C'1, ... Cm, C'm */ 
   reset(context); 
   for (j = 1, i = 32; i < k; i += 32)
@@ -945,7 +978,7 @@ void verify()
 
 int main()
 {
-  benchmark(); 
-  //verify();  
+  //benchmark(); 
+  verify();  
   return 0; 
 }
