@@ -1,9 +1,3 @@
-Code TODOs 
-  
-  - New version of FF0. 
-  - Optimizaing EME4 -- can probably minimize/reduce data dependencies. This
-    won't make a noticeable difference until AES-NI is used. 
-
 Comments on AEZ2 spec
 
   Tweakable blockcipher instantiation

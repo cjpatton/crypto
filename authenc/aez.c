@@ -27,6 +27,10 @@
  *  - Optimal performance: 32-bit, ~17 cpb; 64-bit, ~15 cpb; AES-NI, 4.43 cpb. 
  *    This can be improved.
  *
+ *      - Try reducing tweak state from 8 blocks to 4 (cost encurred as XORS)
+ *      - Do as much in blocks as possible. Look at data depencies in EME4 and 
+ *        remove any unnecessary ones.
+ *
  *  - In EM#4, quit early when tag is invalid. 
  */
 
