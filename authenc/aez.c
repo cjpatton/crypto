@@ -22,7 +22,7 @@
  * set both __USE_AES_NI and __ARCH_64. 
  */
 
-//#define __USE_AES_NI
+#define __USE_AES_NI
 #define __ARCH_64
 
 #ifndef __USE_AES_NI 
@@ -91,11 +91,17 @@ typedef struct {
     (X).word[3] = reverse_u32((X).word[3]); \
   }
 #else 
-  #define toggle_endian(X) {} 
+  #define toggle_endian(X) { \
+    (X).word[0] = reverse_u32((X).word[0]); \
+    (X).word[1] = reverse_u32((X).word[1]); \
+    (X).word[2] = reverse_u32((X).word[2]); \
+    (X).word[3] = reverse_u32((X).word[3]); \
+  }
 #endif 
 
 #ifdef __USE_AES_NI
   #define cp_block(X, Y) { \
+    (X).block = (Y).block; \
   }
 #else 
   #ifdef __ARCH_64 
@@ -115,6 +121,7 @@ typedef struct {
 
 #ifdef __USE_AES_NI
   #define zero_block(X) { \
+    (X).block = _mm_setzero_si128(); \
   }
 #else 
   #ifdef __ARCH_64 
@@ -132,18 +139,24 @@ typedef struct {
   #endif
 #endif 
 
-#ifndef __ARCH_64
+#ifdef __USE_AES_NI
   #define xor_block(X, Y, Z) { \
-    (X).word[0] = (Y).word[0] ^ (Z).word[0]; \
-    (X).word[1] = (Y).word[1] ^ (Z).word[1]; \
-    (X).word[2] = (Y).word[2] ^ (Z).word[2]; \
-    (X).word[3] = (Y).word[3] ^ (Z).word[3]; \
+    (X).block = (Y).block ^ (Z).block; \
   }
-#else 
-  #define xor_block(X, Y, Z) { \
-    (X).lword[0] = (Y).lword[0] ^ (Z).lword[0]; \
-    (X).lword[1] = (Y).lword[1] ^ (Z).lword[1]; \
-  }
+#else
+  #ifdef __ARCH_64
+    #define xor_block(X, Y, Z) { \
+      (X).lword[0] = (Y).lword[0] ^ (Z).lword[0]; \
+      (X).lword[1] = (Y).lword[1] ^ (Z).lword[1]; \
+    }
+  #else 
+    #define xor_block(X, Y, Z) { \
+      (X).word[0] = (Y).word[0] ^ (Z).word[0]; \
+      (X).word[1] = (Y).word[1] ^ (Z).word[1]; \
+      (X).word[2] = (Y).word[2] ^ (Z).word[2]; \
+      (X).word[3] = (Y).word[3] ^ (Z).word[3]; \
+    }
+  #endif 
 #endif
 
 #define cp_bytes(dst, src, n) memcpy((Byte *)dst, (Byte *)src, n)
