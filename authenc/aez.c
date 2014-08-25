@@ -17,16 +17,20 @@
 
 /*
  * Architecture flags. If the platform supports the AES-NI and SSSE3 instruction 
- * sets, set __USE_AES_NI; if the platform doesn't have hardware  support for AES, 
+ * sets, set __USE_AES_NI; if the platform doesn't have hardware support for AES, 
  * but is a 64-bit architecture, then set __ARCH_64; if the system is 32-bit, un-
  * set both __USE_AES_NI and __ARCH_64. 
  */
 
-// #define __USE_AES_NI
+#define __USE_AES_NI
 #define __ARCH_64
 
 #ifndef __USE_AES_NI 
 #include "rijndael-alg-fst.h"
+#else 
+#include "rijndael-alg-fst.h"
+#include <wmmintrin.h>
+#include <tmmintrin.h>
 #endif 
 
 #define INVALID -1 /* Reject plaintext (inauthentic). */ 
@@ -50,6 +54,9 @@ typedef union {
   ALIGN(16) Byte byte  [16]; /* Byte addressing needed for a few operations. */ 
   ALIGN(16) Word word  [4];  /* 32-bit systems. */ 
   ALIGN(16) Long lword [2];  /* 64-bit systems. */ 
+#ifdef __USE_AES_NI
+  __m128i block; 
+#endif
 } Block; 
 
 typedef struct {
@@ -205,7 +212,11 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
   for (i = 0; i < 8; i++)
   {
     memset(C[i].byte, (Byte)i, 16); 
+#ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)a, 10, C[i].byte, 4); 
+#else // TODO 
+    rijndaelEncryptRound((uint32_t *)a, 10, C[i].byte, 4); 
+#endif 
   }
 
   zero_block(a[0]);   
@@ -229,8 +240,22 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
     /* C = C[7], C[2] is the doubling version. 
      * C[0], C[1] are used as buffers. */
     xor_bytes(buff.byte, &K[i], C[2].byte, 16);
-    cp_block(C[0], buff); rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
-    cp_block(C[1], buff); rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+    cp_block(C[0], buff); cp_block(C[1], buff); 
+#ifndef __USE_AES_NI
+    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
+    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#else // TODO 
+    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
+    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#endif 
+    xor_block(*J, *J, C[0]); 
+    xor_block(*L, *L, C[1]); 
+    dot2(C[2].byte); 
+  }
+
+  if (i < key_bytes) 
+  {
+    zero_block(buff);
     xor_block(*J, *J, C[0]); 
     xor_block(*L, *L, C[1]); 
     dot2(C[2].byte); 
@@ -243,8 +268,14 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
       buff.byte[i - j] = K[i]; 
     buff.byte[i - j] = 0x80; 
     xor_block(buff, buff, C[3]); 
-    cp_block(C[0], buff); rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
-    cp_block(C[1], buff); rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+    cp_block(C[0], buff); cp_block(C[1], buff); 
+#ifndef __USE_AES_NI
+    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
+    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#else // TODO 
+    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
+    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#endif 
     xor_block(*J, *J, C[0]); 
     xor_block(*L, *L, C[1]); 
   }
@@ -272,7 +303,11 @@ static void expand(Block Kshort[], const Block J, const Block L)
   for (i = 0; i < 4; i++) 
   {
     memset(Kshort[i].byte, (Byte)i, 16); 
+#ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i].byte, 4); 
+#else // TODO
+    rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i].byte, 4); 
+#endif 
   }
 } // expand() 
 
@@ -328,6 +363,7 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
 #ifndef __USE_AES_NI
     rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
 #else // TODO 
+    rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
 #endif 
   }
 
@@ -341,6 +377,10 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
 #else // TODO
+    Block tmp; 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
+    cp_block(Kshort[4], tmp); 
 #endif 
   }
 
@@ -355,6 +395,10 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
 #else // TODO
+    Block tmp; 
+    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
+    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
+    cp_block(Kshort[4], tmp); 
 #endif 
   }
 } // E()
