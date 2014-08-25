@@ -22,7 +22,7 @@
  * set both __USE_AES_NI and __ARCH_64. 
  */
 
-#define __USE_AES_NI
+//#define __USE_AES_NI
 #define __ARCH_64
 
 #ifndef __USE_AES_NI 
@@ -76,13 +76,6 @@ typedef struct {
  * rinjdael-alg-fst.{h,c} requires key words in big endian byte order. 
  * toggle_endian() operates on 128-bit blocks.  
  */
-#define toggle_endian(X) { \
-  (X).word[0] = reverse_u32((X).word[0]); \
-  (X).word[1] = reverse_u32((X).word[1]); \
-  (X).word[2] = reverse_u32((X).word[2]); \
-  (X).word[3] = reverse_u32((X).word[3]); \
-}
-
 #define reverse_u32(n) ( \
  ((n & 0x000000ffu) << 24) | \
  ((n & 0x0000ff00u) <<  8) | \
@@ -90,32 +83,53 @@ typedef struct {
  ((n & 0xff000000u) >> 24)   \
 )
 
-#ifndef __ARCH_64 
-  #define cp_block(X, Y) { \
-    (X).word[0] = (Y).word[0]; \
-    (X).word[1] = (Y).word[1]; \
-    (X).word[2] = (Y).word[2]; \
-    (X).word[3] = (Y).word[3]; \
-  }
-#else
-  #define cp_block(X, Y) { \
-    (X).lword[0] = (Y).lword[0]; \
-    (X).lword[1] = (Y).lword[1]; \
-  }
-#endif 
-
-#ifndef __ARCH_64 
-  #define zero_block(X) { \
-    (X).word[0] = 0; \
-    (X).word[1] = 0; \
-    (X).word[2] = 0; \
-    (X).word[3] = 0; \
+#ifndef __USE_AES_NI 
+  #define toggle_endian(X) { \
+    (X).word[0] = reverse_u32((X).word[0]); \
+    (X).word[1] = reverse_u32((X).word[1]); \
+    (X).word[2] = reverse_u32((X).word[2]); \
+    (X).word[3] = reverse_u32((X).word[3]); \
   }
 #else 
-  #define zero_block(X) { \
-    (X).lword[0] = 0; \
-    (X).lword[1] = 0; \
+  #define toggle_endian(X) {} 
+#endif 
+
+#ifdef __USE_AES_NI
+  #define cp_block(X, Y) { \
   }
+#else 
+  #ifdef __ARCH_64 
+    #define cp_block(X, Y) { \
+     (X).lword[0] = (Y).lword[0]; \
+     (X).lword[1] = (Y).lword[1]; \
+   }
+  #else
+    #define cp_block(X, Y) { \
+     (X).word[0] = (Y).word[0]; \
+     (X).word[1] = (Y).word[1]; \
+     (X).word[2] = (Y).word[2]; \
+     (X).word[3] = (Y).word[3]; \
+  }
+  #endif 
+#endif 
+
+#ifdef __USE_AES_NI
+  #define zero_block(X) { \
+  }
+#else 
+  #ifdef __ARCH_64 
+    #define zero_block(X) { \
+      (X).lword[0] = 0; \
+      (X).lword[1] = 0; \
+    }
+  #else 
+    #define zero_block(X) { \
+      (X).word[0] = 0; \
+      (X).word[1] = 0; \
+      (X).word[2] = 0; \
+      (X).word[3] = 0; \
+    }
+  #endif
 #endif 
 
 #ifndef __ARCH_64
