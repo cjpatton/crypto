@@ -427,7 +427,10 @@ void amac(Byte T [], const Byte M [], unsigned msg_bytes, Context *context)
 /* ---- Encipher(), Decipher() ---------------------------------------------- */
 
 /*
- * EncipherEME4, the meat of AEZv2. 
+ * EncipherEME4, the meat of AEZv2. If `inv` == 0, then `M` is taken to be a 
+ * plaintext and is encrypted; If `inv` == 1, then `M` is taken to be a 
+ * ciphertext and is decrypted. Warning: only 0 and 1 are valid values of 
+ * `inv`. 
  */ 
 void encipher_eme4(Byte C [], 
                    const Byte M [], 
@@ -452,16 +455,12 @@ void encipher_eme4(Byte C [],
     /* M = &M[i], M' = &M[i+16] */
     cp_bytes(M0.byte, &M[i], 16);  cp_bytes(M1.byte, &M[i+16], 16); 
     
-    fella(&C1, M1, 1, j, context); 
-    xor_block(C1, C1, M0); 
-
-    fella(&C0, C1, 0, 0, context); 
-    xor_block(C0, C0, M1); 
+    fella(&C1, M1, 1, j, context); xor_block(C1, C1, M0); 
+    fella(&C0, C1, 0, 0, context); xor_block(C0, C0, M1); 
   
-    xor_block(X, X, C0); 
+    xor_block(X, X, C0); variant(context, 0, ++j); 
    
     cp_bytes(&C[i], C0.byte, 16), cp_bytes(&C[i+16], C1.byte, 16); 
-    variant(context, 0, ++j); 
   }
 
   if (msg_bytes - i >= 16) /* M*, M** */
@@ -488,13 +487,11 @@ void encipher_eme4(Byte C [],
 
   /* R, R'; S */ 
   xor_bytes(R0.byte, X.byte, &M[16], 16);
-  if (!inv) E(R0.byte, R0.byte, 0, 1, context); 
-  else      E(R0.byte, R0.byte, 0, 2, context); 
+  fella(&R0, R0, 0, 1 + inv, context); 
   xor_bytes(R0.byte, R0.byte, M, 16); 
   xor_block(R0, R0, delta); // R
 
-  if (!inv) E(R1.byte, R0.byte, -1, 1, context); 
-  else      E(R1.byte, R0.byte, -1, 2, context); 
+  fella(&R1, R0, -1, 1 + inv, context); 
   xor_bytes(R1.byte, R1.byte, &M[16], 16); 
   xor_block(R1, R1, X); // R' 
 
@@ -505,48 +502,31 @@ void encipher_eme4(Byte C [],
   reset(context); 
   for (j = 1, i = 32; i < k; i += 32)
   {
-    /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
-    E(Z.byte, S.byte, 2, j, context); 
-    xor_bytes(Y0.byte, &C[i+16], Z.byte, 16);
-    xor_bytes(Y1.byte, &C[i], Z.byte, 16);
+    cp_bytes(M0.byte, &C[i], 16); cp_bytes(M1.byte, &C[i+16], 16); 
     
-    E(&C[i+16], Y1.byte, 0, 0, context); 
-    xor_bytes(&C[i+16], &C[i+16], Y0.byte, 16); 
+    /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
+    fella(&Z, S, 2, j, context);
+    
+    xor_block(Y0, M1, Z); xor_block(Y1, M0, Z);
+    
+    fella(&C1, Y1, 0, 0, context); xor_block(C1, C1, Y0); 
+    fella(&C0, C1, 1, j, context); xor_block(C0, C0, Y1); 
 
-    E(&C[i], &C[i+16], 1, j, context); 
-    xor_bytes(&C[i], &C[i], Y1.byte, 16); 
+    xor_block(Y, Y, Y0); variant(context, 0, ++j); 
 
-    xor_block(Y, Y, Y0); 
-    variant(context, 0, ++j); 
+    cp_bytes(&C[i], C0.byte, 16); cp_bytes(&C[i+16], C1.byte, 16); 
   }
   
   if (msg_bytes - i >= 16) /* C*, C** */ 
   {
-    E(buff.byte, S.byte, -1, 3, context); 
+    fella(&buff, S, -1, 3, context); 
     xor_bytes(&C[i], &M[i], buff.byte, 16); 
-    E(buff.byte, &C[i], 0, 3, context); 
+    cp_bytes(buff.byte, &C[i], 16); 
+    fella(&buff, buff, 0, 3, context); 
     xor_block(Y, Y, buff); 
-
+    
     i += 16; 
-    E(buff.byte, S.byte, -1, 4, context); 
-    for (j = i; i < msg_bytes; i++) 
-      C[i] = M[i] ^ buff.byte[i - j];
-    
-    i = j; 
-    zero_block(buff); 
-    for (j = i; i < msg_bytes; i++) 
-      buff.byte[i - j] = C[i]; 
-    buff.byte[i - j] = 0x80; 
-    E(buff.byte, buff.byte, 0, 4, context); 
-    
-    //for (j = i; i < msg_bytes; i++)
-    //  Y[i- j] ^= buff[i - j];
-    xor_block(Y, Y, buff); 
-  }
-  
-  else if (msg_bytes - i > 0) /* C* */ 
-  {
-    E(buff.byte, S.byte, -1, 3, context);
+    fella(&buff, S, -1, 4, context); 
     for (j = i; i < msg_bytes; i++) 
       C[i] = M[i] ^ buff.byte[i - j];
     
@@ -555,22 +535,34 @@ void encipher_eme4(Byte C [],
     for (j = i; i < msg_bytes; i++) 
       buff.byte[i - j] = C[i]; 
     buff.byte[i - j] = 0x80; 
-    E(buff.byte, buff.byte, 0, 3, context); 
+    fella(&buff, buff, 0, 4, context); 
 
-    //for (j = i; i < msg_bytes; i++)
-    //  Y[i- j] ^= buff[i - j];
+    xor_block(Y, Y, buff); 
+  }
+  
+  else if (msg_bytes - i > 0) /* C* */ 
+  {
+    fella(&buff, S, -1, 3, context);
+    for (j = i; i < msg_bytes; i++) 
+      C[i] = M[i] ^ buff.byte[i - j];
+    
+    i = j;
+    zero_block(buff); 
+    for (j = i; i < msg_bytes; i++) 
+      buff.byte[i - j] = C[i]; 
+    buff.byte[i - j] = 0x80; 
+    fella(&buff, buff, 0, 3, context); 
+
     xor_block(Y, Y, buff); 
   }
 
-  if (!inv) E(buff.byte, R1.byte, -1, 2, context); 
-  else      E(buff.byte, R1.byte, -1, 1, context); 
-  xor_bytes(&C[16], R0.byte, buff.byte, 16); 
+  fella(&buff, R1, -1, 2 - inv, context); 
+  xor_block(C1, R0, buff); 
 
-  if (!inv) E(C, &C[16], 0, 2, context);
-  else      E(C, &C[16], 0, 1, context);
-  xor_bytes(C, C, R1.byte, 16); 
-  xor_bytes(C, C, delta.byte, 16); 
-  xor_bytes(&C[16], &C[16], Y.byte, 16); 
+  fella(&C0, C1, 0, 2 - inv, context);
+  xor_block(C0, C0, R1); 
+  xor_bytes(C, C0.byte, delta.byte, 16); 
+  xor_bytes(&C[16], C1.byte, Y.byte, 16); 
 
   reset(context); 
 } // EncipherEME4()
