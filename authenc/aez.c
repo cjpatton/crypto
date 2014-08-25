@@ -581,30 +581,13 @@ void encipher_eme4(Byte C [],
 
 
 /*
- * Only-even-cycles correction for FF0.
- */
-static void point_swap(Byte C [], 
-                       const Block delta, 
-                       unsigned msg_bytes,
-                       Context *context)
-{
-  unsigned i; 
-  Block buff; 
-  zero_block(buff); 
-  for (i = 0; i < msg_bytes; i++)
-    buff.byte[i] = C[i]; 
-  buff.byte[0] |= 0x80; 
-  xor_block(buff, buff, delta); 
-  E(&buff, buff, 0, 7, context); 
-  C[0] ^= (buff.byte[0] & 0x80);  
-}
-
-/*
  * EncipherFF0() -- scheme for small messages (< 32). There are no 
  * provable security results for this scheme ... the number of 
  * Feistel round depends on the message length and is chosen 
- * heurestically. The code is derived from Ted Krovetz' reference
- * implementation of AEZv1. 
+ * heurestically. The code is transcribed from Ted's reference
+ * implementation of AEZv2. 
+ *
+ *   TODO How to optimize this? 
  */
 void encipher_ff0(Byte C [], 
                   const Byte M [], 
@@ -614,77 +597,85 @@ void encipher_ff0(Byte C [],
                   unsigned inv,
                   Context *context)
 {
-  int i, j, k, l, n = msg_bytes / 2;
-  Block delta, front, back, tmp; 
-  Byte mask=0x00, pad=0x80, ctr,
-       buff [32], *A, *B;  
+  unsigned rounds, i, j=6, k;
+  int step;
+  Byte mask=0x00, pad=0x80, L[16], R[16], buff[32];
+  Block delta, tmp; 
   
-  if (msg_bytes == 1)      k = 24; 
-  else if (msg_bytes == 2) k = 16;
-  else if (msg_bytes < 16) k = 10; 
-  else                     k = 8;
-
-  if (msg_bytes >= 16) j = 5; 
-  else                 j = 6; 
-
   ahash(&delta, T, tag_bytes, context); 
-  l = (msg_bytes + 1) / 2; 
-  memcpy(C, M, msg_bytes);
-
-  if (inv && msg_bytes < 16) 
-    point_swap(C, delta, msg_bytes, context); 
-
-  memcpy(front.byte, C, l); 
-  memcpy(back.byte, &C[n], l); 
-
-  if (msg_bytes & 1)
-  {
-    for (i = 0; i < n; i++)
-      back.byte[i] = (Byte)((back.byte[i] << 4) | (back.byte[i+1] >> 4));
-    back.byte[n] = (Byte)(back.byte[n] << 4);
+  
+  if      (msg_bytes==1) rounds=24;
+  else if (msg_bytes==2) rounds=16;
+  else if (msg_bytes<16) rounds=10;
+  else {            j=5; rounds=8; }
+    
+  /* Split (msg_bytes*8)/2 bits into L and R. Beware: May end M nibble. */
+  memcpy(L, M,               (msg_bytes+1)/2);
+  memcpy(R, M + msg_bytes/2, (msg_bytes+1)/2);
+  
+  /* Must shift R left by half a byte */
+  if (msg_bytes & 1) 
+  { 
+    for (i=0; i < msg_bytes/2; i++)
+      R[i] = (Byte)((R[i] << 4) | (R[i+1] >> 4));
+    R[msg_bytes/2] = (Byte)(R[msg_bytes/2] << 4);
     pad = 0x08; mask = 0xf0;
   }
 
-  if (inv) { B = front.byte; A = back.byte; ctr = k - 1; } 
-  else     { A = front.byte; B = back.byte; ctr = 0; }
-
-  for (i = 0; i < k; i += 2)
+  if (inv) 
+  {
+    if (msg_bytes < 16) 
+    {
+      memset(tmp.byte, 0, 16); 
+      memcpy(tmp.byte, M, msg_bytes); 
+      tmp.byte[0] |= 0x80;
+      xor_block(tmp, tmp, delta);
+      E(&tmp, tmp, 0, 7, context); 
+      L[0] ^= (tmp.byte[0] & 0x80);
+    }
+    i = rounds-1; step = -1;
+  } 
+  else 
+  {
+    i = 0; step = 1;
+  }
+  for (k=0; k < rounds/2; k++, i=(unsigned)((int)i+2*step)) 
   {
     memset(buff, 0, 16);
-    memcpy(buff, B, l);
-    buff[n] = (buff[n] & mask) | pad; 
-    xor_bytes(buff, buff, delta.byte, 16);
-    buff[0] ^= ctr; 
-    cp_bytes(tmp.byte, buff, 16);
+    memcpy(buff,R,(msg_bytes+1)/2);
+    buff[msg_bytes/2] = (buff[msg_bytes/2] & mask) | pad;
+    xor_bytes(tmp.byte, buff, delta.byte, 16);
+    tmp.byte[15] ^= (Byte)i;
     E(&tmp, tmp, 0, j, context); 
-    xor_bytes(A, A, tmp.byte, 16); 
-    if (!inv) ++ctr;
-    else      --ctr; 
+    xor_bytes(L, L, tmp.byte, 16);
 
     memset(buff, 0, 16);
-    memcpy(buff, A, l); 
-    buff[n] = (buff[n] & mask) | pad; 
-    xor_bytes(buff, buff, delta.byte, 16);
-    buff[0] ^= ctr; 
-    cp_bytes(tmp.byte, buff, 16);
+    memcpy(buff, L, (msg_bytes + 1)/2);
+    buff[msg_bytes/2] = (buff[msg_bytes/2] & mask) | pad;
+    xor_bytes(tmp.byte, buff, delta.byte, 16);
+    tmp.byte[15] ^= (Byte)((int)i+step);
     E(&tmp, tmp, 0, j, context); 
-    xor_bytes(B, B, tmp.byte, 16); 
-    if (!inv) ++ctr;
-    else      --ctr; 
+    xor_bytes(R, R, tmp.byte, 16);
   }
-    
-  memcpy(buff, front.byte, n);
-  memcpy(&buff[n], back.byte, l);
+
+  memcpy(buff,           R, msg_bytes/2);
+  memcpy(buff+msg_bytes/2, L, (msg_bytes+1)/2);
   if (msg_bytes & 1) 
   {
-    for (i = msg_bytes - 1; i > n; i--)
+    for (i=msg_bytes-1; i>msg_bytes/2; i--)
        buff[i] = (Byte)((buff[i] >> 4) | (buff[i-1] << 4));
-     buff[n] = (Byte)((back.byte[0] >> 4) | (front.byte[n] & mask));
+     buff[msg_bytes/2] = (Byte)((L[0] >> 4) | (R[msg_bytes/2] & 0xf0));
   }
+
   memcpy(C, buff, msg_bytes);
-  
-  if (!inv && msg_bytes < 16) 
-    point_swap(C, delta, msg_bytes, context);  
+  if ((msg_bytes < 16) && !inv) 
+  {
+    memset(buff+msg_bytes,0,16-msg_bytes); 
+    buff[0] |= 0x80;
+    xor_bytes(tmp.byte, buff, delta.byte, 16);
+    E(&tmp, tmp, 0, 7, context); 
+    C[0] ^= (tmp.byte[0] & 0x80);
+  }
 } // EncipherFF0() 
 
 /*
@@ -958,18 +949,18 @@ void verify()
 
   unsigned key_bytes = strlen((const char *)key), 
            nonce_bytes = strlen((const char *)nonce), 
-           auth_bytes = 16, i, res, msg_len = 10001; 
+           auth_bytes = 16, i, res, msg_len = 1001; 
 
   Byte *message = malloc(auth_bytes + msg_len); 
   Byte *ciphertext = malloc(auth_bytes + msg_len); 
   Byte *plaintext = malloc(auth_bytes + msg_len); 
   memset(ciphertext, 0, msg_len); 
-  memset(message, 0, msg_len); 
+  memset(message, 0, msg_len);
   
   Context context; 
   init(&context, key, key_bytes); 
   //display_context(&context); 
-  for (i = 0; i < msg_len/*max length*/; i++)
+  for (i = 0; i < msg_len; i++)
   {
     encrypt(ciphertext, message, nonce, nonce, 
                 i, nonce_bytes, nonce_bytes, auth_bytes, &context); 
@@ -978,7 +969,10 @@ void verify()
     res = decrypt(plaintext, ciphertext, nonce, nonce, 
            i + auth_bytes, nonce_bytes, nonce_bytes, auth_bytes, &context); 
 
-    if (res == INVALID || memcmp(plaintext, message, i) != 0)
+    if (res == INVALID)
+      printf("invalid\n");
+
+    if (memcmp(plaintext, message, i) != 0)
       printf("msg length %d: plaintext mismatch!\n", i + auth_bytes); 
   }
   display_block(sum); printf("\n");
