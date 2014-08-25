@@ -1,33 +1,55 @@
 /**
- * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted 
- * Krovetz, and Phillip Rogaway.
+ * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted Krovetz,
+ * and Phillip Rogaway. This implementation is deesigned to be as fast as 
+ * possible on the target architecture. It uses a platform-independent 
+ * implementation of AES (by Vincent Rijmen et al.) if the x86 AES-NI instruction 
+ * set is unavailable. 
  *
  *   Written by Chris Patton <chrispatton@gmail.com>.
  *
  * This program is dedicated to the public domain. 
  *
- * To run benchmarks, compile with 
- *   gcc -Wall -O3 -std=c99 aez.c rijndael-alg-fst.c
+ * Compile with "-Wall -O3 -std=c99 aez.c rijndael-alg-fst.c". The usual AES-NI 
+ * flags are "-maes -mssse3".  
  *
- * Last modified 22 Aug 2014. 
+ * Last modified 24 Aug 2014. 
  */
 
+/*
+ * Architecture flags. If the platform supports the AES-NI and SSSE3 instruction 
+ * sets, set __USE_AES_NI; if the platform doesn't have hardware  support for AES, 
+ * but is a 64-bit architecture, then set __ARCH_64; if the system is 32-bit, un-
+ * set both __USE_AES_NI and __ARCH_64. 
+ */
+
+// #define __USE_AES_NI
+#define __ARCH_64
+
+#ifndef __USE_AES_NI 
 #include "rijndael-alg-fst.h"
+#endif 
+
+#define INVALID -1 /* Reject plaintext (inauthentic). */ 
+
+/* AES input/output/keys are block aligned in order to support AES-NI. */ 
+#define ALIGN(n) __attribute__ ((aligned(n))) 
+
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#define INVALID -1 /* Reject plaintext (inauthentic). */ 
 
 /* ----- AEZ context -------------------------------------------------------- */
 
 typedef uint8_t Byte; 
 typedef uint32_t Word; 
+typedef uint64_t Long; 
 
 typedef union {
-  Byte byte [16]; 
-  Word word [4]; 
+  ALIGN(16) Byte byte  [16]; /* Byte addressing needed for a few operations. */ 
+  ALIGN(16) Word word  [4];  /* 32-bit systems. */ 
+  ALIGN(16) Long lword [2];  /* 64-bit systems. */ 
 } Block; 
 
 typedef struct {
@@ -44,50 +66,70 @@ typedef struct {
 /* ---- Various primitives ------------------------------------------------- */ 
 
 /*
- * rinjdael-alg-fst.{h,c} requires words in big endian byte order. 
- * set_big_endian() operates on 128-bit blocks. 
+ * rinjdael-alg-fst.{h,c} requires key words in big endian byte order. 
+ * toggle_endian() operates on 128-bit blocks.  
  */
-#define reverse_u32(n) ( \
- ((n & 0x000000ffu) << 24) | \
- ((n & 0x0000ff00u) <<  8) | \
- ((n & 0x00ff0000u) >>  8) | \
- ((n & 0xff000000u) >> 24) \
-)
-
-#define set_big_endian(X) { \
+#define toggle_endian(X) { \
   (X).word[0] = reverse_u32((X).word[0]); \
   (X).word[1] = reverse_u32((X).word[1]); \
   (X).word[2] = reverse_u32((X).word[2]); \
   (X).word[3] = reverse_u32((X).word[3]); \
 }
 
-#define cp_block(X, Y) { \
-  (X).word[0] = (Y).word[0]; \
-  (X).word[1] = (Y).word[1]; \
-  (X).word[2] = (Y).word[2]; \
-  (X).word[3] = (Y).word[3]; \
-}
+#define reverse_u32(n) ( \
+ ((n & 0x000000ffu) << 24) | \
+ ((n & 0x0000ff00u) <<  8) | \
+ ((n & 0x00ff0000u) >>  8) | \
+ ((n & 0xff000000u) >> 24)   \
+)
+
+#ifndef __ARCH_64 
+  #define cp_block(X, Y) { \
+    (X).word[0] = (Y).word[0]; \
+    (X).word[1] = (Y).word[1]; \
+    (X).word[2] = (Y).word[2]; \
+    (X).word[3] = (Y).word[3]; \
+  }
+#else
+  #define cp_block(X, Y) { \
+    (X).lword[0] = (Y).lword[0]; \
+    (X).lword[1] = (Y).lword[1]; \
+  }
+#endif 
+
+#ifndef __ARCH_64 
+  #define zero_block(X) { \
+    (X).word[0] = 0; \
+    (X).word[1] = 0; \
+    (X).word[2] = 0; \
+    (X).word[3] = 0; \
+  }
+#else 
+  #define zero_block(X) { \
+    (X).lword[0] = 0; \
+    (X).lword[1] = 0; \
+  }
+#endif 
+
+#ifndef __ARCH_64
+  #define xor_block(X, Y, Z) { \
+    (X).word[0] = (Y).word[0] ^ (Z).word[0]; \
+    (X).word[1] = (Y).word[1] ^ (Z).word[1]; \
+    (X).word[2] = (Y).word[2] ^ (Z).word[2]; \
+    (X).word[3] = (Y).word[3] ^ (Z).word[3]; \
+  }
+#else 
+  #define xor_block(X, Y, Z) { \
+    (X).lword[0] = (Y).lword[0] ^ (Z).lword[0]; \
+    (X).lword[1] = (Y).lword[1] ^ (Z).lword[1]; \
+  }
+#endif
 
 #define cp_bytes(dst, src, n) memcpy((Byte *)dst, (Byte *)src, n)
 
-#define zero_block(X) { \
-  (X).word[0] = 0; \
-  (X).word[1] = 0; \
-  (X).word[2] = 0; \
-  (X).word[3] = 0; \
-}
-
-#define xor_block(X, Y, Z) { \
-  (X).word[0] = (Y).word[0] ^ (Z).word[0]; \
-  (X).word[1] = (Y).word[1] ^ (Z).word[1]; \
-  (X).word[2] = (Y).word[2] ^ (Z).word[2]; \
-  (X).word[3] = (Y).word[3] ^ (Z).word[3]; \
-}
-
-
 static void xor_bytes(Byte X [], const Byte Y [], const Byte Z [], unsigned n)
 {
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < n; i++)
     X[i] = Y[i] ^ Z[i]; 
 }
 
@@ -103,15 +145,15 @@ static void rev_block(Byte X [])
 }
 
 /*
- * Multiply by two operation for key tweaking. 
+ * Multiply-by-two operation for key tweaking. 
  */
-static void dot2(Byte *b) {
-  rev_block(b); 
-  Byte tmp = b[0];
+static void dot2(Byte X []) {
+  rev_block(X); 
+  Byte tmp = X[0];
   for (int i = 0; i < 15; i++)
-    b[i] = (Byte)((b[i] << 1) | (b[i+1] >> 7));
-  b[15] = (Byte)((b[15] << 1) ^ ((tmp >> 7) * 135));
-  rev_block(b); 
+    X[i] = (Byte)((X[i] << 1) | (X[i+1] >> 7));
+  X[15] = (Byte)((X[15] << 1) ^ ((tmp >> 7) * 135));
+  rev_block(X); 
 }
 
 /*
@@ -156,7 +198,7 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
   {
     for (j = 0; j < 16; j++)
       a[i].byte[j] = (Byte)j;
-    set_big_endian(a[i]); 
+    toggle_endian(a[i]); 
   }
   
   zero_block(buff); 
@@ -167,15 +209,15 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
   }
 
   zero_block(a[0]);   
-  cp_block(a[1], C[1]); set_big_endian(a[1]); 
-  cp_block(a[2], C[2]); set_big_endian(a[2]); 
-  cp_block(a[3], C[3]); set_big_endian(a[3]); 
+  cp_block(a[1], C[1]); toggle_endian(a[1]); 
+  cp_block(a[2], C[2]); toggle_endian(a[2]); 
+  cp_block(a[3], C[3]); toggle_endian(a[3]); 
   zero_block(a[4]);
 
   zero_block(b[0]);
-  cp_block(b[1], C[4]); set_big_endian(b[1]); 
-  cp_block(b[2], C[5]); set_big_endian(b[2]); 
-  cp_block(b[3], C[6]); set_big_endian(b[3]); 
+  cp_block(b[1], C[4]); toggle_endian(b[1]); 
+  cp_block(b[2], C[5]); toggle_endian(b[2]); 
+  cp_block(b[3], C[6]); toggle_endian(b[3]); 
   zero_block(b[4]);
 
   cp_block(C[2], C[7]); 
@@ -206,10 +248,6 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
     xor_block(*J, *J, C[0]); 
     xor_block(*L, *L, C[1]); 
   }
-  
-  //printf("----Extract-----\n"); 
-  //printf("Us: "); display_block(J); printf("\n");
-  //printf("Us: "); display_block(L); printf("\n");
 } // extract()
 
 /* 
@@ -225,21 +263,17 @@ static void expand(Block Kshort[], const Block J, const Block L)
   cp_block(k[2], k[0]); dot2(k[2].byte); 
   cp_block(k[3], L);                
   cp_block(k[4], k[2]); dot2(k[4].byte); 
-  set_big_endian(k[0]); 
-  set_big_endian(k[1]); 
-  set_big_endian(k[2]); 
-  set_big_endian(k[3]); 
-  set_big_endian(k[4]); 
+  toggle_endian(k[0]); 
+  toggle_endian(k[1]); 
+  toggle_endian(k[2]); 
+  toggle_endian(k[3]); 
+  toggle_endian(k[4]); 
 
   for (i = 0; i < 4; i++) 
   {
     memset(Kshort[i].byte, (Byte)i, 16); 
     rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i].byte, 4); 
   }
-  
-  //printf("----Expand-----\n"); 
-  //for (i = 0; i < 4; i++) { printf("Us: "); display_block(Kshort[i]); printf("\n"); }
-  
 } // expand() 
 
 /*
@@ -271,11 +305,7 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
   cp_block(context->K[10], context->K[6]); // K2
 
   for (i = 0; i < 11; i++)
-    set_big_endian(context->K[i])
-  
-  //printf("----Key schedule----\n"); 
-  //for (i = 0; i < 11; i++) {printf("Us: "); display_block(context->K[i]); printf("\n");}
-  
+    toggle_endian(context->K[i])
 } // init() 
 
 
@@ -290,21 +320,28 @@ void init(Context *context, const Byte K [], unsigned key_bytes)
  */ 
 static void E(Block *C, const Block M, int i, int j, Context *context)
 {
-  Block tmp, *Kshort; 
-  //printf("----Blockcipher (%d, %d)----\n", i, j); 
+  Block *Kshort; 
+  
   if (i == -1) /* 0 <= j < 8 */ 
   {
     xor_block(*C, M, context->J[j % 8]);
+#ifndef __USE_AES_NI
     rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
+#else // TODO 
+#endif 
   }
 
   else if (i == 0 || j == 0) /* 0 <= j < 8 */ 
   {
     xor_block(*C, M, context->J[j % 8]);
     Kshort = &(context->K[4 + i]); 
+#ifndef __USE_AES_NI 
+    Block tmp; 
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
+#else // TODO
+#endif 
   }
 
   else 
@@ -312,9 +349,13 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     xor_block(*C, M, context->J[j % 8]); 
     xor_block(*C, *C, context->L); 
     Kshort = &(context->K[4 + i]); 
+#ifndef __USE_AES_NI 
+    Block tmp; 
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
+#else // TODO
+#endif 
   }
 } // E()
 
@@ -344,20 +385,20 @@ static void reset(Context *context)
  * is 128 bits. `M` is an arbitrary length byte string of length `msg_bytes`. 
  */
 
-void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
+void ahash(Block *H, const Byte M [], unsigned msg_bytes, Context *context)
 {
-  Block buff, sigma; 
+  Block buff; 
   unsigned i, j = 0, k = msg_bytes - (msg_bytes % 16);  
   
   reset(context); 
-  zero_block(sigma); 
+  zero_block(*H); 
 
   /* Unfragmented blocks. */ 
   for (i = 0; i < k; i += 16)
   {
     cp_bytes(buff.byte, &M[i], 16); 
     E(&buff, buff, 3, j, context);  
-    xor_block(sigma, sigma, buff);
+    xor_block(*H, *H, buff);
     variant(context, 0, ++j); 
   }
 
@@ -368,10 +409,9 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
     cp_bytes(buff.byte, &M[i], msg_bytes - i); 
     buff.byte[msg_bytes - i] = 0x80;
     E(&buff, buff, 1, 0, context); 
-    xor_block(sigma, sigma, buff); 
+    xor_block(*H, *H, buff); 
   }
   
-  cp_bytes(H, sigma.byte, 16); 
   reset(context); 
 } // AHash()
 
@@ -385,10 +425,8 @@ void ahash(Byte H [], const Byte M [], unsigned msg_bytes, Context *context)
 
 void amac(Byte T [], const Byte M [], unsigned msg_bytes, Context *context)
 {
-  Block tmp; /* FIXME This is not so nice. ahash() 
-                should probalby output to a `Block`. */  
-  ahash(T, M, msg_bytes, context); 
-  cp_bytes(tmp.byte, T, 16); 
+  Block tmp; 
+  ahash(&tmp, M, msg_bytes, context); 
   E(&tmp, tmp, -1, 5, context); 
   cp_bytes(T, tmp.byte, 16); 
 } // AMac() 
@@ -401,6 +439,10 @@ void amac(Byte T [], const Byte M [], unsigned msg_bytes, Context *context)
  * plaintext and is encrypted; If `inv` == 1, then `M` is taken to be a 
  * ciphertext and is decrypted. Warning: only 0 and 1 are valid values of 
  * `inv`. 
+ *
+ *   TODO It should be possible to optimize this a bit more. In particular, 
+ *        some data dependencies may become problematic when AES-NI is used
+ *        for the block cipher calls. 
  */ 
 void encipher_eme4(Byte C [], 
                    const Byte M [], 
@@ -415,7 +457,7 @@ void encipher_eme4(Byte C [],
         S, Y0, Y1, M0, M1, C0, C1; 
   unsigned i, j, k = msg_bytes - (msg_bytes % 32);  
   
-  ahash(delta.byte, T, tag_bytes, context);
+  ahash(&delta, T, tag_bytes, context);
   zero_block(X); 
 
   /* X; X1, X'1, ... Xm, X'm */ 
@@ -585,7 +627,7 @@ void encipher_ff0(Byte C [],
   if (msg_bytes >= 16) j = 5; 
   else                 j = 6; 
 
-  ahash(delta.byte, T, tag_bytes, context); 
+  ahash(&delta, T, tag_bytes, context); 
   l = (msg_bytes + 1) / 2; 
   memcpy(C, M, msg_bytes);
 
@@ -861,7 +903,7 @@ void benchmark() {
   static const int msg_len [] = {64,     128,  256,   512, 
                                  1024,   4096, 10000, 100000,
                                  1000000}; 
-  static const int num_msg_lens = 6; 
+  static const int num_msg_lens = 7; 
   unsigned i, j, auth_bytes = 16, key_bytes = 16; 
   
   Context context; 
