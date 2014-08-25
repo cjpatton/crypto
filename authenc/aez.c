@@ -17,14 +17,11 @@
  */
 
 /*
- * Last modified 24 Aug 2014. 
+ * Last modified 25 Aug 2014. 
  *
  * TODO 
  *
- *  - AES-NI instantiation of AES4 isn't right. the code's working, but the 
- *    ciphertexts don't match the reference.
- *
- *  - Optimal performance: 32-bit, ~17 cpb; 64-bit, ~15 cpb; AES-NI, 4.43 cpb. 
+ *  - Optimal performance: 32-bit, 17 cpb; 64-bit, ~5 cpb; AES-NI, 2.02 cpb. 
  *    This can be improved.
  *
  *      - Try reducing tweak state from 8 blocks to 4 (cost encurred as XORS)
@@ -40,14 +37,12 @@
  * but is a 64-bit architecture, then set __ARCH_64; if the system is 32-bit, un-
  * set both __USE_AES_NI and __ARCH_64. 
  */
-
 #define __USE_AES_NI
 #define __ARCH_64
 
 #ifndef __USE_AES_NI 
 #include "rijndael-alg-fst.h"
 #else 
-#include "rijndael-alg-fst.h"
 #include <wmmintrin.h>
 #include <tmmintrin.h>
 #endif 
@@ -58,9 +53,8 @@
 #define ALIGN(n) __attribute__ ((aligned(n))) 
 
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
 
 
 /* ----- AEZ context -------------------------------------------------------- */
@@ -197,6 +191,50 @@ static void xor_bytes(Byte X [], const Byte Y [], const Byte Z [], unsigned n)
     X[i] = Y[i] ^ Z[i]; 
 }
 
+
+/* ----- AES-NI ------------------------------------------------------------ */ 
+
+#ifdef __USE_AES_NI
+
+/* Full 10-round AES. */ 
+static __m128i aes(__m128i M, __m128i K[]) 
+{
+  M = _mm_aesenc_si128(M ^ K[0], K[1]);
+  M = _mm_aesenc_si128(M, K[2]);
+  M = _mm_aesenc_si128(M, K[3]);
+  M = _mm_aesenc_si128(M, K[4]);
+  M = _mm_aesenc_si128(M, K[5]);
+  M = _mm_aesenc_si128(M, K[6]);
+  M = _mm_aesenc_si128(M, K[7]);
+  M = _mm_aesenc_si128(M, K[8]);
+  M = _mm_aesenc_si128(M, K[9]);
+  return _mm_aesenclast_si128 (M, K[10]);
+} 
+
+/* In the security proof, AES4 is taken as an AXU hash function. */ 
+static __m128i aes4(__m128i M, __m128i K[]) 
+{
+  M = _mm_aesenc_si128(M ^ K[0], K[1]); 
+  M = _mm_aesenc_si128(M, K[2]); 
+  M = _mm_aesenc_si128(M, K[3]);
+  M = _mm_aesenc_si128(M, K[4]);
+  return M; 
+} 
+
+/* Like AES4, but use zero in the last round. */ 
+static __m128i aes4_zero(__m128i M, __m128i K[]) 
+{
+  M = _mm_aesenc_si128(M ^ K[0], K[1]); 
+  M = _mm_aesenc_si128(M, K[2]); 
+  M = _mm_aesenc_si128(M, K[3]);
+  M = _mm_aesenc_si128(M, _mm_setzero_si128());
+  return M; 
+} 
+#endif
+
+
+/* ---- AEZ tweaks --------------------------------------------------------- */
+
 /*
  * Reverse byte order when computing tweaks. This is meant as an 
  * optimization for little endian systems. 
@@ -249,39 +287,6 @@ static void dot_inc(Block *Xs, int n)
     dot2(Xs[n].byte); 
   }
 }
-
-/* ----- AES-NI ------------------------------------------------------------ */ 
-
-#ifdef __USE_AES_NI
-
-/* Full 10 round AES. */ 
-__m128i aes(__m128i M, __m128i K[]) 
-{
-  M = _mm_aesenc_si128(M ^ K[0], K[1]);
-  M = _mm_aesenc_si128(M, K[2]);
-  M = _mm_aesenc_si128(M, K[3]);
-  M = _mm_aesenc_si128(M, K[4]);
-  M = _mm_aesenc_si128(M, K[5]);
-  M = _mm_aesenc_si128(M, K[6]);
-  M = _mm_aesenc_si128(M, K[7]);
-  M = _mm_aesenc_si128(M, K[8]);
-  M = _mm_aesenc_si128(M, K[9]);
-  return _mm_aesenclast_si128 (M, K[10]);
-} 
-
-/* In the security proof, AES4 is taken as a secure PRF. 
- *
- *   FIXME This isn't right. */ 
-__m128i aes4(__m128i M, __m128i K[]) 
-{
-  M = _mm_aesenc_si128(M, K[0]); 
-  M = _mm_aesenc_si128(M, K[1]); 
-  M = _mm_aesenc_si128(M, K[2]);
-  M = _mm_aesenc_si128(M, K[3]);
-  return M;
-} 
-
-#endif
 
 
 /* ----- AEZ initialization, Extract(), Expand()  --------------------------- */ 
@@ -467,7 +472,7 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
 #else
-    C->block = aes(C->block, (__m128i *)Kshort); 
+    C->block = aes4_zero(C->block, (__m128i *)Kshort); 
 #endif 
   }
 
@@ -482,7 +487,7 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
 #else 
-    C->block = aes(C->block, (__m128i *)Kshort); 
+    C->block = aes4_zero(C->block, (__m128i *)Kshort); 
 #endif 
   }
 } // E()
@@ -1113,7 +1118,7 @@ void verify()
 
 int main()
 {
-  //verify();  
+  verify();  
   benchmark(); 
   return 0; 
 }
