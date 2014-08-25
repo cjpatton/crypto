@@ -35,25 +35,5 @@ Comments on the document
     ambiguous to me. I would suggest $X \leftarrow X_1 \xor X'_1 \xor 
     \cdots \xor X_m \xor X'_m$. 
 
-  Sec 1.1, page 3: Why nX = rev(mul(n, rev(X)))?
-
-  Typos
-
-    - Sec 2, "Provable security"
-      - bottom of page 11: "In so far as AES4 is not secure as [a] PRP (and, ... "  
-      - top of page 12: "It is a thesis underlying our design methodology that
-                         [this] approach is useful both to discover ... " 
-        
-    - Sec 4 
-      - bottom of page 15: "Below we enumerate additional features and restate 
-                            some key one[s]". 
-      - page 17, #15: " ... make due with as little as 32 or 48 bytes without 
-                       incurring [an computational] excessive price." substitude
-                       with [a computationally].
-                       
-    - Sec 5, "Developing the enciphering scheme"
-    
-       - 4th paragrap, page 18: " ... with a per-block amortized cost of [just]
-                                 just 1.0 times that of AES ... " remove 
-                                 redundant [just].
-                                 
+  Sec 1.1, page 3: Why nX = rev(mul(n, rev(X)))? It's claimed that this
+  improves speed for little endian systems. 

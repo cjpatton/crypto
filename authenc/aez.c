@@ -587,7 +587,9 @@ void encipher_eme4(Byte C [],
  * heurestically. The code is transcribed from Ted's reference
  * implementation of AEZv2. 
  *
- *   TODO How to optimize this? 
+ *   TODO How to optimize this? Somehow I think it would be easier
+ *        to optimize if we used an unbalanced Feistel network 
+ *        instead ...
  */
 void encipher_ff0(Byte C [], 
                   const Byte M [], 
