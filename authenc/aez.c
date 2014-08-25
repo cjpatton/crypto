@@ -940,8 +940,7 @@ void verify()
 {
   Byte  key [] = "One day we will.", nonce [] = "Things are occuring!"; 
   
-  Block sum; 
-  memset(sum, 0, 16); 
+  Block sum; zero_block(sum); 
 
   unsigned key_bytes = strlen((const char *)key), 
            nonce_bytes = strlen((const char *)nonce), 
