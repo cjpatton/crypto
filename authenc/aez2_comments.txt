@@ -1,8 +1,8 @@
 Code TODOs 
   
-  - Remove if/else's related to inverting in EncipherEME4(). 
   - New version of FF0. 
-  - Fix strict-alisasing warnings for optimizing compiler. 
+  - Optimizaing EME4 -- can probably minimize/reduce data dependencies. This
+    won't make a noticeable difference until AES-NI is used. 
 
 Comments on AEZ2 spec
 
