@@ -916,13 +916,13 @@ void verify()
 
   unsigned key_bytes = strlen((const char *)key), 
            nonce_bytes = strlen((const char *)nonce), 
-           auth_bytes = 3, i, res, msg_len = 10001; 
+           auth_bytes = 0, i, res, msg_len = 10001; 
 
   Byte *message = malloc(auth_bytes + msg_len); 
   Byte *ciphertext = malloc(auth_bytes + msg_len); 
   Byte *plaintext = malloc(auth_bytes + msg_len); 
-  memset(ciphertext, 0, 1024); 
-  memset(message, 0, 1024); 
+  memset(ciphertext, 0, msg_len); 
+  memset(message, 0, msg_len); 
   
   Context context; 
   init(&context, key, key_bytes); 
