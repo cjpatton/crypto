@@ -907,7 +907,7 @@ void verify()
 
   unsigned key_bytes = strlen((const char *)key), 
            nonce_bytes = strlen((const char *)nonce), 
-           auth_bytes = 0, i, res, msg_len = 10001; 
+           auth_bytes = 16, i, res, msg_len = 10001; 
 
   Byte *message = malloc(auth_bytes + msg_len); 
   Byte *ciphertext = malloc(auth_bytes + msg_len); 
