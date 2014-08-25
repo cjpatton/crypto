@@ -1,9 +1,12 @@
 /**
  * aez.c -- AEZv2, a Caesar submission proposed by Viet Tung Hoang, Ted Krovetz,
  * and Phillip Rogaway. This implementation is deesigned to be as fast as 
- * possible on the target architecture. It uses a platform-independent 
- * implementation of AES (by Vincent Rijmen et al.) if the x86 AES-NI instruction 
- * set is unavailable. 
+ * possible on the target architecture. 
+ *
+ * It uses a platform-independent implementation of AES (by Vincent Rijmen 
+ * et al.) if the x86 AES-NI instruction set is unavailable (see 
+ * rijndael-alg-fst.{h,c}). This is black-box AES, exceppt that the flag 
+ * `INTERMEDIATE_VALUE_KAT` is set. 
  *
  *   Written by Chris Patton <chrispatton@gmail.com>.
  *
@@ -11,8 +14,20 @@
  *
  * Compile with "-Wall -O3 -std=c99 aez.c rijndael-alg-fst.c". The usual AES-NI 
  * flags are "-maes -mssse3".  
- *
+ */
+
+/*
  * Last modified 24 Aug 2014. 
+ *
+ * TODO 
+ *
+ *  - AES-NI instantiation of AES4 isn't right. the code's working, but the 
+ *    ciphertexts don't match the reference.
+ *
+ *  - Optimal performance: 32-bit, ~17 cpb; 64-bit, ~15 cpb; AES-NI, 4.43 cpb. 
+ *    This can be improved.
+ *
+ *  - In EM#4, quit early when tag is invalid. 
  */
 
 /*
@@ -72,10 +87,7 @@ typedef struct {
 
 /* ---- Various primitives ------------------------------------------------- */ 
 
-/*
- * rinjdael-alg-fst.{h,c} requires key words in big endian byte order. 
- * toggle_endian() operates on 128-bit blocks.  
- */
+/* Reverse bytes of a 32-bit integer. */ 
 #define reverse_u32(n) ( \
  ((n & 0x000000ffu) << 24) | \
  ((n & 0x0000ff00u) <<  8) | \
@@ -83,6 +95,11 @@ typedef struct {
  ((n & 0xff000000u) >> 24)   \
 )
 
+/*
+ * rinjdael-alg-fst.{h,c} requires key words in big endian byte order. 
+ * toggle_endian() operates on 128-bit blocks. AES-NI doesn't have this
+ * layout. 
+ */
 #ifndef __USE_AES_NI 
   #define toggle_endian(X) { \
     (X).word[0] = reverse_u32((X).word[0]); \
@@ -91,15 +108,10 @@ typedef struct {
     (X).word[3] = reverse_u32((X).word[3]); \
   }
 #else 
-  #define toggle_endian(X) { \
-    (X).word[0] = reverse_u32((X).word[0]); \
-    (X).word[1] = reverse_u32((X).word[1]); \
-    (X).word[2] = reverse_u32((X).word[2]); \
-    (X).word[3] = reverse_u32((X).word[3]); \
-  }
+  #define toggle_endian(X) {} 
 #endif 
 
-#ifdef __USE_AES_NI
+#ifdef __USE_AES_NI /* Copy a block. */ 
   #define cp_block(X, Y) { \
     (X).block = (Y).block; \
   }
@@ -119,7 +131,7 @@ typedef struct {
   #endif 
 #endif 
 
-#ifdef __USE_AES_NI
+#ifdef __USE_AES_NI /* Set block to zero. */ 
   #define zero_block(X) { \
     (X).block = _mm_setzero_si128(); \
   }
@@ -139,7 +151,7 @@ typedef struct {
   #endif
 #endif 
 
-#ifdef __USE_AES_NI
+#ifdef __USE_AES_NI /* XOR blocks. */ 
   #define xor_block(X, Y, Z) { \
     (X).block = (Y).block ^ (Z).block; \
   }
@@ -159,8 +171,22 @@ typedef struct {
   #endif 
 #endif
 
-#define cp_bytes(dst, src, n) memcpy((Byte *)dst, (Byte *)src, n)
+#ifdef __USE_AES_NI
+  #define load_block(dst, src) { \
+    dst.block = _mm_loadu_si128((__m128i *)src); \
+  }
+  #define store_block(dst, src) { \
+    _mm_storeu_si128((__m128i*)dst, ((Block)src).block); \
+  }
+#else 
+  #define load_block(dst, src) memcpy(dst.byte, (Byte *)src, 16) 
+  #define store_block(dst, src) memcpy((Byte *)dst, ((Block)src).byte, 16) 
+#endif 
 
+/* Copy a partial block. */ 
+#define cp_bytes(dst, src, n) memcpy((Byte *)dst, (Byte *)src, n) 
+
+/* XOR a partial block. */
 static void xor_bytes(Byte X [], const Byte Y [], const Byte Z [], unsigned n)
 {
   for (int i = 0; i < n; i++)
@@ -220,6 +246,39 @@ static void dot_inc(Block *Xs, int n)
   }
 }
 
+/* ----- AES-NI ------------------------------------------------------------ */ 
+
+#ifdef __USE_AES_NI
+
+/* Full 10 round AES. */ 
+__m128i aes(__m128i M, __m128i K[]) 
+{
+  M = _mm_aesenc_si128(M ^ K[0], K[1]);
+  M = _mm_aesenc_si128(M, K[2]);
+  M = _mm_aesenc_si128(M, K[3]);
+  M = _mm_aesenc_si128(M, K[4]);
+  M = _mm_aesenc_si128(M, K[5]);
+  M = _mm_aesenc_si128(M, K[6]);
+  M = _mm_aesenc_si128(M, K[7]);
+  M = _mm_aesenc_si128(M, K[8]);
+  M = _mm_aesenc_si128(M, K[9]);
+  return _mm_aesenclast_si128 (M, K[10]);
+} 
+
+/* In the security proof, AES4 is taken as a secure PRF. 
+ *
+ *   FIXME This isn't right. */ 
+__m128i aes4(__m128i M, __m128i K[]) 
+{
+  M = _mm_aesenc_si128(M, K[0]); 
+  M = _mm_aesenc_si128(M, K[1]); 
+  M = _mm_aesenc_si128(M, K[2]);
+  M = _mm_aesenc_si128(M, K[3]);
+  return M;
+} 
+
+#endif
+
 
 /* ----- AEZ initialization, Extract(), Expand()  --------------------------- */ 
 
@@ -241,8 +300,8 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
     memset(C[i].byte, (Byte)i, 16); 
 #ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)a, 10, C[i].byte, 4); 
-#else // TODO 
-    rijndaelEncryptRound((uint32_t *)a, 10, C[i].byte, 4); 
+#else 
+    C[i].block = aes4(C[i].block, (__m128i *)a); 
 #endif 
   }
 
@@ -271,9 +330,9 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
 #ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
     rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
-#else // TODO 
-    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
-    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#else  
+    C[0].block = aes4(C[0].block, (__m128i *)a); 
+    C[1].block = aes4(C[1].block, (__m128i *)b); 
 #endif 
     xor_block(*J, *J, C[0]); 
     xor_block(*L, *L, C[1]); 
@@ -299,9 +358,9 @@ static void extract(Block *J, Block *L, const Byte K [], unsigned key_bytes)
 #ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
     rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
-#else // TODO 
-    rijndaelEncryptRound((uint32_t *)a, 10, C[0].byte, 4); 
-    rijndaelEncryptRound((uint32_t *)b, 10, C[1].byte, 4); 
+#else 
+    C[0].block = aes4(C[0].block, (__m128i *)a); 
+    C[1].block = aes4(C[1].block, (__m128i *)b); 
 #endif 
     xor_block(*J, *J, C[0]); 
     xor_block(*L, *L, C[1]); 
@@ -332,8 +391,8 @@ static void expand(Block Kshort[], const Block J, const Block L)
     memset(Kshort[i].byte, (Byte)i, 16); 
 #ifndef __USE_AES_NI
     rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i].byte, 4); 
-#else // TODO
-    rijndaelEncryptRound((uint32_t *)k, 10, Kshort[i].byte, 4); 
+#else
+    Kshort[i].block = aes4(Kshort[i].block, (__m128i *)k); 
 #endif 
   }
 } // expand() 
@@ -389,8 +448,8 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     xor_block(*C, M, context->J[j % 8]);
 #ifndef __USE_AES_NI
     rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
-#else // TODO 
-    rijndaelEncrypt((uint32_t *)context->K, 10, C->byte, C->byte); 
+#else 
+    C->block = aes(C->block, (__m128i *)(context->K)); 
 #endif 
   }
 
@@ -403,11 +462,8 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
-#else // TODO
-    Block tmp; 
-    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
-    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
-    cp_block(Kshort[4], tmp); 
+#else
+    C->block = aes(C->block, (__m128i *)Kshort); 
 #endif 
   }
 
@@ -421,11 +477,8 @@ static void E(Block *C, const Block M, int i, int j, Context *context)
     cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
     rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
     cp_block(Kshort[4], tmp); 
-#else // TODO
-    Block tmp; 
-    cp_block(tmp, Kshort[4]); zero_block(Kshort[4]); 
-    rijndaelEncryptRound((uint32_t *)Kshort, 10, C->byte, 4); 
-    cp_block(Kshort[4], tmp); 
+#else 
+    C->block = aes(C->block, (__m128i *)Kshort); 
 #endif 
   }
 } // E()
@@ -536,14 +589,14 @@ void encipher_eme4(Byte C [],
   for (j = 1, i = 32; i < k; i += 32)
   {
     /* M = &M[i], M' = &M[i+16] */
-    cp_bytes(M0.byte, &M[i], 16);  cp_bytes(M1.byte, &M[i+16], 16); 
+    load_block(M0, &M[i]); load_block(M1, &M[i+16]); 
     
     E(&C1, M1, 1, j, context); xor_block(C1, C1, M0); 
     E(&C0, C1, 0, 0, context); xor_block(C0, C0, M1); 
   
     xor_block(X, X, C0); variant(context, 0, ++j); 
    
-    cp_bytes(&C[i], C0.byte, 16), cp_bytes(&C[i+16], C1.byte, 16); 
+    store_block(&C[i], C0); store_block(&C[i+16], C1); 
   }
 
   if (msg_bytes - i >= 16) /* M*, M** */
@@ -585,7 +638,7 @@ void encipher_eme4(Byte C [],
   reset(context); 
   for (j = 1, i = 32; i < k; i += 32)
   {
-    cp_bytes(M0.byte, &C[i], 16); cp_bytes(M1.byte, &C[i+16], 16); 
+    load_block(M0, &C[i]); load_block(M1, &C[i+16]); 
     
     /* X = &C[i], X' = &C[i+16]; Y0 = Yi, Y1 = Y'i*/ 
     E(&Z, S, 2, j, context);
@@ -596,8 +649,8 @@ void encipher_eme4(Byte C [],
     E(&C0, C1, 1, j, context); xor_block(C0, C0, Y1); 
 
     xor_block(Y, Y, Y0); variant(context, 0, ++j); 
-
-    cp_bytes(&C[i], C0.byte, 16); cp_bytes(&C[i+16], C1.byte, 16); 
+  
+    store_block(&C[i], C0); store_block(&C[i+16], C1); 
   }
   
   if (msg_bytes - i >= 16) /* C*, C** */ 
@@ -964,15 +1017,15 @@ static void display_block(const Block X)
 
 void benchmark() {
 
-  static const int msg_len [] = {64,     128,  256,   512, 
-                                 1024,   4096, 10000, 100000,
-                                 1000000}; 
+  static const int msg_len [] = {64,    128,   256,   512, 
+                                 1024,  4096,  10000, 100000,
+                                 1<<18, 1<<20, 1<<22 }; 
   static const int num_msg_lens = 7; 
   unsigned i, j, auth_bytes = 16, key_bytes = 16; 
   
   Context context; 
-  Block key;   memset(key.byte, 0, 16); 
-  Block nonce; memset(nonce.byte, 0, 16); 
+  ALIGN(16) Block key;   memset(key.byte, 0, 16); 
+  ALIGN(16) Block nonce; memset(nonce.byte, 0, 16); 
   init(&context, key.byte, key_bytes);
 
   Byte *message = malloc(auth_bytes + msg_len[num_msg_lens-1]); 
@@ -1056,7 +1109,7 @@ void verify()
 
 int main()
 {
-  verify();  
-  //benchmark(); 
+  //verify();  
+  benchmark(); 
   return 0; 
 }
