@@ -3,8 +3,8 @@ package ecdsa
 import (
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/asn1"
 	"errors"
-	"fmt"
 	h "hash"
 	"math/big"
 )
@@ -18,6 +18,10 @@ type PublicKey struct {
 type SecretKey struct {
 	PublicKey
 	priv *big.Int
+}
+
+type ecdsaSignature struct {
+	R, S *big.Int
 }
 
 func NewKeyPair(curve elliptic.Curve, hash h.Hash) (*PublicKey, *SecretKey, error) {
@@ -36,25 +40,24 @@ func NewKeyPair(curve elliptic.Curve, hash h.Hash) (*PublicKey, *SecretKey, erro
 
 func (sk *SecretKey) Sign(msg []byte) ([]byte, error) {
 
-	var r, s, z, x1, zero *big.Int
+	r := new(big.Int)
+	s := new(big.Int)
+	z := new(big.Int)
+	x1 := new(big.Int)
+	zero := new(big.Int)
+	zero.SetInt64(0)
 
 	// Compute z, the first BitSize bits of hash(msg).
-	z = new(big.Int)
+	//
+	// NOTE(cjpatton) This part is definitely non-compliant; see hashToInt() in
+	// https://golang.org/src/crypto/ecdsa/ecdsa.go.
 	sk.hash.Reset()
 	sk.hash.Write(msg)
-	fmt.Println(z)
 	z.SetBytes(sk.hash.Sum(nil)[:sk.curve.Params().BitSize>>3])
 
-	zero = new(big.Int)
-	zero.SetInt64(0)
-	x1 = new(big.Int)
-	r = new(big.Int)
-	s = new(big.Int)
-
 	for {
-		// Choose a random k in [1,N).
-		//
-		// It's possible that k==0, but this occurs with negligible probability.
+		// Choose a random k in [0,N). (It should not be equal to 0, but this
+		// occurs with negligible probability.)
 		k, err := rand.Int(rand.Reader, sk.curve.Params().N)
 		if err != nil {
 			return nil, err
@@ -80,7 +83,7 @@ func (sk *SecretKey) Sign(msg []byte) ([]byte, error) {
 		break
 	}
 
-	return elliptic.Marshal(sk.curve, r, s), nil
+	return asn1.Marshal(ecdsaSignature{r, s})
 }
 
 func (pk *PublicKey) Verify(msg, sig []byte) bool {
