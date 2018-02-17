@@ -22,12 +22,17 @@ func TestSignVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewKeyPair() fails:", err)
 	}
-	_ = pk
 
-	sig, err := sk.Sign([]byte("What a wonderful world."))
+	msg := []byte("What a wonderful world.")
+
+	sig, err := sk.Sign(msg)
 	if err != nil {
 		t.Fatal("Sign() fails:", err)
 	}
 
-	t.Log(sig)
+	if ok, err := pk.Verify(msg, sig); err != nil {
+		t.Fatal("Verify() fails:", err)
+	} else if !ok {
+		t.Error("Signature invalid: expected valid")
+	}
 }
