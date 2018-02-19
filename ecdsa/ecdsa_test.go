@@ -25,14 +25,32 @@ func TestSignVerify(t *testing.T) {
 
 	msg := []byte("What a wonderful world.")
 
-	sig, err := sk.Sign(msg)
-	if err != nil {
-		t.Fatal("Sign() fails:", err)
-	}
+	for i := 0; i < 100; i++ {
+		sig, err := sk.Sign(msg)
+		if err != nil {
+			t.Fatal("Sign() fails:", err)
+		}
 
-	if ok, err := pk.Verify(msg, sig); err != nil {
-		t.Fatal("Verify() fails:", err)
-	} else if !ok {
-		t.Error("Signature invalid: expected valid")
+		// Valid signature.
+		if ok, err := pk.Verify(msg, sig); err != nil {
+			t.Fatal("Verify(good sig) fails:", err)
+		} else if !ok {
+			t.Error("Signature invalid: expected valid")
+		}
+
+		// Mangled signature.
+		sig[0] ^= 0xff
+		if _, err := pk.Verify(msg, sig); err == nil {
+			t.Error("Verify(mangled sig) passes, expected error")
+		}
+
+		// Invalid singature.
+		sig[0] ^= 0xff
+		msg[0] = byte(i)
+		if ok, err := pk.Verify(msg, sig); err != nil {
+			t.Fatal("Verify(invalid sig) fails:", err)
+		} else if ok {
+			t.Error("Signature valid: expected invalid")
+		}
 	}
 }
