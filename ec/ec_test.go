@@ -1,6 +1,7 @@
 package ec
 
 import (
+	"bytes"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -52,5 +53,31 @@ func TestSignVerify(t *testing.T) {
 		} else if ok {
 			t.Error("Signature valid: expected invalid")
 		}
+	}
+}
+
+func TestDH(t *testing.T) {
+
+	k := 16
+	ch := make(chan *DHShare)
+	ch2 := make(chan []byte)
+
+	go func() {
+		skey, err := DoDHServer(elliptic.P256(), sha256.New(), k, ch)
+		if err != nil {
+			t.Error("DoDHServer() fails:", err)
+		}
+		ch2 <- skey
+	}()
+
+	ckey, err := DoDHClient(elliptic.P256(), sha256.New(), k, ch)
+	if err != nil {
+		t.Error("DoDHSClient() fails:", err)
+	}
+
+	skey := <-ch2
+
+	if bytes.Compare(skey, ckey) != 0 {
+		t.Errorf("Keys not equal: ckey=%x, skey=%x", ckey, skey)
 	}
 }

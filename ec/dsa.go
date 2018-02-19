@@ -12,7 +12,7 @@ import (
 type PublicKey struct {
 	curve elliptic.Curve
 	hash  h.Hash
-	x, y  big.Int
+	x, y  *big.Int
 	st    [4]big.Int
 }
 
@@ -21,7 +21,7 @@ type SecretKey struct {
 	priv big.Int
 }
 
-type ecdsaSignature struct {
+type DSASignature struct {
 	R, S *big.Int
 }
 
@@ -33,7 +33,7 @@ func NewKeyPair(curve elliptic.Curve, hash h.Hash) (*PublicKey, *SecretKey, erro
 	if err != nil {
 		return nil, nil, err
 	}
-	pk := &PublicKey{curve: curve, hash: hash, x: *x, y: *y}
+	pk := &PublicKey{curve: curve, hash: hash, x: x, y: y}
 	pk.st[0].SetInt64(0)
 	sk := &SecretKey{*pk, big.Int{}}
 	sk.priv.SetBytes(k)
@@ -77,7 +77,7 @@ func (sk *SecretKey) Sign(msg []byte) ([]byte, error) {
 		break
 	}
 
-	return asn1.Marshal(ecdsaSignature{r, s})
+	return asn1.Marshal(DSASignature{r, s})
 }
 
 func (pk *PublicKey) Verify(msg, sig []byte) (bool, error) {
@@ -88,12 +88,12 @@ func (pk *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	u2 := &pk.st[3]
 
 	// Check that the public key is valid.
-	if !pk.curve.IsOnCurve(&pk.x, &pk.y) {
+	if !pk.curve.IsOnCurve(pk.x, pk.y) {
 		return false, errors.New("invalid public key")
 	}
 
 	// Parse the signature into r and s and check that they are in range.
-	esig := &ecdsaSignature{}
+	esig := &DSASignature{}
 	if _, err := asn1.Unmarshal(sig, esig); err != nil {
 		return false, err
 	}
@@ -112,7 +112,7 @@ func (pk *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	u1.Mul(z, w)
 	u2.Mul(esig.R, w)
 	a1, b1 := pk.curve.ScalarBaseMult(u1.Bytes())
-	a2, b2 := pk.curve.ScalarMult(&pk.x, &pk.y, u2.Bytes())
+	a2, b2 := pk.curve.ScalarMult(pk.x, pk.y, u2.Bytes())
 	x1, y1 := pk.curve.Add(a1, b1, a2, b2)
 	x1.Mod(x1, pk.curve.Params().N)
 	y1.Mod(y1, pk.curve.Params().N)
