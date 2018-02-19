@@ -1,4 +1,4 @@
-package ecdsa
+package ec
 
 import (
 	"crypto/elliptic"
@@ -106,12 +106,11 @@ func (pk *PublicKey) Verify(msg, sig []byte) (bool, error) {
 		return false, errors.New("s not in range")
 	}
 
+	// Verify the signature.
 	z := msgToInt(msg, pk.hash, pk.curve.Params().BitSize>>3)
 	w.ModInverse(esig.S, pk.curve.Params().N)
 	u1.Mul(z, w)
-	//u1.Mod(u1, pk.curve.Params().N)
 	u2.Mul(esig.R, w)
-	//u2.Mod(u2, pk.curve.Params().N)
 	a1, b1 := pk.curve.ScalarBaseMult(u1.Bytes())
 	a2, b2 := pk.curve.ScalarMult(&pk.x, &pk.y, u2.Bytes())
 	x1, y1 := pk.curve.Add(a1, b1, a2, b2)
