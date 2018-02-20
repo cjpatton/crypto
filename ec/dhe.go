@@ -30,7 +30,10 @@ func DoDHClient(curve elliptic.Curve, hash h.Hash, k int, ch chan *DHShare) ([]b
 		return nil, errors.New("channel closed by peer")
 	}
 
-	// TODO Check that B is on the curve.
+	if !curve.IsOnCurve(B.x, B.y) {
+		close(ch)
+		return nil, errors.New("client share is malformed")
+	}
 
 	// Derive the key from the shared secret.
 	x, y = curve.ScalarMult(B.x, B.y, a)
@@ -45,13 +48,16 @@ func DoDHServer(curve elliptic.Curve, hash h.Hash, k int, ch chan *DHShare) ([]b
 		return nil, errors.New("hash output smaller than requested key length")
 	}
 
-	// Getclient share.
+	// Get client share.
 	A, ok := <-ch
 	if !ok {
 		return nil, errors.New("channel closed by peer")
 	}
 
-	// TODO Check that A is on the curve.
+	if !curve.IsOnCurve(A.x, A.y) {
+		close(ch)
+		return nil, errors.New("client share is malformed")
+	}
 
 	// Generate and send the server share.
 	b, x, y, err := elliptic.GenerateKey(curve, rand.Reader)
