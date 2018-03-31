@@ -9,7 +9,7 @@ for x in range(1,100000):
     if ((p-1) % x) == 0:
         print x
 
-# Finding square roots in the field.
+# Finding squares and non squarees in the field.
 sq = []
 nsq = []
 assert (p % 4) == 3
