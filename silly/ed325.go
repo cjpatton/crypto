@@ -2,8 +2,8 @@ package ed325
 
 const (
 	pBaseField = (1 << 32) - 5
-	aBaseField = 2 // a square in GF(p)
-	dBaseField = 3 // a non-square in GF(p)
+	aBaseField = 1  // a square in GF(p)
+	dBaseField = 19 // a non-square in GF(p)
 )
 
 // Should be constant time.
@@ -13,7 +13,7 @@ func baseFieldSub(a, b uint64) uint64 {
 	} else {
 		a += pBaseField - b
 	}
-	return a % pBaseField
+	return a
 }
 
 // Should be constant time.
@@ -27,9 +27,9 @@ func baseFieldInv(a uint64) uint64 {
 	r0 = a
 	for r != 0 {
 		q := r0 / r
-		r0, r = r, baseFieldSub(r0, (q*r)%pBaseField)
-		s0, s = s, baseFieldSub(s0, (q*s)%pBaseField)
-		t0, t = t, baseFieldSub(t0, (q*t)%pBaseField)
+		r0, r = r, baseFieldSub(r0, (q*r)%pBaseField)%pBaseField
+		s0, s = s, baseFieldSub(s0, (q*s)%pBaseField)%pBaseField
+		t0, t = t, baseFieldSub(t0, (q*t)%pBaseField)%pBaseField
 	}
 	return s0
 }

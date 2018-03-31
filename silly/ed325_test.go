@@ -30,5 +30,5 @@ func TestModularInverse(t *testing.T) {
 func TestAdd(t *testing.T) {
 	g := New()
 	P := g.NewPoint(234, 3)
-	t.Log(Add(g.Id, g.Id))
+	t.Log(Add(P, g.Id))
 }
