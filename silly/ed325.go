@@ -6,18 +6,17 @@ const (
 	dBaseField = 3 // a non-square in GF(p)
 )
 
-func baseFieldInv0(x0, x, q uint64) uint64 {
-	var y uint64
-	y = (q * x) % pBaseField
-	if x0 > y {
-		y = x0 - y
+// Should be constant time.
+func baseFieldSub(a, b uint64) uint64 {
+	if a > b {
+		a -= b
 	} else {
-		y = x0 + pBaseField - y
+		a += pBaseField - b
 	}
-	return y % pBaseField
+	return a % pBaseField
 }
 
-// Stolen from wikipedia
+// Should be constant time.
 func baseFieldInv(a uint64) uint64 {
 	var s, t, r, s0, t0, r0 uint64
 	s = 0
@@ -28,9 +27,9 @@ func baseFieldInv(a uint64) uint64 {
 	r0 = a
 	for r != 0 {
 		q := r0 / r
-		r0, r = r, baseFieldInv0(r0, r, q)
-		s0, s = s, baseFieldInv0(s0, s, q)
-		t0, t = t, baseFieldInv0(t0, t, q)
+		r0, r = r, baseFieldSub(r0, (q*r)%pBaseField)
+		s0, s = s, baseFieldSub(s0, (q*s)%pBaseField)
+		t0, t = t, baseFieldSub(t0, (q*t)%pBaseField)
 	}
 	return s0
 }
@@ -54,8 +53,7 @@ func New() *Group {
 	return g
 }
 
-// TODO Get rid of this after picking a point encoding.
-// The only exported interface should be encoded points.
+// TODO compute x from y.
 func (g *Group) NewPoint(x, y uint64) *Point {
 	return &Point{x % pBaseField, y % pBaseField, g}
 }
@@ -79,12 +77,41 @@ func (P *Point) IsValid() bool {
 
 func Add(P, Q *Point) *Point {
 	R := new(Point)
+
+	xs := P.x * Q.x
+	xs %= pBaseField
+	ys := P.y * Q.y
+	ys %= pBaseField
+
+	u := xs * ys
+	u %= pBaseField
+
+	s := P.x * Q.y
+	s %= pBaseField
+
+	t := P.y * Q.x
+	t %= pBaseField
+
+	R.x = dBaseField * u
+	R.x %= pBaseField
+	R.y = R.x
+	R.x = baseFieldInv(R.x + 1)
+	R.x *= s + t
+	R.x %= pBaseField
+
+	R.y = baseFieldSub(1, R.y)
+	R.y = baseFieldInv(R.y)
+	v := xs * aBaseField
+	v %= pBaseField
+	v = baseFieldSub(ys, v)
+	R.y *= v
+	R.y %= pBaseField
+
 	return R
 }
 
 func Inv(P *Point) *Point {
-	R := new(Point)
-	return R
+	return &Point{-P.x, P.y, P.g}
 }
 
 func ScalarMul(P *Point, x uint64) *Point {

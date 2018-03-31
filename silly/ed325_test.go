@@ -26,3 +26,9 @@ func TestModularInverse(t *testing.T) {
 		t.Errorf("baseFieldInv(23): got %d, expected %d", y, x.Uint64())
 	}
 }
+
+func TestAdd(t *testing.T) {
+	g := New()
+	P := g.NewPoint(234, 3)
+	t.Log(Add(g.Id, g.Id))
+}
