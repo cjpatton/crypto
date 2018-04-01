@@ -7,7 +7,7 @@ import (
 
 func TestIsOnCurve(t *testing.T) {
 	g := New()
-	t.Log(g.NewPoint(132, 43).IsValid())
+	t.Log(g.PointAt(4).IsValid())
 	t.Log(g.Id.IsValid())
 }
 
@@ -29,6 +29,6 @@ func TestModularInverse(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	g := New()
-	P := g.NewPoint(234, 3)
-	t.Log(Add(P, g.Id))
+	P := g.PointAt(234324)
+	t.Log(P.IsValid())
 }

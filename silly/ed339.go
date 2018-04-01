@@ -1,9 +1,11 @@
 package ed339
 
+import "math/big"
+
 const (
 	pBaseField = (1 << 33) - 9
-	aBaseField = 1  // a square in GF(p)
-	dBaseField = 17 // a non-square in GF(p)
+	aBaseField = 1 // a square in GF(p)
+	dBaseField = 5 // a non-square in GF(p)
 )
 
 func baseFieldSub(a, b uint64) uint64 {
@@ -57,9 +59,20 @@ func New() *Group {
 	return g
 }
 
-// TODO compute x from y.
-func (g *Group) NewPoint(x, y uint64) *Point {
-	return &Point{x % pBaseField, y % pBaseField, g}
+func (g *Group) PointAt(y uint64) *Point {
+	yy := baseFieldMul(y, y)
+	u := baseFieldSub(1, yy)
+	v := baseFieldSub(aBaseField, baseFieldMul(dBaseField, yy))
+	xx := baseFieldMul(u, baseFieldMulInv(v))
+	// TODO Do this without math/big.
+	x := new(big.Int)
+	p := new(big.Int)
+	e := new(big.Int)
+	x.SetUint64(xx)
+	p.SetUint64(pBaseField)
+	e.SetUint64((pBaseField + 1) / 4)
+	x.Exp(x, e, p)
+	return &Point{x.Uint64(), y, g}
 }
 
 func (P *Point) isOnCurve() bool {
@@ -68,7 +81,7 @@ func (P *Point) isOnCurve() bool {
 	l := baseFieldMul(aBaseField, xx) + yy
 	r := baseFieldMul(xx, yy)
 	r = 1 + baseFieldMul(dBaseField, r)
-	return l == (r % pBaseField)
+	return (l % pBaseField) == (r % pBaseField)
 }
 
 func (P *Point) IsValid() bool {
@@ -96,7 +109,7 @@ func Add(P, Q *Point) *Point {
 }
 
 func Inv(P *Point) *Point {
-	return &Point{-P.x, P.y, P.g}
+	return &Point{pBaseField - P.x, P.y, P.g}
 }
 
 func ScalarMul(P *Point, x uint64) *Point {
