@@ -1,4 +1,4 @@
-package ed325
+package ed339
 
 import (
 	"math/big"
@@ -13,7 +13,7 @@ func TestIsOnCurve(t *testing.T) {
 
 func TestModularInverse(t *testing.T) {
 	b := uint64(43)
-	y := baseFieldInv(b)
+	y := baseFieldMulInv(b)
 
 	a := new(big.Int)
 	p := new(big.Int)
@@ -23,7 +23,7 @@ func TestModularInverse(t *testing.T) {
 	x.ModInverse(a, p)
 
 	if y != x.Uint64() {
-		t.Errorf("baseFieldInv(23): got %d, expected %d", y, x.Uint64())
+		t.Errorf("baseFieldMulInv(23): got %d, expected %d", y, x.Uint64())
 	}
 }
 

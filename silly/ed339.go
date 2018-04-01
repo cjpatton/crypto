@@ -1,23 +1,27 @@
-package ed325
+package ed339
 
 const (
-	pBaseField = (1 << 32) - 5
+	pBaseField = (1 << 33) - 9
 	aBaseField = 1  // a square in GF(p)
-	dBaseField = 19 // a non-square in GF(p)
+	dBaseField = 17 // a non-square in GF(p)
 )
 
-// Should be constant time.
 func baseFieldSub(a, b uint64) uint64 {
 	if a > b {
 		a -= b
+		a %= pBaseField
 	} else {
 		a += pBaseField - b
+		a %= pBaseField
 	}
 	return a
 }
 
-// Should be constant time.
-func baseFieldInv(a uint64) uint64 {
+func baseFieldMul(a, b uint64) uint64 {
+	return (a * b) % pBaseField
+}
+
+func baseFieldMulInv(a uint64) uint64 {
 	var s, t, r, s0, t0, r0 uint64
 	s = 0
 	t = 1
@@ -27,9 +31,9 @@ func baseFieldInv(a uint64) uint64 {
 	r0 = a
 	for r != 0 {
 		q := r0 / r
-		r0, r = r, baseFieldSub(r0, (q*r)%pBaseField)%pBaseField
-		s0, s = s, baseFieldSub(s0, (q*s)%pBaseField)%pBaseField
-		t0, t = t, baseFieldSub(t0, (q*t)%pBaseField)%pBaseField
+		r0, r = r, baseFieldSub(r0, baseFieldMul(q, r))
+		s0, s = s, baseFieldSub(s0, baseFieldMul(q, s))
+		t0, t = t, baseFieldSub(t0, baseFieldMul(q, t))
 	}
 	return s0
 }
@@ -59,15 +63,12 @@ func (g *Group) NewPoint(x, y uint64) *Point {
 }
 
 func (P *Point) isOnCurve() bool {
-	xx := P.x * P.x
-	xx %= pBaseField
-	yy := P.y * P.y
-	yy %= pBaseField
-	l := aBaseField*xx + yy
-	r := xx * yy
-	r %= pBaseField
-	r = 1 + dBaseField*r
-	return (l % pBaseField) == (r % pBaseField)
+	xx := baseFieldMul(P.x, P.x)
+	yy := baseFieldMul(P.y, P.y)
+	l := baseFieldMul(aBaseField, xx) + yy
+	r := baseFieldMul(xx, yy)
+	r = 1 + baseFieldMul(dBaseField, r)
+	return l == (r % pBaseField)
 }
 
 func (P *Point) IsValid() bool {
@@ -77,36 +78,20 @@ func (P *Point) IsValid() bool {
 
 func Add(P, Q *Point) *Point {
 	R := new(Point)
-
-	xs := P.x * Q.x
-	xs %= pBaseField
-	ys := P.y * Q.y
-	ys %= pBaseField
-
-	u := xs * ys
-	u %= pBaseField
-
-	s := P.x * Q.y
-	s %= pBaseField
-
-	t := P.y * Q.x
-	t %= pBaseField
-
-	R.x = dBaseField * u
-	R.x %= pBaseField
+	xs := baseFieldMul(P.x, Q.x)
+	ys := baseFieldMul(P.y, Q.y)
+	s := baseFieldMul(P.x, Q.y)
+	t := baseFieldMul(P.y, Q.x)
+	u := baseFieldMul(xs, ys)
+	R.x = baseFieldMul(dBaseField, u)
 	R.y = R.x
-	R.x = baseFieldInv(R.x + 1)
-	R.x *= s + t
-	R.x %= pBaseField
-
+	R.x = baseFieldMulInv(R.x + 1)
+	R.x = baseFieldMul(R.x, s+t)
 	R.y = baseFieldSub(1, R.y)
-	R.y = baseFieldInv(R.y)
-	v := xs * aBaseField
-	v %= pBaseField
+	R.y = baseFieldMulInv(R.y)
+	v := baseFieldMul(aBaseField, xs)
 	v = baseFieldSub(ys, v)
-	R.y *= v
-	R.y %= pBaseField
-
+	R.y = baseFieldMul(R.y, v)
 	return R
 }
 
