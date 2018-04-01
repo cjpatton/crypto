@@ -1,6 +1,8 @@
 package ed339
 
-import "math/big"
+import (
+	"math/big"
+)
 
 const (
 	pBaseField = (1 << 33) - 9

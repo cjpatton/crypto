@@ -29,6 +29,12 @@ func TestModularInverse(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	g := New()
-	P := g.PointAt(234324)
-	t.Log(P.IsValid())
+	for i := 0; i < 1000; i++ {
+		if g.PointAt(uint64(i)).IsValid() {
+			t.Log(i)
+		}
+	}
+	P := g.PointAt(934)
+	Q := g.PointAt(961)
+	t.Log(P.IsValid(), Q.IsValid(), Add(P, Q).IsValid())
 }
