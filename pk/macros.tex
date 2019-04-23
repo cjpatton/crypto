@@ -1,0 +1,104 @@
+% macros.tex
+%
+% Macros for this paper. (Include build/headers.tex, then this.)
+%\usepackage{times}
+
+% Notions
+\newcommand{\fwdpke}{\notionfont{FWD\mbox{-}PKE}}
+\newcommand{\fwdpkeX}[1]{\fwdpke\mbox{-}#1}
+\newcommand{\bwdpke}{\notionfont{BWD\mbox{-}PKE}}
+\newcommand{\bwdpkeX}[1]{\bwdpke\mbox{-}#1}
+\newcommand{\ufsig}{\mbox{\notionfont{UF-SIG}}}
+\newcommand{\upfwd}{\notionfont{UP\mbox{-}FWD}}
+\newcommand{\upbwd}{\notionfont{UP\mbox{-}BWD}}
+\newcommand{\indfwd}{\notionfont{IND\mbox{-}FWD}}
+\newcommand{\indfwdX}[1]{\indfwd\mbox{-}#1}
+\newcommand{\indbwd}{\notionfont{IND\mbox{-}BWD}}
+\newcommand{\indbwdX}[1]{\indbwd\mbox{-}#1}
+
+% Entropy source
+\newcommand{\dist}{\algorithmfont{D}}
+
+% PRNG
+\newcommand{\prng}{\schemefont{prng}}
+\newcommand{\init}{\schemefont{init}}
+\newcommand{\get}{\schemefont{get}}
+\newcommand{\add}{\schemefont{add}}
+\renewcommand{\st}{\varfont{st}}
+\newcommand{\stsel}{\sigma}
+\newcommand{\sel}{\eta}
+\newcommand{\coins}{r}
+\newcommand{\coinslen}{\rho}
+
+% PKEAD
+\newcommand{\pkead}{\schemefont{pkead}}
+\newcommand{\Kg}{\schemefont{Kg}}
+\newcommand{\Enc}{\schemefont{Enc}}
+\newcommand{\Dec}{\schemefont{Dec}}
+\newcommand{\params}{\varfont{par}}
+\newcommand{\pk}{\varfont{pk}}
+\newcommand{\sk}{\varfont{sk}}
+\newcommand{\xk}{\varfont{xk}}
+\newcommand{\seed}{X}
+\newcommand{\nonce}{N}
+\newcommand{\ad}{A}
+\newcommand{\msg}{M}
+\newcommand{\cipher}{C}
+
+% DS
+\newcommand{\ds}{\schemefont{ds}}
+\newcommand{\Sgn}{\schemefont{Sgn}}
+\newcommand{\Vfy}{\schemefont{Vfy}}
+\newcommand{\sig}{T}
+
+% Seed generators
+\newcommand{\Sg}{\schemefont{Sg}}
+
+% Adversaries
+\newcommand{\advA}{\adversaryfont{A}}
+
+% Oracles
+\newcommand{\ENCO}{\oraclefont{Enc}}
+\newcommand{\DECO}{\oraclefont{Dec}}
+\newcommand{\EXPO}{\oraclefont{Expose}}
+\newcommand{\SGNO}{\oraclefont{Sgn}}
+\newcommand{\GETO}{\oraclefont{Get}}
+\newcommand{\GETUPO}{\oraclefont{\GETO\mbox{-}up}}
+\newcommand{\GETINDO}{\oraclefont{\GETO\mbox{-}ind}}
+\newcommand{\ADDO}{\oraclefont{Add}}
+\newcommand{\ADDRO}{\oraclefont{Addr}}
+\newcommand{\INITO}{\oraclefont{Init}}
+\newcommand{\INITRO}{\oraclefont{Initr}}
+\newcommand{\REFO}{\oraclefont{Refresh}}
+\newcommand{\OO}{\oraclefont{O}}
+
+% Sets
+\newcommand{\setC}{\setfont{C}}
+\newcommand{\setQ}{\setfont{Q}}
+\newcommand{\setS}{\setfont{S}}
+\newcommand{\setK}{\setfont{K}}
+\newcommand{\setX}{\setfont{X}}
+
+% Sources
+\newcommand{\srcM}{\algorithmfont{M}}
+\newcommand{\srcN}{\algorithmfont{N}}
+
+% Vectors
+\newcommand{\qq}{\vec{q}}
+
+% Flags
+\newcommand{\stout}{\flagfont{stout}}
+
+% Miscellany
+\newcommand{\cli}{\textbf{Client}\xspace}
+\newcommand{\srv}{\textbf{Server}\xspace}
+\newcommand{\vnonce}{\vec{N}}
+\newcommand{\vad}{\vec{A}}
+\newcommand{\vmsg}{\vec{M}}
+\newcommand{\vcipher}{\vec{C}}
+
+% Authors' comments.
+\definecolor{darkgreen}{RGB}{50,127,0}
+\newcommand{\cpnote}[1]{\note{darkgreen}{Chris}{#1}}
+\newcommand{\cptodo}[1]{\todo{red}{Chris}{#1}}
+\newcommand{\tsnote}[1]{\note{blue}{Tom}{#1}}

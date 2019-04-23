@@ -1,0 +1,74 @@
+%
+%
+%
+\renewcommand{\ng}{\schemefont{ng}}
+\newcommand{\he}{\schemefont{he}}
+\newcommand{\foobar}{\textsc{foobar}}
+In their treatment of nonce-based, public-key
+cryptography~\cite{bellare2016nonce}, Bellare and Tackmann introduce two notions
+of secure encryption. \foobar!
+%
+The first, NBP1, extends the usual IND-CCA notion to a new setting in which
+encryption is determinsitc and takes as input the public key~$\pk$ and
+message~$m$, as well as a nonce~$n$ and an input~$\xk$, called the \emph{seed},
+known only to the sender. Decryption has the usual syntax; it requires only the
+ciphertext and secret key. The nonce~$n$ is output by a stateful (and possibly
+randomized) procedure~$\ng$, called the \emph{nonce generator}. This algorithm
+takes as input a string~$\sel$, called the \emph{nonce selector}. In the NBP1
+setting we assume that, at a minimum, the pair $(m, \sel)$ does not repeat.
+%
+The second notion, NBP2, models the setting where the sender's state is
+(partially) exposed to the adversary. The primary distinction between NBP1 and
+NBP2 is that, in the latter, the adversary is given~$\xk$ as input. As a result,
+ensuring that $(m, \sel)$ not repeat is not enough for security; the output
+of~$\ng$ must also be \emph{unpredictable} to the adversary.
+
+Their main construction involves a novel primitive~$\he$, called a \emph{hedged
+extractor}. It takes as input the seed, the message~$m$, and the nonce~$n$, and
+outputs a string~$r$. This string is used as the coins for encryption of~$m$
+using a standard PKE scheme. This composition achieves NBP1 if~$\he$ is a PRF,
+and it achieves NBP2 if~$\he$ is secure in a new sense
+that~\cite{bellare2016nonce} defines.
+%
+Roughly speaking, this RoR (``real-or-random'') notion ensures that, if the
+output of~$\ng$ is unpredictable, then the output of~$\he$ is indistinguishable
+from a random string, even to an adversary in possession of the seed.
+
+Interestingly, the composition of~$\he$ and~$\ng$ is remarkably similar to how
+pseudo random number generation works in real systems. PRNGs \emph{with input},
+first formalized by Barak and Halevi~\cite{barak2005model}, typically have two
+interfaces: one that fetches (any number of) pseudorandom bits, and another with
+which the programmer can provide additional randomness to the PRNG state. A number
+of notions of security have been considered for this primitive, including some
+that model exposure of the state to the adversary. The motivation for these
+notions is not dissimilar to that of the RoR game described above.
+
+\cptodo{Segway}
+%
+In the NBP2 game, the adversary is given the seed as input, but the state
+associated with nonce generation remains hidden. In my opinion, this setting is
+not clearly motivated; an adversary that is able to penetrate the sender's
+system and exfiltrate the seed ought to be able to recover the~$\ng$ state.
+%
+Of course, secure encryption \emph{after} this state is exposed is impossible, a
+limitation that~\cite{bellare2016nonce} recognizes: in the RoR game for hedged
+extractors, the adversary is given access to the~$\ng$ state, but only
+\emph{after} it makes its queries. Said another way, RoR security for hedged
+extractors is only guaranteed for coins generated prior to state exposure.
+
+In this work, we reconsider the adversarial model described by NBP2, opting for
+a simpler notion in which the encryption state is exposed to the adversary after
+it makes its encryption queries.
+%
+We consolidate the stateless, deterministic encryption algorithm
+and the stateful nonce generator into one stateful, deterministic encryption
+procedure. We do away with the seed and instead define stateful, pseudorandom
+number generation as a primitive for constructing such a scheme.
+
+Finally, our syntax and security notions are geared towards the application of
+password-based authenticated key exchange. In this direction, our syntax admits
+a nonce and associated data, which may be used as the session number and
+password respectively.
+
+\cptodo{Talk about why decryption should take the nonce as input. (In
+\cite{bellare2016nonce}, the nonce is used only to ensure coins freshness.)}

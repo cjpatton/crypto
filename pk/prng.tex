@@ -1,0 +1,154 @@
+%
+%
+%
+\label{sec:prng}
+This syntax provides syntax and security notions for pseudorandom number
+generators \emph{with inputs}, as first formalized by~\cite{barak2005model}. It
+also borrows ideas from~\cite{dodis2013security,shrimpton2015provable}.
+
+\begin{definition}[Entropy source]\rm
+  An \emph{entropy source} is a randomized algorithm~$\dist$ with no inputs and
+  that outputs a string.
+  %
+  \cpnote{This syntax follows \cite{barak2005model}, but diverges
+  from~\cite{dodis2013security,shrimpton2015provable}, where the entropy source
+  may be stateful.}
+  %
+  We say that~$\dist$ has min-entropy~$\mu$ if for every
+  $x \in \bits^*$, it holds that
+  $
+  \Prob{y \getsr \dist\colon x = y} \leq 2^{-\mu}
+  $. \dqed
+\end{definition}
+%
+\cpnote{We could extend this notion along the lines of
+\cite{bellare2009hedged,boldyreva2017real} so that $\dist$ outputs a vector of
+strings.}
+%
+\cpnote{Define the maximum output length?}
+%
+\cpnote{Could model \emph{side information} about the output.}
+
+\begin{definition}[PRNG]\rm
+  A \emph{pseudorandom number generation} scheme, $\prng$, is a triple of
+  deterministic algorithms $(\init, \add, \get)$ defined as follows:
+  %
+  \begin{itemize}
+    \item $\init$ is the initialization algorithm. It takes as input a
+      string~$\stsel$, called the \emph{initializer}, and outputs a string~$\st$
+      called the \emph{state}.
+      %
+      This is denoted $\st \gets \init(\stsel)$.
+
+    \item $\add$ takes a string~$\sel$ called the \emph{selector},
+      %
+      \cpnote{Nomenclature is borrowed from~\cite{bellare2016nonce}. There might
+      be a better name.}
+      %
+      and the state and outputs the updated state.
+      %
+      This is denoted $\st \gets \add(\sel, \st)$.
+
+    \item $\get$ takes as input an integer $\rho \geq 0$
+      %
+      \cpnote{This parameter does not appear in earlier work.}
+      %
+      and the state and
+      outputs a string $\coins \in \bits^\rho$ and the updated state.
+      %
+      This is denoted $(\coins, \st) \gets \get(\coinslen, \st)$.
+      \dqed
+  \end{itemize}
+\end{definition}
+
+We define four notions of security PRNG schemes in Figure~\ref{fig:prng-sec}.
+%
+\indfwd and \indbwd capture \emph{indistingushibility} of the output of
+$\prng.\get(\cdot)$ from random, the first in the \emph{forward-secure} sense,
+and the second in the \emph{backward-secure} sense.
+%
+Roughly speaking, \emph{forward security} demands that if the state is exposed
+to the adversary, then all prior uses of the PRNG remain secure, and
+\emph{backward security} demands that if the state is exposed, then future uses
+of the PRNG are secure as long as the state is refreshed.
+%
+\upfwd and \upbwd capture only \emph{unpredictability} of the output of
+$\prng.\get(\cdot)$.
+%
+Something we'll need to figure out is what restrictions we need to make
+on the source(s) of entropy for these notions to be achievable. For example, in
+the \indfwd game, if we make no restrictions on the $\INITRO$-queries, then
+there is an easy distinguishing attack.
+
+\begin{figure}[t]
+  \newcommand{\coll}{\flagfont{coll}}
+  \twoColsTwoRows{0.48}
+  {
+    \experimentv{$\Exp{\indfwdX{b}}_\prng(\advA)$}\\[2pt]
+      $\stout \gets \true$\\
+      $b' \getsr \advA^{\INITRO,\EXPO,\ADDO,\GETINDO}$\\
+      return $b'$
+  }
+  {
+    \experimentv{$\Exp{\indbwdX{b}}_\prng(\advA)$}\\[2pt]
+      $\stout \gets \true$\\
+      $b' \getsr \advA^{\INITO,\ADDRO,\GETINDO}$\\
+      return $b'$
+  }
+  {
+    \experimentv{$\Exp{\upfwd}_\prng(\advA)$}\\[2pt]
+      $\stout \gets \true$; $\coll \gets \false$;
+      $\setX \gets \emptyset$\\
+      $\coins \getsr \advA^{\INITRO,\EXPO,\ADDO,\GETUPO}$\\
+      return $\coll \OR (\coins \in \setX)$
+  }
+  {
+    \experimentv{$\Exp{\upbwd}_\prng(\advA)$}\\[2pt]
+      $\stout \gets \true$; $\coll \gets \false$;
+      $\setX \gets \emptyset$\\
+      $\coins \getsr \advA^{\INITO,\ADDRO,\GETUPO}$\\
+      return $\coll \OR (\coins \in \setX)$
+  }
+  \twoColsNoDivide{0.48}
+  {
+    \oraclev{$\INITRO(\dist)$}\\[2pt]
+      $\stout \gets \false$;
+      $\stsel \getsr \dist$;
+      $\st \gets \prng.\init(\stsel)$
+    \\[6pt]
+    \oraclev{$\ADDRO(\dist)$}\\[2pt]
+      $\stout \gets \false$;
+      $\sel \getsr \dist$;
+      $\st \gets \prng.\add(\st, \sel)$
+    \\[6pt]
+    \oraclev{$\INITO(\stsel)$}\\[2pt]
+      $\stout \gets \true$;
+      $\st \gets \prng.\init(\stsel)$
+    \\[6pt]
+    \oraclev{$\ADDO(\sel)$}\\[2pt]
+      $\st \gets \prng.\add(\st, \sel)$
+    \\[6pt]
+    \oraclev{$\EXPO(\,)$}\\[2pt]
+      $\stout \gets \true$;
+      return $\st$
+  }
+  {
+    \oraclev{$\GETINDO(\coinslen)$}\\[2pt]
+      if $\stout = \true$ then return $\bot$\\
+      $(\coins_1, \st) \gets \prng.\get(\coinslen, \st)$\\
+      $\coins_0 \getsr \bits^\coinslen$\\
+      return $\coins_b$
+    \\[6pt]
+    \oraclev{$\GETUPO(\coinslen)$}\\[2pt]
+      if $\stout = \true$ then return $\bot$\\
+      $(\coins, \st) \gets \prng.\get(\coinslen, \st)$\\
+      if $\coins \in \setX$ then $\coll \gets \true$\\
+      $\setX \gets \setX \union \{ \coins \}$\\
+      return~$1$
+  }
+  \caption{\textbf{Top:} Security notions for PRNG schemes.
+  %
+  \textbf{Bottom:} Oracles for the security notions.}
+  \vspace{6pt}\hrule
+  \label{fig:prng-sec}
+\end{figure}

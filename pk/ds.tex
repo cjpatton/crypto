@@ -1,0 +1,84 @@
+%
+%
+%
+Following~\cite{bellare2016nonce} we extend our framework to digital signatures.
+\begin{definition}[DS]\rm
+  A digital signature scheme~$\ds$ is a 4-tuple of algorithms $(\Kg,\\ \Sgn.\init, \Sgn,
+  \Vfy)$ defined as follows:
+  %
+  \begin{itemize}
+    \item $\Kg$ is the randomized key generation algorithm.
+
+    \item $\Sgn.\init$ is the deterministic signing state initialization
+      algorithm. It takes as input an initializer~$\stsel$ and returns the
+      state. This is denoted $\st \gets \Sgn.\init(\stsel)$.
+
+    \item $\Sgn$ is the deterministic signing algorithm, taking as input the
+      secret key~$\sk$, the message~$\msg$, and the current state, and
+      outputting~$\sig$, either the signature or~$\bot$, and the updated state.
+      This is denoted $(\sig, \st) \gets \Sgn_\sk(\msg, \st)$.
+
+    \item $\Vfy$ is the deterministic verification algorithm, taking as input the
+      public key~$\pk$, the message~$\msg$, and the signature~$\sig$ and
+      outputting $v$, either a bit indicating whether the signature is valid,
+      or~$\bot$. This is denoted $v \gets \Vfy_\pk(\msg, \sig)$.
+  \end{itemize}
+  %
+  \cpnote{$\Sgn$ and $\Vfy$ could use a nonce, but I don't see what the practical
+  benefit would be. Though, doesn't DJB's Poly1305 MAC use nonce? What's the
+  reasonf or this?}
+  \dqed
+\end{definition}
+
+\heading{\ufsig.}
+%
+Unforgeability of signature schemes is defined in Figure~\ref{fig:ufsig}. As
+usual, we consider a setting in which the signing state is eventually exposed to
+the adversary.
+%
+A reasonable criticism of this notion is that if the adversary is able to
+exfiltrate the signing state, then it ought to be able to exfiltrate the signing
+key. To this point, \cite{bellare2016nonce} argues that the signer might take
+extra care in storing the key, but choose to store the signing state (i.e., the
+seed and nonce generation state in their setting) in a less secure part of the
+signer's system. For example, the long-term signing key might be stored in an
+HSM (``hardware security module'') and the short-term signing state in main
+memory.
+%
+\cptodo{Look at attestation/signing APIs for SGX. Are the signing algorithms
+randomized, and if so, where do the coins come from?}
+
+\begin{figure}[t]
+  \twoColsNoDivide{0.48}
+  {
+    \experimentv{$\Exp{\ufsig}_{\ds}(\advA,\dist)$}\\[2pt]
+      $\setQ \gets \emptyset$\\
+      $\stsel \getsr \dist$;
+      $\st \gets \Sgn.\init(\stsel)$\\
+      $(\pk, \sk) \getsr \Kg$\\
+      $(\msg, \sig) \getsr \advA^{\OO}(\pk)$\\
+      return $\Vfy_\pk(\msg, \sig)$ and $\msg \not\in \setQ$
+  }
+  {
+    \oraclev{$\SGNO(\msg)$}\\[2pt]
+      $\setQ \gets \setQ \union \{\msg\}$\\
+      $(\sig, \st) \gets \Sgn_\sk(\msg, \st)$\\
+      return $\sig$
+    \\[6pt]
+    \oraclev{$\INITO(\stsel)$}\\[2pt]
+      $\st \gets \pkead.\Enc.\init(\stsel)$
+    \\[6pt]
+    \oraclev{$\EXPO$}\\[2pt]
+      return $\st$
+  }
+  \caption{Security notion for digital signature schemes. Let $\OO =
+  (\INITO,\EXPO,\SGNO)$.}
+  \label{fig:ufsig}
+  \vspace{6pt}\hrule
+\end{figure}
+
+\heading{Constructions.}
+%
+\cpnote{The solution that~\cite{bellare2016nonce} had in mind will work here.
+That is, use a PRNG to generate coins for a standard, randomized digital
+signature scheme.}

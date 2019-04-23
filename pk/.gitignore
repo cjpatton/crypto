@@ -1,0 +1,9 @@
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.swp
+*.o
+.DS_Store

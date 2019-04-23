@@ -1,0 +1,104 @@
+\cpnote{Mihir pointed out that the MM attack setting is unnecessarily weak, in
+that the randomness source could be stateful. We will \emph{not} address this in
+the full version of~\cite{boldyreva2017real}, but will mention it here in
+related work.}
+
+\heading{Mihir's feedback on \cite{boldyreva2017real}.}
+%
+\newenvironment{displayquote}
+{ \indent
+  \footnotesize\color{gray}
+  \begin{tabular}{|@{\hspace{4pt}}p{10cm}}
+}
+{
+  \end{tabular}\\[6pt]
+}
+
+\begin{displayquote}
+  Your motivation was the way crypto libraries treat encryption and RNGs. Why not
+  address that directly? This means the model allows a stateful algorithm~$R$
+  that via $(r,s) \getsr R(s)$ produces coins~$r$ while updating its state
+  to~$s$. We could have oracles that allow the caller to change the state s, or
+  mix something into it, reflecting what you say happens in the libraries. A
+  simple definition in this model is a game just like IND-CPA/CCA (messages, not
+  message vectors, and no entropy requirement on these) except that coins are
+  created, for each message, via $(r,s) \getsr R(s)$. This is stronger than
+  MM-CPA/CCA because coins can be related even across adaptive queries. I would
+  guess/hope that OAEP continues to be secure. Then one can also consider how
+  message entropy can be factored in.
+\end{displayquote}
+%
+\cpnote{}
+This is addressed in Sections~\ref{sec:prng} and~\ref{sec:pkead}, but with a few
+differences.
+%
+One, $R$ takes as input a selector~$\sel$. This idea is inspired from the
+\emph{nonce selector} of~\cite{bellare2016nonce}.
+%
+Two, $R$ is deterministic instead of randomized. (It has a randomized
+initialization algorithm.)
+%
+Three, encryption is stateful; I'm thinking of a stateful PRNG as away to
+instantiate the encryption scheme. This abstraction is in keeping with the theme
+of API driven cryptography.
+
+\begin{displayquote}
+  DSA/Schnorr/PSS are randomized signature schemes but in practice people like
+  to implement the first two, at least, by deterministically deriving coins by
+  hashing the secret key and message. This is analyzed
+  in~\cite{bellare2016nonce}. Some schemes like Ed25519 directly implement it.
+  But what about signature interfaces provided by the libraries you surveyed? Do
+  they let the signer pick the coins?  If not, what do you do? Could we look at
+  the libraries and see?
+\end{displayquote}
+%
+\cptodo{Look at digital signatures offered by OpenSSL, PyCrypto, golang/crypto,
+etc. Also, what are the interfaces like for HSMs, e.g. YubiKey and SGX? Note
+that ECDSA requires a random nonce.}
+
+\begin{displayquote}
+  I'm dubious about what MM for OAEP buys, for the following reason. My sense is
+  that RNGs $R$ would usually output both~$r$ and~$s$ to be results of applying some
+  hash function to some stuff that includes~$s$. This means that either (1) $r$ is
+  (indistinguishable from) random, or (2) $r$ is predictable. If (1), MM is not
+  needed. If (2), it does not help. In other words my worry is that MM addresses
+  the case that~$r$ is unpredictable but not random, and this case does not arise,
+  because of the way RNGs work. To assess stuff like this it would be good to
+  know more about how the RNGs actually work.
+\end{displayquote}
+%
+
+\begin{displayquote}
+  Another question is, what about using nonce-based PKE as per
+  \cite{bellare2016nonce}? One issue is that the sender must maintain state. Is
+  that a problem? I'd imagine not, since there is so much static stuff it needs
+  to maintain anyway, like its secret key or other people's public keys, but I'd
+  be interested to know how this works for implementation. The other issue is
+  that the solutions of \cite{bellare2016nonce} again fail to conform to crypto
+  library interfaces the way you want them to, so one might ask if there are
+  definitions or schemes for nonce-based PKE that are crypto-library friendly.
+\end{displayquote}
+%
+\cpnote{}
+See the introduction and Section~\ref{sec:pkead}.
+
+\begin{displayquote}
+  A more ambitious question is the following. All definitions so far give no
+  security unless there is enough entropy in something (messages, randomness,
+  both). In practice, the way RNGs work, one might at some point have low
+  entropy (and encryption is insecure) but then entropy returns because the
+  entropy pool is refurbished. This would mean encryption security returns. Can
+  we give definitions that capture this type of self-healing property, where,
+  for some messages, encryption is not secure, but then it becomes secure again?
+  It seems to be what really happens.
+\end{displayquote}
+%
+
+\begin{displayquote}
+  No skin off my back, but I can see Shoup or others in the community unhappy
+  about your rebranding of labels as AD. If you must change the name, I'd first
+  clearly say that the common term is labels, as introduced by Shoup, and then
+  say you are changing the name. After all, even the standards use the term
+  labels.  Right now it looks like you claim to introduce this concept and then
+  as an afterthought say that it existed under another name.
+\end{displayquote}

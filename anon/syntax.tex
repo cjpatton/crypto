@@ -1,0 +1,70 @@
+% syntax.tex
+%
+\label{sec:syntax}
+
+\heading{Notation.}
+Let $x \getsr \setS$ denote sampling an element~$x$ uniformly from a set~$S$.
+%
+If~$\advA$ is an algorithm, let $y \gets \advA(x_1, \ldots)$ denote
+running~$\advA$ on input $x_1, \ldots$ and halting with output $y$.
+%
+Let $y \gets \advA(x_1, \ldots; \coins)$ denote running~$A$ with coins~$\coins$.
+Let $y \getsr \advA(x_1, \ldots)$ denote sampling coins~$\coins$ uniformly and
+letting $y = \advA(x_1, \ldots; \coins)$.
+%
+Let $[\advA(x_1, ...)]$ denote the set of possible outputs of $\advA$ run on input
+$(x_1, \ldots \,; \coins)$ and with randomly sampled~$\coins$.
+%
+Any algorithm may output the distinguished symbol~$\bot$. In other words, the
+symbol~$\bot$ is implicitly in the range of every algorithm.
+
+Let $[i..j] = \{ \ell \in \Z : i \le \ell \le j \}$ and $[n] = [1..n]$.
+%
+If~$\vv$ is a vector, let~$\vv[i]$ and $\vv_i$ denote its~$i$-th element.
+
+Let~$\emptystr$ denote the empty string.
+%
+Let~$\str(x_1, \ldots)$ denote an invertible encoding of the arbitrary
+quantities~$x_1, \ldots$ as a string.
+%
+Let~$X \cat Y$ denote the concatenation of strings~$X$ and~$Y$.
+%
+If~$X$ is a string, let~$X[i]$ and $X_i$ denote the~$i$-th bit of string~$X$ and
+let $\substr(X,i,j)$ denote the substring $X_i \cat \cdots \cat X_j$ for every $1
+\leq i \leq j \leq |X|$.
+%
+If~$X$ and~$Y$ are equal-length strings, let~$X \xor Y$ denote their
+bitwise-XOR.
+
+Let~$\setS$ be a set of totally-ordered values. We say a sequence~$\vv$ is
+indexed by~$\setS$ if $\vv = (\vv[x_1], \ldots, \vv[x_n])$ where $(x_1, \ldots,
+x_n)$ is the total ordering of the elements of~$\setS$. This is denoted
+$(\vv_x)_{x\in \setS}$.
+
+\begin{definition}\rm
+  A \emph{function family} is a 4-tuple $(\fns, \dom, \rng, \Fn)$, where $\fns,
+  \dom, \rng \subseteq \bits^*$ and $\Fn \colon \fns \cross \dom \to \rng$ is a
+  function.
+  %
+  We consider function families that have the following property:
+  %
+  For every $\hat{f}_1, \ldots, \hat{f}_n \in \fns$, every $\pi, \rho \in
+  \perm([n])$, and every $x \in \dom$, it holds that
+  \[
+    \Fn(\hat{f}_{\pi(1)}, x) \circ \cdots \circ \Fn(\hat{f}_{\pi(n)}, x) =
+    \Fn(\hat{f}_{\rho(1)}, x) \circ \cdots \circ \Fn(\hat{f}_{\rho(n)}, x) \,.
+  \]
+\end{definition}
+
+\begin{definition}\rm
+  Here's some syntax:
+  \begin{itemize}
+    \item Key generation: $\kk, \k \getsr \Kg$
+    \item Share generation: $\pub_i \getsr \Rep_{\kk_i}(\hat{f}_i)$;
+      $\Qryx(\kk_i, \pub_i, \cdot) = \Fn(\hat{f}_i, \cdot)$
+    \item Share composition: $\pub \getsr \Repx(\k, \{\pub_i\}_{i\in[n]})$;
+      \[\Qryx(\k, \pub, \cdot) = \Fn(\hat{f}_1, \cdot) \circ \cdots \circ
+      \Fn(\hat{f}_n, \cdot)\]
+
+  \end{itemize}
+\end{definition}

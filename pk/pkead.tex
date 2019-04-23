@@ -1,0 +1,134 @@
+\label{sec:pkead}
+\cptodo{Define sources.}
+\cptodo{The \fwdpke and \bwdpke notions do not guarantee privacy of associated
+data, which is needed for the application to AKE. (See Section~\ref{sec:ake}.
+How about passing $\ad_0$ and $\ad_1$ to the oracle in the game?}
+
+\begin{definition}[PKEAD]\rm
+  A \emph{public-key encryption scheme with associated data} is a 4-tuple of
+  algorithms $\pkead = (\Kg, \Enc.\init, \Enc, \Dec)$ defined as follows:
+  \begin{itemize}
+    \item $\Kg$ is the randomized key generation algorithm that outputs a
+      public/private key pair $(\pk, \sk)$.
+      %
+      Its execution is denoted $(\pk, \sk) \getsr \Kg$.
+
+    \item $\Enc.\init$ is the deterministic encryption initialization
+      algorithm. It takes as input an initializer~$\stsel$ and outputs the state.
+      %
+      Its execution is denoted $\st \gets \Enc.\init(\stsel)$.
+
+    \item $\Enc$ is the deterministic encryption algorithm that takes as input the
+      public key~$\pk$, a triple of strings $(\nonce, \ad, \msg)$, called the
+      nonce, associated data, and plaintext respectively, and the state~$\st$, and
+      outputs~$\cipher$, either a string or~$\bot$, and the updated state.
+      %
+      This is denoted $(\cipher, \st) \gets \Enc_\pk^{\nonce,\ad}(\msg, \st)$.
+
+    \item $\Dec$ is the determinstic decryption that takes as input the secret
+      key~$\sk$ and $(\nonce, \ad, \cipher)$ and outputs~$\msg$, either the
+      message or $\bot$.
+      %
+      This is denoted $\msg \gets \Dec_\sk^{\nonce,\ad}(\cipher)$.
+      \dqed
+  \end{itemize}
+\end{definition}
+%
+\cpnote{How does this syntax compare to stateful encryption as already defined
+in the literature? Tom says that typically decryption is stateful, too.}
+
+We define two notions of security for PKEAD schemes in
+Figure~\ref{fig:pkead-sec}.
+%
+The first, \fwdpke, demands indistinguishibility and forward security.
+The second, \bwdpke, demands indistinguishibility and backward security. In the
+latter, since the state is completely exposed prior to encryption, the
+$\ENCO$-oracle takes a \emph{distribution} on the nonce, associated data, and
+messages as input. This way any entropy in this distribution can be leveraged
+for security.
+
+\begin{figure}[t]
+  \newcommand{\rdy}{\flagfont{rdy}}
+  \twoCols{0.48}
+  {
+    \experimentv{$\Exp{\fwdpkeX{b}}_{\pkead}(\advA)$}\\[2pt]
+      $\rdy \gets \false$; $\setC \gets \emptyset$\\
+      $(\pk, \sk) \getsr \pkead.\Kg$\\
+      $b' \getsr \advA^{\ENCO,\DECO,\INITRO,\EXPO}(\pk)$\\
+      return $b'$
+    \\[9pt]
+    \oraclev{$\ENCO(\nonce, \ad, \msg_0, \msg_1)$}\\[2pt]
+      if $\rdy=\false \OR |\msg_0|\ne|\msg_1|$ then return $\bot$\\
+      $(\cipher, \st) \gets \pkead.\Enc_\pk^{\nonce,\ad}(\msg_b, \st)$\\
+      $\setC \gets \setC \union \{(\nonce, \ad, \cipher)\}$\\
+      return $\cipher$
+    \\[6pt]
+    \oraclev{$\DECO(\nonce, \ad, \cipher)$}\\[2pt]
+      if $(\nonce, \ad, \cipher) \in \setC$ then return $\bot$\\
+      return $\pkead.\Dec_\sk^{\nonce,\ad}(\cipher)$
+    \\[6pt]
+    \oraclev{$\INITRO(\dist)$}\\[2pt]
+      $\rdy \gets \true$;
+      $\stsel \getsr \dist$;
+      $\st \gets \Enc.\init(\stsel)$
+    \\[6pt]
+    \oraclev{$\EXPO(\,)$}\\[2pt]
+      $\rdy \gets \false$; return $\st$
+  }
+  {
+    \experimentv{$\Exp{\bwdpkeX{b}}_{\pkead}(\advA_1, \advA_2)$}\\[2pt]
+      $\rdy \gets \false$;
+      $\setC \gets \emptyset$\\
+      $(\pk, \sk) \getsr \pkead.\Kg$\\
+      $\st \getsr \advA_1^{\ENCO,\DECO,\INITO}$\\
+      $b' \getsr \advA_2(\pk,\st)$\\
+      return $b'$
+    \\[6pt]
+    \oraclev{$\ENCO(\srcM)$}\\[2pt]
+      if $\rdy = \false$ then return $\bot$\\
+      $(\vnonce, \vad, \vmsg_0, \vmsg_1) \getsr \srcM$\\
+      $(\vcipher, \st) \gets \pkead.\Enc_\pk^{\vnonce,\vad}(\vmsg_b, \st)$\\
+      for each $i \gets 1$ to $|\vcipher|$ do\\
+        \tab $\setC \gets \setC \union \{(\vnonce_i, \vad_i, \vcipher_i\}$\\
+      return $\vcipher$
+    \\[6pt]
+    \oraclev{$\DECO(\nonce, \ad, \cipher)$}\\[2pt]
+      if $(\nonce, \ad, \cipher) \in \setC$ then return $\bot$\\
+      return $\pkead.\Dec_\sk^{\nonce,\ad}(\cipher)$
+    \\[6pt]
+    \oraclev{$\INITO(\stsel)$}\\[2pt]
+      $\rdy \gets \true$;
+      $\st \gets \Enc.\init(\stsel)$
+  }
+  \caption{Security notion for PKEAD schemes.}
+  \label{fig:pkead-sec}
+  \vspace{6pt}\hrule
+\end{figure}
+
+\ignore{
+  \heading{Constructions.}
+  %
+  \newcommand{\kem}{\schemefont{kem}}
+  \newcommand{\calE}{\mathcal{E}}
+  \newcommand{\calD}{\mathcal{D}}
+  \cpnote{KEM (key encapsulation mechanism) + symmetric AEAD + PRNG:
+    \begin{itemize}
+      \item $\Kg$: $(\pk, \sk) \getsr \kem.\Kg$; return $(\pk, \sk)$
+      \item $\Enc.\init$: $\st \getsr \prng.\init$; return $\st$
+      \item $\Enc_\pk^{\nonce,\ad}(\msg, \st)$:
+        $(K, \st) \gets \prng(\str(\nonce, \ad, \msg), k, \st)$;
+        $\cipher \gets \calE_K^{\nonce,\ad}(\msg)$;
+        $X \gets \kem.\Enc_\pk(K)$;
+        return $\str(X, \cipher)$
+      \item $\Dec_\sk^{\nonce,\ad}(\str(X, \cipher))$:
+        $K \gets \kem.\Dec_\sk(X)$;
+        $\msg \gets \calD_K^{\nonce,\ad}(\cipher)$;
+        return $\msg$
+    \end{itemize}
+    (I'm not sure if I got the KEM syntax quite right.) We should aim to prove
+    that $\pkead$ is exposure-resilient if and only if $\prng$ is
+    exposure-resilient.
+  }
+  %
+  \cpnote{I'd also llke to lo look into an OAEP-like construction.}
+}

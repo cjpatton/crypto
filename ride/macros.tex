@@ -1,0 +1,29 @@
+% macros.tex
+%
+% Macros for this paper. (Include build/headers.tex, then this.)
+\usepackage[dvipdf]{graphicx}
+\usepackage{pifont} % \ding{109}
+\usepackage{afterpage} % \afterpage{ ... }
+
+% Variables
+\newcommand{\dist}{\delta}
+\newcommand{\doride}{\varphi}
+\newcommand{\De}{\procfont{De}}
+\newcommand{\En}{\procfont{En}}
+\newcommand{\Ev}{\procfont{Ev}}
+\newcommand{\ev}{\procfont{ev}}
+\newcommand{\garbler}{\schemefont{G}}
+\newcommand{\Gb}{\procfont{Gb}}
+\newcommand{\id}{\funcfont{id}}
+\newcommand{\loc}{\funcfont{loc}}
+\newcommand{\rep}{\funcfont{rep}}
+\newcommand{\SpA}{\procfont{SpA}}
+\newcommand{\SpB}{\procfont{SpB}}
+
+% Authors' comments.
+\definecolor{darkgreen}{RGB}{50,127,0}
+\newcommand{\cpnote}[1]{\note{darkgreen}{Chris}{#1}}
+\newcommand{\tsnote}[1]{\note{blue}{Tom}{#1}}
+\newcommand{\cptodo}[1]{\todo{red}{Chris}{#1}}
+\newcommand{\tstodo}[1]{\todo{red}{Tom}{#1}}
+\newcommand{\anytodo}[1]{\todo{red}{Any}{#1}}

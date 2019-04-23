@@ -1,0 +1,44 @@
+%
+%
+%
+\newcommand{\ek}{\varfont{ek}}
+\newcommand{\dk}{\varfont{dk}}
+\newcommand{\vk}{\varfont{vk}}
+\label{sec:ake2f}
+Let $H\colon\bits^* \to \bits^h$ be a hash function.
+%
+The client has a signing key~$\sk$, say, stored on a
+YubiKey,\footnote{\url{https://yubico.com}} and the server has the
+corresponding verifying key~$\vk$.
+%
+The client also has an identity~$I$ and a password~$W$, and the server has~$I$
+and $\ad = H(I \cat W)$.
+%
+The server has a decrypting key~$\dk$ and the client has the corresponding
+encrypting key~$\ek$.
+%
+Consider the following key exchange protocol for session number~$\nonce$:
+\begin{itemize}
+  \item $\cli^{\,\sk,\ek,I,W,\nonce}$:
+    Run $K \getsr \setK$;
+    $\ad \gets H(I \cat W)$;
+    $(\cipher, \st_E) \gets \Enc_\ek^{\nonce,\ad}(K, \st_E)$;
+    $(\sig, \st_S) \gets \Sgn_\sk(\cipher, \st_S)$; and
+    send $(I, \nonce, \cipher, \sig)$ to \srv.
+
+  \item $\srv^{,\vk,\dk,U}$ on input $(I, \nonce', \cipher, \sig)$:
+    Look up $(\ad, \nonce) \gets U[I]$;
+    if $\nonce \geq \nonce'$ then reject;
+    if $\Vfy_\vk(C, T)=\false$ then reject;
+    run $K \gets \Dec_\dk^{\nonce',\ad}(\cipher)$;
+    if $K \ne \bot$ then let $U[I] \gets (\ad, \nonce')$ and accept; otherwise
+    reject.
+\end{itemize}
+%
+This is an improvement on the protocol in Section~\ref{sec:ake} in that if the
+server is compromised, then adversary also needs to exfiltrate the client's
+signing key in order to impersonate her.
+%
+\cpnote{Alternatively we could express this protocol in terms of a dedicated
+\emph{authenticated encryption} scheme, where both sender and receiver has a
+secret key.}

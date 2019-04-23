@@ -1,0 +1,54 @@
+%
+%
+%
+%
+\label{sec:ake}
+A client has an identity~$I$ (say, her email address) and a password~$W$ and
+would like to authenticate herself to---and exchange a key with---a server in
+possession of a public/private key pair $(\pk,\sk)$.
+%
+Let $h\geq0$ be an integer and $H \colon \bits^* \to \bits^h$ be a cryptographic
+hash function. Suppose that, out-of-band, the client is furnished with~$\pk$ and
+the server with~$I$ and $\ad= H(I \cat W)$.
+%
+Consider the following key exchange protocol for session number $\nonce$:
+\begin{itemize}
+  \item $\cli^{\,\pk,I,W,\nonce}$:
+    Run $K \getsr \setK$;
+    $\ad \gets H(I \cat W)$;
+    $(\cipher, \st) \gets \Enc_\pk^{\nonce,\ad}(K, \st)$; and
+    send $(I, \nonce, \cipher)$ to \srv.
+
+  \item $\srv^{\,\sk,U}$ on input $(I, \nonce', \cipher)$:
+    Look up~$(\ad, \nonce) \gets U[I]$;
+    if $\nonce \geq \nonce'$ then reject;
+    run $K \gets \Dec_\sk^{\nonce',\ad}(\cipher)$;
+    if $K \ne \bot$, then let $U[I] \gets (\ad, \nonce')$ and accept; otherwise reject.
+\end{itemize}
+%
+An adversary in possession of~$\ad$ can easily impersonate the client. Hence
+this simple protocol works only if the server is never compromised.
+%
+\cpnote{Yet, in the setting where the server has a public/private key pair and
+the client just has just a password, is there any solution that does any better
+when the server is compromised? As far as I can tell, the protocol
+of~\cite{bellare2000authenticated} doesn't fair much better if the server is
+compromised. (Although this paper might be a bit out-dated ... I don't know this
+literature very well.) I think the only way to do better is if the client also
+has a public/private key pair.}
+%
+Rotating the password is similarly easy as pie:
+%
+\begin{itemize}
+  \item $\cli^{\,\pk,I,W,W',\nonce}$:
+    Run $\ad \gets H(I \cat W)$; $\ad' \gets H(I \cat W')$;
+    $(\cipher, \st) \gets \Enc_\pk^{\nonce,\ad}(\ad', \st)$; and
+    send $(I, \nonce, \cipher)$ to \srv.
+
+  \item $\srv^{\,\sk,U}$ on input $(I, \nonce', \cipher)$:
+    Look up~$(\ad, \nonce) \gets U[I]$;
+    if $\nonce \geq \nonce'$ then reject;
+    run $\ad' \gets \Dec_\sk^{\nonce',\ad}(\cipher)$; and
+    if $\ad' \ne \bot$, then let $U[I] \gets (\ad', \nonce')$ and accept;
+    otherwise reject.
+\end{itemize}

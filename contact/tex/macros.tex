@@ -1,0 +1,25 @@
+% macros.tex
+%
+% Macros for this paper. (Include build/headers.tex, then this.)
+\usepackage[dvipdf]{graphicx}
+\usepackage{pifont} % \ding{109}
+\usepackage{afterpage} % \afterpage{ ... }
+
+% Variables
+\newcommand{\A}{\adversaryfont{A}}
+\newcommand{\bdh}{\notionfont{BDH}}
+\newcommand{\hash}{\procfont{hash}}
+\newcommand{\M}{\setfont{M}}
+\newcommand{\sk}{\varfont{sk}}
+\newcommand{\U}{\setfont{U}}
+\newcommand{\X}{\setfont{X}}
+
+
+
+% Authors' comments.
+\definecolor{darkgreen}{RGB}{50,127,0}
+\newcommand{\cpnote}[1]{\note{darkgreen}{Chris}{#1}}
+\newcommand{\tsnote}[1]{\note{blue}{Tom}{#1}}
+\newcommand{\cptodo}[1]{\todo{red}{Chris}{#1}}
+\newcommand{\tstodo}[1]{\todo{red}{Tom}{#1}}
+\newcommand{\anytodo}[1]{\todo{red}{Any}{#1}}

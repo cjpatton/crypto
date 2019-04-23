@@ -1,0 +1,250 @@
+%
+\def\camready{1}
+\ifnum\camready=0
+  \makeatletter
+  \let\@twosidetrue\@twosidefalse
+  \let\@mparswitchtrue\@mparswitchfalse
+  \makeatother
+\fi
+
+\documentclass{build/llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{build/header}
+\input{macros}
+
+\ifnum\camready=0
+  %\usepackage{times}
+  \usepackage[letterpaper,margin=0.75in]{geometry}
+\fi
+
+\ifnum\camready=0
+  \usepackage{hyperref}
+  \hypersetup{
+    colorlinks=true,
+    allcolors={black},
+    citecolor={theblue},
+    urlcolor={theblue},
+    pdfborder={0 0 0},
+  }
+\fi
+
+
+\date{\today}
+\title{Private contact discovery ({\color{thegray}version \#1})}
+\author{Chris}
+\institute{}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  A contact-discovery protocol allows a user of a messaging service to discover
+  which contacts in his or her phone book use the same service. The attendant
+  privacy goal is to ensure that the neither the client nor the server learns
+  anything beyond the set of contacts that use the service.
+  %
+  This can be solved using a protocol for private set intersection, but the
+  communication complexity of such protocols is prohibitive for this
+  application.
+  %
+  I propose an alternative that is optimal in terms of network utilization,
+  but requires additional storage capacity on the part of the server. It applies
+  bilinear maps (trust me, it's not as crazy as it seems) and uses SGX in a
+  minimal, yet critical way.
+\end{abstract}
+
+\section*{Problem statement}
+
+Let $\U \subseteq \bits^*$ denote the set of users of a
+service.\footnote{$\bits^*$ denotes the set of all strings.}
+%
+A new user of the service has a set~$\X \subseteq \bits^*$ of contacts, and he
+or she wishes to learn which of these are also users of the service.
+%
+We want to devise a protocol by which the client and server compute $\U
+\intersection \X$ without the server learning $\X \setminus \U$ or the client
+learning $\U \setminus \X$.
+%
+This is an instance of private set intersection, for which there are myriad
+solutions. But these are prohibitively expensive, particularly in the current
+application.\footnote{See slide 11 of
+\url{https://www.usenix.org/sites/default/files/conference/protected-files/sec15_slides_pinkas.pdf}.
+Accessed 2018-04-12.}
+%
+The goal here is to mitigate this cost.
+
+I'll begin by refining the problem. Each user ``registers'' with the
+contact-discovery service, which responds to queries made by registered users.
+%
+Specifically, registrant~$I$ may ask if~$J\in\U$ for any~$J$; the result should
+be $\true$ (``true'') if and only if $I, J \in \U$.
+%
+The server can easily ensure that the clients from learns nothing about $\U
+\setminus \X$. In addition, the bandwidth consumption is $O(m)$, where $m=|\X|$.
+%
+To prevent leakage of~$\X \setminus \U$, the protocol also needs to ensure that
+queries only reveal~$J$ to the server if~$J$ is registered. Here I propose one
+way to provide this assurance. The solution involves some cool crytography, as
+well as careful use of SGX.\footnote{This is why you're reading this in
+\url{bitbucket.org/uf_sensei/hybrid} :)}
+
+The crucial resources are the time complexity of registration, queries, and the
+space utilization of the server.
+%
+My proposal costs $\Theta(n)$ time for registration, $O(1)$ time for each query,
+and $O(n^2)$ space, where $n=|\U|$.
+%
+Registration is completely parallelizable, so distributing the computation can
+help mitigate this cost.
+%
+Still, the space complexity means deployment might only be feasible for a few
+hundred-thousand users. However, the schemes are pretty simplistic, and there
+is likely room for improvement.
+
+\section*{Straw man scheme: why Diffie-Hellman isn't enough}
+
+The first scheme I considered uses Diffie-Hellman.
+%
+Let~$G$ be an additive group of prime order $q$, and let~$P$ be a generator
+for~$G$.\footnote{$P$ being a generator for~$G$ means that $G = \{ 0P, 1P, 2P,
+\ldots, (q-1)P \}$.}
+%
+Let $\hash:\bits^* \to [0..q-1]$ be a crytpographic hash
+function.\footnote{$[0..q-1]$ denotes the set of integers $\{0, 1, 2, \ldots,
+q-1\}$.}
+
+\heading{Setup.}
+The server initializes a map~$\U$, which stores a set of key/value pairs. The
+keys are strings and the values are elements of~$G$. This maps the set of
+\emph{registered users} to their \emph{public keys}.
+
+\heading{Registration.}
+%
+To register user~$I$, first initialize a set $\M_I \gets \emptyset$.
+%
+Next, sample an integer~$a$ uniformly from the set
+$[1..q-1]$. (This is denoted $a \getsr [1..q-1]$.) This is the user's
+\emph{secret
+key}.
+%
+Next, compute $A \gets aP$; this is the user's public key.
+%
+Let $x \gets \hash(I)$.
+%
+For each $(J, B)$ in the set of key/value pairs in~$\U$, do as follows:
+\begin{enumerate}
+  \item Compute values: $y \gets \hash(J)$, $X \gets ay P$, and $Y \gets x B$.
+  \item Set $\M_I \gets \M_I \union \{X\}$ and $\M_J \gets \M_J \union \{Y\}$.
+\end{enumerate}
+Next, set $\U[I] \gets A$.
+Finally, return the secret key~$a$ to the user.
+
+\heading{Making queries.}
+%
+User~$I$ with secret key~$a$ wishes to see if~$J$ is a registered user. To do
+so, first compute $y \gets \hash(J)$ and $X \gets ay P$.
+%
+Then send~$(I, X)$ to the server.
+
+\heading{Answering queries.}
+%
+On input of~$(I, X)$, if $\U[I]$ is undefined, then return $\false$.
+%
+Otherwise, if $X \not\in \M_I$, then return $\false$.
+%
+Otherwise return $\true$.
+
+\heading{Use of SGX.}
+%
+Trusted computation is used for provisioning the user with their secret key.
+It's also used for registration, since this requires computations using the
+secret key.
+
+\noindent\textbf{\color{red}Attack!}
+%
+On input of $(I, X)$ the server can try a dictionary attack. Let $A \gets
+\U[I]$. To check if $J$ was used to compute query~$X$, compute $y \gets \hash(J)$, then
+$A' \gets y^{-1}X$. If $A' = A$, then bingo.
+
+\newpage
+\section*{A scheme based on pairings}
+
+The second scheme is more sophisticated, making use of \emph{bilinear maps}.
+%
+Let~$G$ be an additive group of prime order~$q$ with generator~$P$.
+%
+Let $H$ be a multiplicative group of order~$q$.
+%
+Let $e : G \by G \to H$ be a function. This function is called a \emph{non-degenerate, bilinear map}
+if:
+\begin{enumerate}
+  \item For every $P, Q \in G$ and $a, b \in \N$ it holds that $e(aP, bQ) = e(P,
+    Q)^{ab}$.
+  \item Not all pairs map to the identity~$1\in H$. (This implies that if $P$ is
+    a generator of~$G$, then $e(P, P)$ is a generator of~$H$, since the
+    groups have prime order.\footnote{See the Boneh-Franklin paper.})
+\end{enumerate}
+%
+Let $h\in\N$ and let $\hash_1 : \bits^* \to G$ and $\hash_2 : H \to
+\bits^h$ be functions.
+
+\heading{Setup.}
+%
+The server samples a long term secret $x \getsr [1..q-1]$, then
+initializes sets~$\U, \M \gets \emptyset$.
+
+\heading{Registration.}
+%
+To register user~$I$, the server first computes $A \gets \hash_1(I)$ and $A^*
+\gets xA$. The value~$A^*$ is the user's secret key.\footnote{This is how
+decryption keys are generated in pairing-based IBE.}
+%
+For each $J \in \U$ do as follows:
+%
+\begin{enumerate}
+  \item Compute $B \gets \hash_1(J)$. If $I < J$\footnote{This means that~$I$ is a
+    string that appears before~$J$ in the lexicographic ordering of bit
+    strings.}, then compute $X \gets e(A^*, B)$; otherwise compute $X \gets e(B,
+    A^*)$.
+  \item Let $\M \gets \M \union \{\hash_2(X)\}$.
+\end{enumerate}
+%
+Let $\U \gets \U \union \{I\}$.
+%
+Finally, return~$A^*$ to the user.
+
+\heading{Making a query.}
+%
+User~$I$ with secret key~$A^*$ wishes to see if~$J$ is a registered user. To do
+so, first compute $B \gets \hash_1(P)$. If $I < J$, then compute $X \gets e(A^*,
+B)$; otherwise compute $X \gets e(B, A^*)$. Finally, compute $Y \gets
+\hash_2(X)$ and send~$Y$ to the server.
+
+\heading{Answering queries.}
+%
+If~$Y \in \M$, then return $\true$; otherwise return~$\false$. (Note that
+$e(A^*, B) = e(xA, B) = e(A, B)^{x} = e(A, xB) = e(A, B^*)$. Thus, as long as
+the pair the order in which users were registered doesn't matter.)
+
+\heading{Use of SGX.}
+%
+Trusted computation is used for provisioning the secret key, as well as
+registering the user, since this requires the secret key.
+
+
+
+
+\ifnum\camready=0
+ \bibliographystyle{alpha}
+ \else
+\bibliographystyle{build/splncs_srt}
+\fi
+
+\end{document}

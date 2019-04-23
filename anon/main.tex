@@ -1,0 +1,37 @@
+% main.tex
+%
+% Root of the document tree. Includes the abstract and notes.
+\documentclass{llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{header}
+\input{macros}
+
+\date{\today}
+\title{\textbf{Trust your neighbors, not The Man}}
+\author{Christopher Patton}
+\institute{University of Florida}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  A new approach to secure messaging.
+\end{abstract}
+
+\section{Introduction}
+\input{intro}
+
+\section{Syntax}
+\input{syntax}
+
+\bibliography{main}
+\bibliographystyle{splncs_srt}
+
+\end{document}

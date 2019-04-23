@@ -1,0 +1,193 @@
+%
+\def\camready{1}
+\ifnum\camready=0
+  \makeatletter
+  \let\@twosidetrue\@twosidefalse
+  \let\@mparswitchtrue\@mparswitchfalse
+  \makeatother
+\fi
+
+\documentclass{build/llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{build/header}
+\input{macros}
+
+\ifnum\camready=0
+  %\usepackage{times}
+  \usepackage[letterpaper,margin=0.75in]{geometry}
+\fi
+
+\ifnum\camready=0
+  \usepackage{hyperref}
+  \hypersetup{
+    colorlinks=true,
+    allcolors={black},
+    citecolor={theblue},
+    urlcolor={theblue},
+    pdfborder={0 0 0},
+  }
+\fi
+
+
+\date{\today}
+\title{Private ride sharing}
+\author{Chris and Joseph}
+\institute{}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  \cptodo{}
+\end{abstract}
+
+\section*{Problem statement}
+
+The protocol involves the client~$R\in\bits^*$, the service provider, and a pool
+of drivers $\{D_i\}_{i\in[p]} \subseteq \bits^*$. These strings are the
+``current state'' of the parties. Some common metrics:
+\begin{itemize}
+   \item $\id:\bits^*\to\bits^m$ --- maps a principal to their unique identifier
+   \item $\loc:\bits^*\to\bits^n$ --- maps a principal to their location
+   \item $\dist : (\bits^n)^3 \to \N$ --- the quantity $\dist(p, s, t)$ is the ``cost'' of
+     picking up a rider at location~$p$ and taking them to~$t$, starting at
+     current location~$s$.
+\end{itemize}
+%
+The client and server negotiate candidate drivers. The client and driver
+determine if the cost of pick up is reasonable. The determination is shared with
+the server, who will then decide to either set up a ride, or try more
+candidates.
+%
+The security goal is to prevent leakage of the locations of any client or driver
+to any other party, including the server.
+
+
+\section*{The protocol}
+
+To get a ride to location~$d$, the client and service provider begin by
+negotiating a string $id(D_i)$, the public identifier of driver~$i\in[p]$.
+(They may use any information they've learned from prior hail attempts as part
+of the negotiation.) The client then chooses a ``cost threshold'' $c\in\N$.
+%
+The client and driver compute $y = (\dist(\loc(R), \loc(D_i), t) < c)$. The
+result is given to the server, who may then set up the ride; otherwise they'll
+negotiate a new $\id(D_j)$ for some $j\ne i$ and try again.
+%
+This process is called a \emph{hail}; details are given below.
+
+\subsubsection{The hail.}
+
+Suppose the client and server have negotiated a driver id~$\id(D_i)$ for
+some~$i \in [p]$.
+%
+The client and driver engage in a secure function evaluation via garbled
+circuits and oblivious transfer.
+%
+The client computes $(F, e, d) \getsr \Gb(1^k, f)$ where
+\[
+  f(\loc(D_i) \cat \loc(R)\cat t \cat \tostr(c)) =
+    \delta(\loc(R), \loc(D_i), t) < c \,,
+\]
+sends~$d$ to the server, garbles its inputs $\loc(R)$, $t$, and $\tostr(c)$ to get~$A$, sends~$(F, A)$ to the
+driver, and obliviously transfers the driver's garbled input~$B$, which encodes
+$\loc(D_i)$.
+%
+The driver computes $Y \gets \Ev(F, A \cat B)$ and sends~$Y$ to the server. The
+server computes final result $y \gets \De(d, Y)$. If $y=1$, the server may set up
+the ride; otherwise it attempts another hail with the client.
+
+\subsubsection{Use of SGX.}
+\cpnote{The server gets some side information, but it knows nothing about
+locations. I suppose it's the thing doing SGX?}
+
+\cpnote{The goal here is to permit the semantics of Uber's ride set ups. We have
+a few anecdotal details about this.}
+
+\cpnote{This changes are formal model.}
+
+\section*{Alternative Approaches}
+\subsubsection{ORide [USENIX 17]}
+\begin{itemize}
+\item Active adversaries: riders (R) \& drivers (D).
+\item Passive (possibly covert) adversary: service provider (SP).
+\item Assume: Most R/D don't collude w/ SP;
+D = independent contractors.
+\item Goals:
+\subitem SP can identify misbehaving R/D when needed, w/ support from D/R.
+\subitem Support existing convenience/usability: credit card payment, reputation.
+\subitem Once R matched with D, R can track D's location. R can contact D to coordinate
+pickup. R can contact past D to find lost items.
+\item Ride Setup Protocol (high-level):
+\subitem R initiates ride request, submitting to SP: encrypted+encoded coordinates, deposit
+token (prerequisite), ephemeral public key, and pickup zone.
+\subitem SP checks validity (freshness) of deposit token (originally issued by SP).
+\subitem SP sends to each D in pickup zone random index and R's pubkey.
+\subitem D sends encrypted+encoded coordinates to SP.
+\subitem SP sums drivers' ciphertexts (somewhat homomorphic encryption) and computes packed
+squared values of Euclidean distances between all D and the R, sending result to R.
+\subitem R decrypts ciphertexts, selects D with smallest squared dist.; send to SP.
+\subitem SP notifies chosen D, If D rejects, SP asks R to select another D. Repeat until one D
+accepts.
+\subitem R and D establish secure channel via SP using DHKE. Over channel, reputation reveal.
+D can abort if R reputation low. R can return to previous step to pick another D.
+\subitem If both OK w/ reputation, R and D exchange precise location,
+\subitem On approach, D performs proximity check to verify R's presence.
+If successful, D releases identifying info to R.
+\subitem R and D create fare report, which D will deposit to SP for payment. Upfront
+fare payment: upon receiving fare report, ride begins.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c|c|c|c|c}
+Setting & \multicolumn{2}{c|}{Rider} & \multicolumn{2}{c}{Driver}\\ \hline
+Algorithm & Upload (KB) & Download (KB) & Download (KB) & Upload (KB)\\ \hline
+S1 & 372 & 761856 & 124 & 248\\ \hline
+S2 & 372 & 186 & 124 & 248\\ \hline
+S3 & 372 & 186 & 124 & 248\\ \hline
+\end{tabular}
+\caption{Per-ride bandwidth of ORide with $d=4096, log_2(q)=124$, and 4096 drivers
+available for ride request. S1 na\"ive, S2 S3 optimized.}
+\label{tbl:orideBW}
+\end{table}
+%
+\begin{table*}[h]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|c}
+Setting & \multicolumn{3}{c|}{Rider} & \multicolumn{2}{c|}{Driver} & \multicolumn{2}{c}{SP}\\ \hline
+Algorithm & Gen. keys & Encrypt & Decrypt & Load key & Encrypt & Load key & Compute Dist.\\
+& (ms) & (ms) & (ms) & (ms) & (ms) & (ms) & (ms)\\ \hline
+S1 & 1.51 $\pm$ 0.06 & 2.6 $\pm$ 0.2 & 7823.4 $\pm$ 573.4 & 0.53 $\pm$ 0.01 & 2.6 $\pm$ 0.2 & 0.53 $\pm$ 0.01 & 113868.8 $\pm$ 6553\\ \hline
+S2 & 1.51 $\pm$ 0.06 & 2.6 $\pm$ 0.2 & 2.2 $\pm$ 0.1 & 0.53 $\pm$ 0.01 & 2.6 $\pm$ 0.2 & 0.53 $\pm$ 0.01 & 208.9 $\pm$ 4\\ \hline
+S3 & 1.51 $\pm$ 0.06 & 2.6 $\pm$ 0.2 & 2.2 $\pm$ 0.1 & 0.53 $\pm$ 0.01 & 2.6 $\pm$ 0.2 & 0.53 $\pm$ 0.01 & 745.5 $\pm$ 24.5\\ \hline
+\end{tabular}
+\caption{Per-ride computational overhead of ORide with $d=4096, log_2(q)=124$, and 4096 drivers
+available for ride request. S1 na\"ive, S2 S3 optimized.}
+\label{tbl:orideComput}
+\end{table*}
+%
+\subsubsection{PrivatePool [CSF 17]}
+\begin{itemize}
+\item Key Idea No. 1: Feasible ridesharing, where users are willing to divert from their
+original path.
+\item Key Idea No. 2: ridesharing w/ no trust in third parties (decentralized,
+no full disclosure of user location.
+\item Tangential from ``ride-hailing" (e.g., ORide); privacy-preserving carpool.
+\end{itemize}
+
+
+\ifnum\camready=0
+ \bibliographystyle{alpha}
+ \else
+\bibliographystyle{build/splncs_srt}
+\fi
+
+\end{document}

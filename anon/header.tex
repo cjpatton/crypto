@@ -1,0 +1,173 @@
+% header.tex
+%
+% Formatting and common macros for crypto papers. Include this first.
+\usepackage{graphics}
+\usepackage[toc,page]{appendix}
+\usepackage[font={small}]{caption}
+\usepackage{hyperref}
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{parskip}
+\usepackage{framed}
+
+\hypersetup{
+    colorlinks,%
+    citecolor=black,%
+    filecolor=black,%
+    linkcolor=black,%
+    urlcolor=black
+}
+
+\def\dashuline{\bgroup
+  \ifdim\ULdepth=\maxdimen  % Set depth based on font, if not set already
+	  \settodepth\ULdepth{(j}\advance\ULdepth.4pt\fi
+  \markoverwith{\kern.15em
+	\vtop{\kern\ULdepth \hrule width .3em}%
+	\kern.15em}\ULon}
+
+\newcounter{foot}
+\setcounter{foot}{1}
+\setlength\parindent{2em}
+
+% Editorial
+%\newcommand{\heading}[1]{\noindent \textsc{#1}}
+\newcommand{\heading}[1]{\paragraph{#1}}
+\newcommand{\ala}{\textit{a la}\xspace}
+\newcommand{\etal}{\textit{et al}\xspace}
+
+% Fonts for various types
+\newcommand{\notionfont}[1]{\textup{#1}\xspace}
+\newcommand{\varfont}[1]{\textit{#1}}
+\newcommand{\flagfont}[1]{\mathsf{#1}}
+\newcommand{\vectorfont}[1]{\vec{#1}}
+\newcommand{\oraclefont}[1]{\mathsf{#1}}
+\newcommand{\schemefont}[1]{\textsc{#1}}
+\newcommand{\procfont}[1]{\mathsf{#1}}
+\newcommand{\adversaryfont}[1]{\mathit{#1}}
+\newcommand{\setfont}[1]{\mathcal{#1}}
+\newcommand{\cryptofont}[1]{\mathbf{#1}\hspace{0.5pt}}
+
+% Math
+\DeclareMathAlphabet\mathbfcal{OMS}{cmsy}{b}{n}
+
+% - Sets
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\bits}{\{0,1\}}
+\newcommand*\bigunion{\bigcup}
+\newcommand*\bigintersection{\bigcap}
+\newcommand*\union{\cup}
+\newcommand*\intersection{\cap}
+\newcommand*\cross{\times}
+\newcommand*\by{\cross}
+\newcommand{\getsr}{\mathrel{\leftarrow\mkern-14mu\leftarrow}}
+%\newcommand{\getsr}{\xleftarrow{\text{\tiny{\$}}}}
+%\newcommand{\getsr}{{\:{\leftarrow{\hspace*{-3pt}\raisebox{.75pt}{$\scriptscriptstyle\$$}}}\:}}
+
+% - String operations
+\newcommand{\emptystr}{\varepsilon}
+\newcommand{\cat}{\, \| \,}
+\def\str(#1){\langle #1 \rangle}
+\def\substr(#1,#2,#3){#1[#2\mbox{\,:\,}#3]}
+
+% - Boolean operators
+\newcommand*\AND{\wedge}
+\newcommand*\OR{\vee}
+\newcommand*\NOT{\neg}
+\newcommand*\IMPLIES{\implies}
+\newcommand*\XOR{\mathbin{\oplus}}
+\newcommand*\xor{\XOR}
+
+% - Crypto functions
+\newcommand{\game}[1]{\cryptofont{Exp}^{\textnormal{\tiny \MakeLowercase{#1}}}}
+\newcommand{\adv}[1]{\cryptofont{Adv}^{\textnormal{\tiny \MakeLowercase{#1}}}}
+
+% - Asymptotics
+\newcommand{\negl}{\procfont{negl}}
+\newcommand{\poly}{\procfont{poly}}
+
+% - Probablity
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Prob}[1]{\Pr\hspace{-2pt}\Big[\,#1\,\Big]}
+
+% Games
+\newcommand{\gamesfontsize}{\footnotesize}
+\newcommand{\foreach}[3]{$\text{for }#1 \gets #2\text{ to }#3\text{ do}$}
+\newcommand{\tab}{\hspace*{10pt}}
+\newcommand{\outputs}{=}
+\newcommand{\true}{1}
+\newcommand{\false}{0}
+\newcommand{\invalid}{\bot}
+\newcommand{\experimentv}[1]{\underline{#1}}
+\newcommand{\oraclev}[1]{\underline{$\cryptofont{oracle}$ #1}}
+
+% - Inline comment
+\definecolor{CommentColor}{RGB}{125,175,230}
+\newcommand{\comment}[1]{\textcolor{CommentColor}{\,\textbf{\#}\,#1}}
+
+% - One game
+\newcommand{\oneCol}[2]{
+\begin{center}
+        \framebox{
+        \begin{tabular}{c@{\hspace*{.4em}}}
+        \begin{minipage}[t]{#1\textwidth}\gamesfontsize #2 \end{minipage}
+        \end{tabular}
+        }
+\end{center}
+}
+
+% - One game, two columns
+\newcommand{\twoColsNoDivide}[3]{
+  \providecommand{\pad}{6pt}
+  \providecommand{\colwidth}{#1\textwidth}
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \pad}l@{}@{}@{\hskip \pad}l|}
+    \hline
+    \rule{-5pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{\colwidth}\gamesfontsize
+      #2 \vspace{\pad}
+    \end{minipage} &
+    \begin{minipage}[t]{\colwidth}\gamesfontsize
+      #3 \vspace{\pad}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+% - Two games, one per column
+\newcommand{\twoCols}[3]{
+  \providecommand{\pad}{6pt}
+  \providecommand{\colwidth}{#1\textwidth}
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \pad}l@{}|@{}@{\hskip 4pt}l|}
+    \hline
+    \rule{-5pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{\colwidth}\gamesfontsize
+      #2 \vspace{\pad}
+    \end{minipage} &
+    \begin{minipage}[t]{\colwidth}\gamesfontsize
+      #3 \vspace{\pad}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+% Notes
+\newcounter{notectr}[section]
+\newcommand{\getnotectr}{\stepcounter{notectr}\thesection.\thenotectr}
+\newcommand{\basenote}[4]{{
+  \textrm{\textcolor{#1}{(\getnotectr: #2 #3: #4)}}
+}}
+
+\renewcommand{\note}[3]{\basenote{#1}{#2}{says}{#3}}
+\newcommand{\todo}[3]{\basenote{#1}{#2}{to-do}{#3}}
+
+% - Chris' notes
+\definecolor{darkgreen}{RGB}{50,127,0}
+\newcommand{\cpnote}[1]{\note{darkgreen}{Chris}{#1}}
+\newcommand{\cptodo}[1]{\todo{red}{Chris}{#1}}
+
+\newcommand{\ignore}[1]{\if{0} #1 \fi}

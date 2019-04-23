@@ -1,0 +1,69 @@
+%
+\documentclass{build/llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{build/header}
+\input{macros}
+
+\date{\today}
+\title{Real-world{\color{gray}(?)} public-key cryptography\\
+\emph{\color{gray}or}\\
+Robust public-key cryptography with applications to multi-factor authentication
+}
+\author{Christopher Patton and Thomas Shrimpton and FSM}
+\institute{}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  \cite{bellare2009hedged} shows that public-key encryption can be hardened
+  against RNG failures by manipulating the coins used to encrypt the message.
+  %
+  \cite{bellare2016nonce} changes the model for PKE so that only minimal use of
+  the RNG is required. They show that encryption in this setting can be hardened
+  against (partial) exposure of the encryption state.
+  %
+  \cite{boldyreva2017real} points out that the techniques of
+  \cite{bellare2009hedged,bellare2016nonce} are impractical in the sense that
+  directly manipulating the coins breaks the ``intended use'' of many crypto
+  APIs, including OpenSSL.
+  %
+  This work adopts the perspective that good API design and sound cryptographic
+  theory are inextricable.
+  %
+  Bearing this in mind, we consider the security of public-key cryptography
+  when instantiated with real-world (P)RNGS.
+\end{abstract}
+
+\section{Introduction}
+\input{intro}
+
+\section{Pseudorandom number generators}
+\input{prng}
+
+\section{Public-key encryption with associated data}
+\input{pkead}
+
+\section{The killer app: 0-RTT, password-based AKE}
+\input{ake}
+
+\section{Digital signatures}
+\input{ds}
+
+\section{0-RTT 2F-AKE}
+\input{ake2f}
+
+\section{Notes}
+\input{notes}
+
+\bibliography{pk}
+\bibliographystyle{alpha}
+
+\end{document}

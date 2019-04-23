@@ -1,0 +1,52 @@
+% intro.tex
+%
+%
+\label{sec:intro}
+\newcommand{\pta}{\pt[P,X,Y]} A point function is a function $\pta$ such that
+$\pta(X') = Y$ if $X' = X$ and $\pta(X') = 0$ otherwise.
+%
+Gilboa and Ishai introduced the notion of distributed point functions (DPFs) at
+Eurocrypt'14~\cite{gilboa2014distributed} and demonstrated its applicability to
+private information retrieval and
+storage~\cite{chor1998private,ostrovsky1997private}.
+%
+The idea is to split the function into a sequence of shares so that~$\pta$ can
+be computed given all of the shares, but cannot be deduced from a subset of
+them.
+%
+At Oakland'15, Corrigan-Gibbs, Boneh, and Mazi\`{e}res presented an application
+of DPFs to secure messaging (i.e., anonymous
+communication~\cite{chaum1981untraceable,dingledine2004tor}) called
+Riposte~\cite{corrigangibbs2015riposte}.
+%
+They introduced a novel security property of DPFs, called \emph{disruption
+resistance}, later formalized by Boyle, Gibloa, and
+Ishai~\cite{boyle2016function} as \emph{verifiability} in the more general
+setting of function secret sharing (FSS)~\cite{boyle2015function}.
+
+Using verifiable FSS to construct secure messaging systems has two limitations:
+%
+(1) Security is predicated on an assumption of \emph{non-collusion} among the
+servers; and (2) Verifying the secret shares requires a multi-party computation
+executed by the servers.
+%
+I present a new approach in which trust is distributed among the clients instead
+of the servers. Detecting disruption is simpler in this setting (requiring no
+MPC), but identifying the offending client appears to be impossible.
+
+\noindent
+\cpnote{Before diving too deep, I need to do some reading.
+  \begin{itemize}
+    \item I'll need to survey recent work on secure messaging. First, look at
+      \emph{Riffle} and figure out what that dude is up to these days.
+    \item Look at children of~\cite{boyle2015function,boyle2016function}. What are
+      those authors up to?
+    \item Learn about homomorphic encryption.
+    \item Look at key-homomorphic PRFs.
+  \end{itemize}
+  Some basic questions to address:
+  \begin{itemize}
+    \item How to do key distribution?
+    \item What does ``disruption'' mean?
+  \end{itemize}
+}
