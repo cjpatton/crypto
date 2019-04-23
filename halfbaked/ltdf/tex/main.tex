@@ -1,0 +1,240 @@
+% This is based on the LLNCS.DEM the demonstration file of
+% the LaTeX macro package from Springer-Verlag
+% for Lecture Notes in Computer Science,
+% version 2.4 for LaTeX2e as of 16. April 2010
+%
+% See http://www.springer.com/computer/lncs/lncs+authors?SGWID=0-40209-0-0-0
+% for the full guidelines.
+%
+\documentclass{llncs}
+\input{macros}
+
+\begin{document}
+
+\title{Lossy trapdoor functions}
+%
+\titlerunning{Hamiltonian Mechanics}  % abbreviated title (for running head)
+%                                     also used for the TOC unless
+%                                     \toctitle is used
+%
+\author{Christopher Patton}
+%
+\authorrunning{Patton} % abbreviated author list (for running head)
+%
+%%%% list of authors for the TOC (use if author list has to be modified)
+\tocauthor{Christopher Patton}
+%
+\institute{University of Florida, Gainesville, FL 32601,
+USA\\
+\email{cjpatton@ufl.edu}}
+
+\maketitle              % typeset the title of the contribution
+
+\begin{abstract}
+  Lossy trapdoor functions, presented by Peikert and Waters at STOC'08, allow
+  for indistinguishibility arguments from the public parameters of a public-key
+  cryptosystem, rather than the output.
+  %
+  I present their syntax and security, show how to achieve \indcca public-key
+  encryption in the standard model, and exhibit a construction from lattices.
+\end{abstract}
+%
+
+% Preliminaries
+% \log is base-2.
+% Propagation of \bot in pseudocode.
+
+\section{Notions of trapdoor functions}
+\begin{figure}[t]
+  \threeCols{0.32}
+  {
+    \underline{$\Exp{\abo}_{\tdfscheme}(\advA)$}\\[2pt]
+      $(b_0, b_1, \st) \getsr \advA_1$\\
+      if $\{b_0, b_1\} \not\subseteq B$ then\\
+      \tab return $\bot$\\
+      $a \getsr \bits$;
+      $(s, t) \getsr \abogen(b_a)$\\
+      $a^\prime \getsr \advA_2(s, \st)$\\
+      return $a=a^\prime$
+  }
+  {
+    \underline{$\Exp{\los}_{\tdfscheme}(\advA)$}\\[2pt]
+      $b \getsr \bits$;
+      $(s, t) \getsr \losgen(b)$\\
+      $b^\prime \getsr \advA(s)$\\
+      return $b=b^\prime$
+  }
+  {
+    \underline{$\Exp{\owf}_{\tdfscheme}(\advA)$}\\[2pt]
+      $x \getsr \bits^n$;
+      $(s, t) \getsr \owfgen$\\
+      $x^\prime \getsr \advA(s, \owff(s, x))$\\
+      return $x=x^\prime$
+  }
+  \caption{Security notions for trapdoor functions.}
+  \label{fig-notions}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+%
+Let $k,n$ be positive integers where $k \leq n$.
+
+\paragraph{ABO TDFs.}
+%
+A collection of \emph{$(n,k)$-all-but-one trapdoor functions} is given by a
+triple of algorithms $\tdfscheme = (\abogen, \abof, \abofinv)$ with an
+associated set of strings~$\branchset$, called the \emph{branch set}.
+%
+The first algorithm is probabilistic and the second and third are deterministic.
+%
+The trapdoor function generator $\abogen$ takes as input a branch $b^* \in
+\branchset$, called the \emph{lossy branch}, and outputs a pair of strings
+$(s,t)$ such that for every $b \in \branchset$,
+\begin{itemize}
+  \item $\abof(s, b, \cdot) : \bits^n \to \bits^*$ is a function;
+  \item if $b \ne \lossybranch$, then $\abof(s, b, \cdot)$ is
+    injective and $\abofinv(t, b, \cdot)$ is its inverse; and
+  \item if $b = \lossybranch$, then $|\im \abof(s, b, \cdot)| \leq 2^{n-k}$.
+\end{itemize}
+%
+Both~$\abof$ and~$\abofinv$ may optionally output the distinguished
+symbol~$\bot$. (For example, this can be used to surface that a string is not in
+the range of $\abof(s,b,\cdot)$.)
+%
+We call $\tdfscheme$ an \emph{$(n,k)$-all-but-one trapdoor function scheme.}
+%
+We associate to~$\tdfscheme$ and adversary~$\advA=(\advA_1, \advA_2)$ an
+experiment \abo defined in the left
+panel of Figure~\ref{fig-notions}. Let
+\[
+  \Adv{\abo}_{\tdfscheme}(\advA) = 2\cdot
+  \prob{\Exp{\abo}_{\tdfscheme}(\advA)} - 1
+\]
+denote the advantage of~$\advA$.
+%
+The scheme is secure if the lossy branch is computationally hidden by the
+description of the function. Informally, we say~$\tdfscheme$ is secure if the
+advantage of every reasonable adversary is small.
+
+More formally, let $n, k : \N \to \N$ be functions and associate to the scheme
+and experiment a security parameter~$\secpar \in \N$.
+%
+Moreover, associate to the scheme a collection of branch sets $\mathcal{B} =
+\{\branchset_\secpar\}_{\secpar\in\N}$.
+%
+Each algorithm in the security experiment, including the adversary, is given the
+unary encoding of~$\secpar$ and is required to run in polynomial-time in the
+length of its inputs. Then~$\tdfscheme$ is a secure $(n,k)$-all-but-one trapdoor
+function scheme if for every probabilistic, polynomial-time algorithm $\advA_1$
+and $\advA_2$, the function $\Adv{\los}_{\tdfscheme,b_0,b_1}(\advA,\secpar)$ is
+negligible in~$\secpar$, where $\advA = (\advA_1, \advA_2)$.
+%
+In the remainder, we will stick to a concrete security treatment.
+
+\paragraph{LTDFs.}
+An \emph{$(n,k)$-lossy trapdoor function scheme} is a triple of algorithms
+$\tdfscheme = (\losgen, \losf, \losfinv)$, the first being probabilistic and the
+second and third being deterministic.
+%
+It takes as input a bit $b \in \bits$ and outputs a pair of strings $(s,t)$ such
+that
+\begin{itemize}
+  \item $\losf(s, \cdot) : \bits^n \to \bits^*$ is a function;
+  \item if $b = 1$, then $\losf(s, \cdot)$ is injective and $\losfinv(t,
+    \cdot)$ is its inverse; and
+  \item if $b = 0$, then $|\im \losf(s, \cdot)| \leq 2^{n-k}$.
+\end{itemize}
+%
+As before, algorithms~$\losf$ and~$\losfinv$ may optionally output~$\bot$.
+%
+We associate to~$\tdfscheme$ and adversary~$\advA$ the experiment \los defined
+in the middle panel of Figure~\ref{fig-notions}. Let
+\[
+  \Adv{\los}_{\tdfscheme}(\advA) = 2\cdot
+  \prob{\Exp{\los}_{\tdfscheme}(\advA)} - 1
+\]
+denote the advantage of~$\advA$.
+
+\paragraph{TDFs.}
+%
+Finally, a family of \emph{trapdoor functions} is given by a  triple of
+algorithms $\tdfscheme = (\owfgen, \owff, \owffinv)$ with associated input
+length $n\in\N$. The first of these algorithms is probabilistic and the second
+and third are deterministic.
+%
+The trapdoor function generator~$\owfgen$ outputs a pair of strings $(s,t)$. For
+every such output, the function $\owff(s,\cdot) : \bits^n \to \bits^*$ is
+injective with $\owffinv(t,\cdot)$ giving its inverse.
+%
+As before, functions~$\owff$ and~$\owffinv$ may output~$\bot$.
+%
+We associate to~$\tdfscheme$ and adversary~$\advA$ the experiment \owf defined in
+the right panel of Figure~\ref{fig-notions}. Let
+\[
+  \Adv{\owf}_{\tdfscheme}(\advA) = \prob{\Exp{\owf}_{\tdfscheme}(\advA)}
+\]
+denote the advantage of~$\advA$.
+
+\subsection{Relations}
+Peikert and Waters prove that \abo and \los are equivalent for appropriate
+choices of parameters. In particular, given an $(n,k)$-ABO TDF scheme with branch
+set $\bits$, one can construct a $(n,n-\ell k)$-ABO TDF scheme with branch set
+$\bits^\ell$.
+%
+Moreover, they prove that a scheme that is \los secure is also \owf
+secure~\cite[Lemma 3.1]{pw08}.
+%
+\note{What about $\owf \centernot\implies \los$?}
+
+\section{Application: \indcca}
+\input{pke}
+
+\section{Construction from DDH-hard groups}
+\input{elgamal}
+
+\section{Lattice-based construction}
+\input{lattices}
+
+\begin{thebibliography}{5}
+
+  \bibitem {bfo08}
+    Alexandra Boldyreva, Serge Fehr, and Adam O'Neill.
+    \textit{On Notions of Security for Deterministic Encryption, and Efficient
+    Constructions without Random Oracles.}
+    CRYPTO'08.
+    \url{http://www.cc.gatech.edu/{\textasciitilde}aboldyre/papers/bfo.pdf}
+
+  \bibitem {drs04}
+    Yevgeniy Dodis, Leonid Reyzin, and Adam Smith.
+    \textit{Fuzzy Extractors: How to Generate Strong Keys From Biometrics and
+    Other Noisy Data.}
+    Eurocrypt'04.
+    \url{https://www.iacr.org/archive/eurocrypt2004/30270518/DRS-ec2004-final.pdf}
+
+  \bibitem {pw08}
+    Chris Peikert and Brent Waters.
+    \textit{Lossy Trapdoor Functions and Their Applications.}
+    STOC'08.
+    \url{https://eprint.iacr.org/2007/279.pdf}
+
+  \bibitem {regev05}
+    Oded Regev.
+    \textit{On Lattices, Learning with Errors, Random Linear Codes, and
+    Cryptography.}
+    STOC'05.
+    \url{http://www.cims.nyu.edu/~regev/papers/qcrypto.pdf}
+
+  \bibitem{ rs04}
+    Phillip Rogaway and Thomas Shrimpton.
+    \textit{Cryptographic Hash-Function Basics.}
+    FSE'04.
+    \url{http://web.cs.ucdavis.edu/{\textasciitilde}rogaway/papers/relates.pdf}
+
+  \bibitem {shaltiel02}
+    Ronen Shaltiel.
+    \textit{Recent Developments in Explicit Constructions of Extractors.}
+    EACTCS'02.
+    \url{http://cshome.haifa.ac.il/{\textasciitilde}ronen/online\_papers/survey.ps}
+
+\end{thebibliography}
+\end{document}

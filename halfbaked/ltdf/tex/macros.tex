@@ -1,0 +1,284 @@
+\usepackage{amsfonts} % mathbb
+\usepackage{centernot} % centernot
+\usepackage{color} % definecolor
+
+% Probability
+\newcommand{\getsr}{\mathrel{\leftarrow\mkern-14mu\leftarrow}}
+\newcommand{\getsdist}[1]{{\:{\getsr{\hspace*{-3pt}\raisebox{.75pt}{$\scriptscriptstyle#1$}}}\:}}
+%\newcommand{\getsr}{{\:{\leftarrow{\hspace*{-3pt}\raisebox{.75pt}{$\scriptscriptstyle\$$}}}\:}}
+%\newcommand{\getsdist}[1]{{\:{\leftarrow{\hspace*{-3pt}\raisebox{.75pt}{$\scriptscriptstyle#1$}}}\:}}
+\newcommand{\prob}[1]{{\Pr\hspace{-1pt}\left[\,{#1}\,\right]}}
+\newcommand{\given}{\,|\,}
+\newcommand{\statdist}{\mathrm{\Delta}}
+\newcommand{\minent}{\mathrm{H}_\infty}
+\newcommand{\avgminent}{\widetilde{\mathrm{H}}_\infty}
+\newcommand{\expect}[2]{\mathrm{E}_{#1}\hspace{-1pt}\left[\,{#2}\,\right]}
+\newcommand{\outputs}{\Rightarrow}
+
+% Strings
+\newcommand{\str}[1]{\langle #1 \rangle}
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\cat}{\,\|\,}
+
+% Math
+\newcommand{\implies}{\Rightarrow}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\im}{\mathrm{im}\;}
+\newcommand{\union}{\cup}
+\newcommand{\AND}{\wedge}
+\newcommand{\OR}{\vee}
+\newcommand{\xor}{\oplus}
+\newcommand{\cross}{\times}
+\newcommand{\nearint}[1]{\lfloor#1\rceil}
+\newcommand{\mod}{\mathrm{\;mod\,}}
+\newcommand{\inprod}[1]{\langle#1\rangle}
+
+% Misc. crypto stuff
+\newcommand{\secpar}{\lambda}
+
+% Fonts
+\newcommand{\notionsfont}[1]{\ifmmode\mathrm{\MakeLowercase{#1}}\else{\textup{#1} }\fi}
+\newcommand{\cryptofont}[1]{\mathbf{#1}}
+\newcommand{\varfont}[1]{\mathit{#1}}
+\newcommand{\schemefont}[1]{\mathsf{#1}}
+\newcommand{\vecfont}[1]{\mathbf{#1}}
+\newcommand{\matfont}[1]{\mathbf{#1}}
+
+% ABO TDF
+\newcommand{\tdfscheme}{\mathrm{\Pi}}
+\newcommand{\abogen}{\schemefont{S}}
+\newcommand{\abof}{\schemefont{G}}
+\newcommand{\abofinv}{\schemefont{G}^{-1}}
+\newcommand{\lossybranch}{b^*}
+\newcommand{\branchset}{B}
+
+% LTDF
+\newcommand{\losgen}{\schemefont{T}}
+\newcommand{\losf}{\schemefont{F}}
+\newcommand{\losfinv}{\schemefont{F}^{-1}}
+
+% TDF
+\newcommand{\owfgen}{\schemefont{T}}
+\newcommand{\owff}{\schemefont{F}}
+\newcommand{\owffinv}{\schemefont{F}^{-1}}
+
+% Public-key encryption
+\newcommand{\pkescheme}{\mathrm{\Pi}}
+\newcommand{\kg}{\mathcal{K}}
+\newcommand{\enc}{\mathcal{E}}
+\newcommand{\dec}{\mathcal{D}}
+\newcommand{\pk}{\varfont{pk}}
+\newcommand{\sk}{\varfont{sk}}
+\newcommand{\ptxt}{\varfont{m}}
+\newcommand{\ctxt}{\varfont{c}}
+\newcommand{\coins}{\varfont{r}}
+
+% Hash functions
+\newcommand{\hashscheme}{\mathrm{\Gamma}}
+\newcommand{\hashgen}{\schemefont{K}}
+\newcommand{\hashf}{\schemefont{H}}
+\newcommand{\hash}{\varfont{h}}
+
+% Signature schemes
+\newcommand{\sigscheme}{\mathrm{\Gamma}}
+\newcommand{\siggen}{\schemefont{Kg}}
+\newcommand{\sign}{\schemefont{Sgn}}
+\newcommand{\verify}{\schemefont{Vfy}}
+\newcommand{\sig}{\sigma}
+\newcommand{\msg}{m}
+\newcommand{\vk}{\varfont{vk}}
+\newcommand{\xk}{\varfont{xk}}
+
+% Notions
+\newcommand{\abo}{\notionsfont{ABO}}
+\newcommand{\los}{\notionsfont{LOS}}
+\newcommand{\owf}{\notionsfont{OWF}}
+\newcommand{\indcpa}{\notionsfont{IND\mbox{-}CPA}}
+\newcommand{\indcca}{\notionsfont{IND\mbox{-}CCA}}
+\newcommand{\tcr}{\notionsfont{TCR}}
+\newcommand{\auth}{\notionsfont{AUTH}}
+\newcommand{\lwe}{\notionsfont{LWE}}
+
+% Oracles
+\newcommand{\lro}{\cryptofont{LR}}
+\newcommand{\deco}{\cryptofont{Dec}}
+\newcommand{\sigo}{\cryptofont{Sgn}}
+
+% Crypto functions
+\newcommand{\Adv}[1]{\cryptofont{Adv}^{\MakeLowercase{#1}}}
+\newcommand{\Exp}[1]{\cryptofont{Exp}^{\MakeLowercase{#1}}}
+\newcommand{\G}{\cryptofont{G}}
+
+% Adversaries
+\newcommand{\adversaryfont}[1]{\mathcal{#1}}
+\newcommand{\advA}{\adversaryfont{A}}
+\newcommand{\advB}{\adversaryfont{B}}
+\newcommand{\advC}{\adversaryfont{C}}
+\newcommand{\advD}{\adversaryfont{D}}
+
+%n Misc. variables
+\newcommand{\veca}{\vecfont{a}}
+\newcommand{\vecx}{\vecfont{x}}
+\newcommand{\vecy}{\vecfont{y}}
+\newcommand{\vecz}{\vecfont{z}}
+\newcommand{\matid}{\matfont{I}}
+\newcommand{\matzero}{\matfont{0}}
+\newcommand{\matm}{\matfont{M}}
+\newcommand{\matc}{\matfont{C}}
+
+% Notes
+\newcounter{notectr}[section]
+\renewcommand{\thenote}{\thesection.\arabic{notectr}}
+\newcommand{\basenote}[4]{
+  \refstepcounter{notectr}{
+    \it\textcolor{#1}{(Note \thenote #3: {#4}#2)}}
+}
+\definecolor{darkgreen}{RGB}{50,127,0}
+\renewcommand{\note}[1]{\basenote{darkgreen}{}{}{#1}}
+\newcommand{\nonote}[1]{
+  \it\textcolor{darkgreen}{(#1)}
+}
+
+% Formatting
+\newcommand{\heading}[1]{\noindent\textsc{#1}}
+\newcommand{\low}[1]{\MakeLowercase{#1}}
+
+% Games
+\newcommand{\st}{\varfont{st}}
+\newcommand{\foreach}[3]{for $#1 \gets #2$ to $#3$ do}
+\newcommand{\tab}{\hspace*{6pt}}
+
+\definecolor{lightgreen}{RGB}{175,255,175}
+\definecolor{lightred}{RGB}{255,200,200}
+\definecolor{darkgrey}{RGB}{220,220,220}
+\newcommand{\diff}[1]{\colorbox{darkgrey}{#1}}
+\newcommand{\diffplus}[1]{\colorbox{lightgreen}{#1}}
+\newcommand{\diffminus}[1]{\colorbox{lightred}{#1}}
+
+
+\newcommand{\gamesfontsize}{\small}
+\newcommand{\gamespadlength}{4pt}
+\newcommand{\gamespadlengthleft}{1pt}
+\newcommand{\oneCol}[2]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlength}l@{}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{\gamespadlength}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+\newcommand{\twoCols}[3]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{}|@{}@{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{\gamespadlength}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+\newcommand{\twoColsNoDivide}[3]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{}@{}@{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{\gamespadlength}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+\newcommand{\threeCols}[4]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{}|@{\hskip \gamespadlength}l@{}|@{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #4 \vspace{\gamespadlength}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+\newcommand{\threeColsNoDivides}[6]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{} @{\hskip \gamespadlength}l@{} @{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #4 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#2\textwidth}\gamesfontsize
+      #5 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{#3\textwidth}\gamesfontsize
+      #6 \vspace{\gamespadlength}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\superGame}[7]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{} @{\hskip \gamespadlength}l@{} @{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{0.25\textwidth}\gamesfontsize
+      #1 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{0.33\textwidth}\gamesfontsize
+      #2 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{0.38\textwidth}\gamesfontsize
+      #3 \vspace{\gamespadlength}
+    \end{minipage} \\
+  \end{tabular}
+  }
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{}|@{}@{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{0.486\textwidth}\gamesfontsize
+      #4 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{0.486\textwidth}\gamesfontsize
+      #5 \vspace{\gamespadlength}
+    \end{minipage} \\
+  \end{tabular}
+  }
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\hskip \gamespadlengthleft}l@{}|@{}@{\hskip \gamespadlength}l|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{0.486\textwidth}\gamesfontsize
+      #6 \vspace{\gamespadlength}
+    \end{minipage} &
+    \begin{minipage}[t]{0.486\textwidth}\gamesfontsize
+      #7 \vspace{\gamespadlength}
+    \end{minipage} \\
+  \end{tabular}
+  }
+}

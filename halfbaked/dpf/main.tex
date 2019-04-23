@@ -1,0 +1,71 @@
+% main.tex
+%
+% Root of the document tree. Includes the abstract and notes.
+\documentclass{llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{header}
+\input{macros}
+
+\date{\today}
+\title{\textbf{Security notions for DPF schemes}}
+\author{Christopher Patton}
+\institute{University of Florida}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  The point function of binary strings~$X$ and~ $Y$ is defined by $P_{X,Y}(X) =
+  Y$ and $P_{X,Y}(X^\prime) = 0^{|Y|}$ for all $X^\prime \ne X$. A distributed
+  point function (DPF) scheme maps~$P_{X,Y}$ to a sequence of shares which, when
+  combined, yield the point function, but from a subset of which neither~$X$
+  nor~$Y$ can be recovered. This primitive was first suggested in the context of
+  private information retrieval where the goal is to allow clients to \emph{read
+  from} a database distributed among a set of servers without revealing which
+  data were read. It was recently proposed as a way to address traffic analysis
+  attacks in the context of anonymous communication.
+  %
+  The goal of the Riposte cryptosystem \cite{riposte} is to allow clients to
+  \emph{write to} a distributed database without revealing to the servers which
+  data were written. However, by sending the servers mal-formed shares, a
+  malicious client or network adversary can easily corrupt the database state.
+  As pointed out by the designers, it is crucial in this setting that the
+  servers be able to verify their shares are correct.
+  %
+  \cpnote{What's our answer?}
+\end{abstract}
+
+\section{Introduction}
+\input{intro}
+
+\section{Related work}
+\input{related}
+
+\section{Preliminaries}
+\input{prelims}
+
+\section{Syntax}
+\input{syntax}
+
+\section{Security}
+\input{security}
+
+\section{A $2$-server+auditor protocol}
+\input{twowriter.tex}
+
+\if{0}
+\section{Riposte}
+\input{riposte.tex}
+\fi
+
+\bibliography{main}
+\bibliographystyle{alpha}
+
+\end{document}

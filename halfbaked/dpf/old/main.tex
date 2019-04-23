@@ -1,0 +1,105 @@
+% main.tex
+%
+% Root of the document tree. Includes the abstract and notes.
+\documentclass[letter]{article}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\input{header.tex}
+\input{macros.tex}
+
+\date{\today}
+\title{\textbf{Verifiable DPF Schemes}}
+\author{Christopher Patton}
+
+\setcounter{tocdepth}{2}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  The point function of binary strings~$X$ and~ $Y$ is defined by $P_{X,Y}(X) =
+  Y$ and $P_{X,Y}(X^\prime) = 0^{|Y|}$ for all $X^\prime \ne X$. A distributed
+  point function (DPF) scheme maps~$P_{X,Y}$ to a sequence of shares which, when
+  combined, yield the point function, but from a subset of which neither~$X$
+  nor~$Y$ can be recovered. This primitive was first suggested in the context of
+  private information retrieval where the goal is to allow clients to \emph{read
+  from} a database distributed among a set of servers without revealing which
+  data were read. It was recently proposed as a way to address traffic analysis
+  attacks in the context of anonymous communication.
+  %
+  The goal of the Riposte cryptosystem \cite{riposte} is to allow clients to
+  \emph{write to} a distributed database without revealing to the servers which
+  data were written. However, by sending the servers mal-formed shares, a
+  malicious client or network adversary can easily corrupt the database state.
+  As pointed out by the designers, it is crucial in this setting that the
+  servers be able to verify their shares are correct. We endow DPF schemes with
+  a property we call \emph{verifiability} and put forward a unified framework
+  for their analysis, which yields more efficient verification protocols with
+  stronger security properties.
+\end{abstract}
+
+\section{Introduction}
+\input{intro.tex}
+
+\section{Related work}
+\input{related.tex}
+
+\section{Preliminaries}
+\input{prelims.tex}
+
+\section{DPF schemes}
+\input{dpf.tex}
+
+\section{A $2$-server+auditor protocol}
+\input{twowriter.tex}
+
+\if{0}
+\section{Riposte}
+\input{riposte.tex}
+\fi
+
+\section{Notes}
+\begin{itemize}
+  \item Ilya Mironov (mironov@) suggests that the error correction coding could
+    be done more efficient. In the paper, they consider coding schemes for
+    general finite fields, but there are faster ways when you're working with
+    fields with binary coefficients (i.e. $GF(2^n)$). Ananth (pseudorandom@)
+    says to focus on arguing for distributed trust model from a privacy
+    perspective.  Ulfar Erlingsson (ulfar@) argues that distributing trust is a
+    means of keeping the data collector honest; in order to violate your
+    privacy, they'd have to do it explicitly. It makes an insider attack much
+    harder, avoids inadvertently linking collected data to client identity, and
+    makes it so an outside attacker has two targets instead of one.
+
+
+  \item ``Silent'' versus ``explicit'' collusion. I'll need to be rigorous about
+    what it means to be a valid protocol message.
+
+  \item Compare to mixnets: an active adversary controlling the entry mix can
+    learn the message sent by client it wishes (all-but-one attack). Mounting
+    this attack Riposte would require network control.
+
+  \item Ulfar's straw man scheme: use a ``stock'' secret sharing scheme to map
+    the message to $s$ shares. Generate a random nonce and append it to each of
+    the shares. Send each string to one of the write servers. Once a write
+    server has received $N$ shares, it outputs them to the auditor in a random
+    order.  Once the auditor has received $N$ shares from each of the $s$ write
+    servers, it combines the shares and outputs them in a random order to the
+    data consumer. This protocol fails in two ways. First, one of the write
+    servers could mount the all-but-one attack. (This can be overcome by
+    having the clients encrypt their shares under the public key of the auditor
+    or by making the messages ``self-authenticating'' as suggested by Ilya.)
+    Second, it's possible for one of the write servers to silently collude with
+    the auditor. By not shuffling, a write server communicates the order of
+    arrival to the auditor.
+\end{itemize}
+
+\section{Acknowledgements}
+\input{ack.tex}
+
+\bibliography{main}
+\bibliographystyle{plain}
+
+\end{document}

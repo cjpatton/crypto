@@ -1,0 +1,142 @@
+% security.tex
+%
+% Definition of PRIV1 and PRIV2.
+\label{sec-security}
+
+In this section, we model a coalition of write servers attempting to learn
+something about the message or index chosen by the client. We give two notions
+in figure~\ref{fig-priv}.
+The first applies to DPF schemes and the second to verifiable DPF schemes.
+\begin{figure}[t]
+  \newcommand{\ctr}{\flagfont{ctr}}
+  \twoCols{0.45}
+  {
+    \underline{$\game{\privone}_{\dpf,t}(\advA,\advS)$}\\[2pt]
+    $b \getsr \bits$\\
+    $b^\prime \getsr \advA^{\GENO,\CORO}$\\
+    return $b=b^\prime$
+    \\[6pt]
+    \underline{$\GENO(\idx,\msg)$}\\[2pt]
+    if $C = \bot$ then return $\bot$\\
+    if $\msg \not\in \msgsp \OR \idx \not\in [\dblen]$ then return $\bot$\\
+    if $b=1$ then $(X_1, \ldots, X_\sharect) \getsr \gen(\idx,\msg)$\\
+    else $(X_1, \ldots, X_\sharect) \getsr \advS(C)$\\
+    return $(X_i)_{i\in C}$
+    \\[6pt]
+    \underline{$\CORO(C^\prime)$}\\[2pt]
+    if $C \ne \bot \OR C^\prime \not\subseteq [\sharect] \OR |C^\prime| > t$
+      then\\\tab return $\bot$\\
+    $C \gets C^\prime$\\
+  }
+  {
+    \underline{$\game{\privtwo}_{\dpf,\reqvfy,t}(\advA, \advS)$}\\[2pt]
+    $(K_u)_{u\in P} \getsr \kg$\\
+    $b \getsr \bits$\\
+    $b^\prime \getsr \advA^{\GENO,\ENQO,\DEQO,\CORO}$\\
+    return $b=b^\prime$
+    \\[6pt]
+    \underline{$\GENO^i(\idx,\msg)$}\\[2pt]
+    if $C = \bot$ then return $\bot$\\
+    if $\msg \not\in \msgsp \OR \idx \not\in [\dblen]$ then return $\bot$\\
+    if $b=1$ then $(X_1, \ldots, X_\sharect) \getsr \gen(\idx,\msg)$\\
+    else $(X_1, \ldots, X_\sharect) \getsr \advS(C)$\\
+    \foreach{j}{1}{S}\\
+    \tab $Q_{\writer_j}^i \gets Q_{\writer_j}^i.\enqueue(X_j, \client)$\\
+    return $(X_u)_{u\in C}$
+    \\[6pt]
+    \underline{$\ENQO_{y,x}^i(X)$}\\[2pt]
+      $Q_y^i.\enqueue(X, x)$
+    \\[6pt]
+    \underline{$\DEQO_{y}^i()$}\\[2pt]
+      $(X, x) \gets Q_y^i.\dequeue()$\\
+      $(Y, z, \verdict, \st_y^i) \getsr \vfy_{y,x}^i(K_y, X, \st_y^i)$\\
+      if $C \ne \bot \AND v \in C$ then return $(Y, z, \verdict)$\\
+      else if $z \ne \bot$ then $Q_z^i.\enqueue(Y, y)$\\
+      return $(\bot, z, \verdict)$
+    \\[6pt]
+    \underline{$\CORO(C^\prime)$}\\[2pt]
+    if $C \ne \bot \OR \client \in C^\prime$ then return $\bot$\\
+    if $|C^\prime \intersection \{\writer_j\}_{j\in[\sharect]}| > t$ then return $\bot$\\
+    $C \gets C^\prime$\\
+    return $(K_u)_{u\in C}$
+  }
+  \caption{Security notions for \textbf{(left)} DPF scheme $\dpf = (\gen,
+  \eval)$ with parameters $(\ring, \sharect, \dblen)$ where $\msgsp = \ring
+  \setminus \{0\}$, and
+  \textbf{(right)} verifiable DPF scheme $\dpf$ with write share verification
+  protocol $\reqvfy = (\kg, \vfy)$ executed with principals $P \supseteq \{\client, \writer_1,
+  \ldots, \writer_\sharect\}$.}
+  \vspace{6pt}\hrule
+  \label{fig-priv}
+\end{figure}
+
+\heading{\privone.}
+We describe the simulation-based notion of \cite{riposte,dpf}, which models the
+ability of a coalition of malicious write servers to distinguish their subset of
+the key shares from the output of a simulator. Let $\dpf = (\gen, \eval)$ be a
+standard DPF scheme with parameters $(\ring, \sharect, \dblen)$. Let $\msgsp = R
+\setminus \{0\}$. Refer to the experiment in the left-hand side of
+Figure~\ref{fig-priv} associated to~$\dpf$, adversary~$\advA$,
+simulator~$\advS$, and coalition threshold $t \in \N$ where $1 < t < \sharect$.
+We define the advantage of~$\advA$ in attacking~$\dpf$ in the game instantiated
+with simulator $\advS$ as
+\[
+  \adv{\privone}_{\dpf,t}(\advA,\advS) = 2 \cdot
+  \Prob{ \game{\privone}_{\dpf,t}(\advA,\advS) \outputs \true } - 1.
+\]
+One might informally we say that~$\dpf$ is $(\sharect,t)$-\privone~secure if for
+every ``reasonable'' adversary~$\advA$, there exists an ``efficient''
+simulator~$\advS$ such that $\adv{\privone}_{\dpf,t}(\advA,\advS)$ is ``small''.
+We will forego a rigorous definition and instead give concrete security results.
+
+Achieving security in this sense does not ensure privacy if the write servers
+engage in a write share verification protocol.  We put forward a unified
+approach based on the communication model described in section~\ref{sec-com}.
+
+\heading{\privtwo.}
+Consider the experiment on the right hand side of Figure~\ref{fig-priv}
+associated to DPF scheme $\dpf$, write share verification protocol $\reqvfy =
+(\kg, \vfy)$ with principals $P \supseteq \{\client, \writer_1, \ldots
+\writer_s\}$, coalition threshold~$t$, adversary~$\advA$, and simulator~$\advS$.
+%
+Just as before, the goal of the adversary is to distinguish its subset of the
+write shares from the output of the simulator.
+%
+At the beginning of the game,
+the initialization algorithm~$\kg$ is executed and a random bit~$b$ is chosen.
+%
+When $\advA$ asks $(i, \idx, \msg)$ of~$\GENO$, if $b=1$ then the write share
+generation algorithm is run; otherwise the simulator is run on. Let $(\shares)$
+denote the output. Next, the output $X_j$ is added to the top of the queue of
+write server $\writer_j$ in session $i$ for each $j\in[\sharect]$. Finally, the
+adversary is given the shares corresponding to servers it corrupts.
+%
+Corruptions are made by querying~$\CORO$ with a subset of~$P$. The coalition is
+non-adaptive, meaning the adversary chooses which servers it controls before it may
+query~$\GENO$. It may corrupt any set of principals that does not include the
+client~$\client$ or more than~$t$ write servers. It is given the long-term input
+of each principal it corrupts.
+%
+The adversary is given a~$\ENQO$ oracle and a~$\DEQO$ oracle, which have the
+same semantics as in the \protosec~game defined in figure~\ref{fig-proto}. It is
+on path to any principal it corrupts.
+%
+After interacting with its oracles, the adversary outputs a bit~$b^\prime$. The
+output of the game is the predicate $b=b^\prime$. We define the advantage of
+$\advA$ against $\dpf$ and $\reqvfy$ in the game instantiated with simulator
+$\advS$ as
+\[
+  \adv{\privtwo}_{\dpf,\reqvfy,t}(\advA,\advS) =
+  2 \cdot \Prob{\game{\privtwo}_{\dpf,\reqvfy,t}(\advA,\advS) \outputs \true} - 1.
+\]
+
+\heading{Non-colluding auditor.}
+The 2-server DPF scheme of \cite{riposte} is accompanied by a request
+verification protocol with principals $\{\client, \auditor, \writer_1,
+\writer_2\}$, where $\auditor$ is called the \emph{auditor}. The auditor is not
+trusted more than $\writer_1$ or $\writer_2$, but the non-collusion assumption
+is stronger than usual: namely, that no two servers among $\{\auditor, \writer_1,
+\writer_2\}$ collude. To capture this special case, we let $t=1$. Note,
+however, that our model cannot be used to capture the general case where any set
+of $t$ of $\sharect$ write serves may collude, but no write server colludes with
+$\auditor$. For $\sharect>2$ and $t>1$, we assume the auditor may collude.

@@ -1,0 +1,96 @@
+% twowriter.tex
+
+\label{sec-twowriter}
+\hl{A 2-server+auditor protocol.} The goal here is the strongest-possible notion
+of verifiability using a generic 2-share DPF scheme.
+
+\heading{Notation.}
+Let $X, Y \in \bits^*$.
+%
+Let~$X[i..j]$ denote substring of~$X$ from the $i$-th bit to the $j$-th bit
+inclusively.
+%
+If $|X| = |Y|$, then let $X \xor Y$ denote the bitwise XOR of~$X$ and~$Y$.  If
+$|X| \ne |Y|$, then $X \xor Y$ means to truncate the longer string to the length
+of the shorter string and compute the bitwise XOR of the resulting pair of
+strings.
+%
+Suppose there are positive integers~$m$ and~$n$ such that $|X| = mn$. We write
+$\block{n}{X}{i} = X[ni+1..n(i+1)]$ to denote the $i$-th, $n$-bit block of~$X$.
+Let $\block{n}{X}{i..j} = \block{n}{X}{i} \cat \cdots \cat \block{n}{X}{j}$.
+
+The 2-share DPF scheme of~\cite{dpf} is specified in Figure~\ref{fig-two-dpf}.
+The function~$\prg$ is instantiated with a pseudorandom generator who's
+signature is determined by the lengths of the inputs to the write share
+generation algorithm.
+%
+Let~$\alpha$ and~$\beta$ denote the maximum lengths of~$X$ and~$Y$ respectively.
+%
+By~\cite[Proposition 1]{dpf}, if
+the seed length~$\kappa$ of~$\prg$ is chosen such that $\beta \le \kappa + 1$
+and the number of iterations $r$ is $\lceil \log \alpha \rceil$ as specified in
+Figure~\ref{fig-two-dpf}, then the length of the shares is at most
+$8(\kappa+1)\alpha^{\log 3}\beta^{-\alpha}$ bits. This also upper bounds
+the output length of~$\prg$. \cpnote{We could get a tighter bound on the output
+length using an inductive argument similar to Proposition 1 of~\cite{dpf}.}
+
+
+\begin{figure}
+  \twoColsNoDivide{0.45}
+  {
+    \underline{$\gen(X,Y)$}\\[2pt]
+      $r \gets \lceil \log |X| \rceil$\\
+      $(K_0, K_1) \getsr \gen_r(X,Y)$\\
+      $L \gets \varphi^{-1}(|Y|)$\\
+      return $\str{\str{K_0, L}, \str{K_1, L}}$
+    \\[6pt]
+    \underline{$\gen_{r}(X, Y)$}\\[2pt]
+      if $r=0$ then\\
+      \ind $K_0 \getsr \bits^{|Y|\cdot2^{|X|}}$; $K_1 \gets K_0$\\
+      \ind $x \gets \varphi(X)$; $\block{|Y|}{K_1}{x} \gets \block{|Y|}{K_1}{x} \xor Y$\\
+      \ind return $(K_0, K_1)$\\
+      $m \gets \psi(|X|, |Y|)$; $n \gets |X| - m$\\
+      $I \gets X[1..m]$; $J \gets X[m+1..m+n]$\\
+      $X^* \getsr \bits^\kappa$;
+      $(S_0, S_1) \getsr \gen_{r-1}(I, X^*\cat 1)$\\
+      $(P_0, P_1) \getsr \gen_{r-1}(J, Y)$\\
+      for each $b\in \bits$ do\\
+      \ind $W \gets \eval_{r-1}^{\kappa+1}(S_b, I)$\\
+      \ind $Z \gets W[1..\kappa]$; $t \gets W[\kappa+1]$\\
+      \ind $R_t \gets \prg(Z) \xor P_b$\\
+      \ind $K_b \gets S_b \cat R_0 \cat R_1$\\
+      return $(K_0, K_1)$
+  }
+  {
+    \underline{$\eval(\str{K,L}, X)$}\\[2pt]
+      $r \gets \lceil \log |X| \rceil$\\
+      $\ell \gets \varphi(L)$\\
+      $Y \gets \eval^\ell_r(K, X)$\\
+      return $Y$
+    \\[6pt]
+    \underline{$\eval_{r}^\ell(K, X)$}\\[2pt]
+      if $r=0$ then $x \gets \varphi(X)$; return $\block{\ell}{K}{x}$\\
+      $m \gets \psi(|X|, \ell)$; $n \gets |X| - m$\\
+      $I \gets X[1..m]$; $J \gets X[m+1..m+n]$\\
+      \comment{Parse $K$ into sub-strings.}\\
+      $S \gets K[1..|K|-2n\ell]$;
+      $R \gets K[|K|-2n\ell+1..|K|]$\\
+      $R_0 \gets \block{\ell}{R}{1..n}$;
+      $R_1 \gets \block{\ell}{R}{n+1..2n}$\\
+      \comment{Expand row.}\\
+      $W \gets \eval_{r-1}^{\kappa+1}(S, I)$\\
+      $Z \gets W[1..\kappa]$; $t \gets W[\kappa+1]$\\
+      $P \gets \prg(Z) \xor R_t$\\
+      \comment{Evaluate cell.}\\
+      $Y \gets \eval_{r-1}^\ell(P, J)$\\
+      return $Y$
+  }
+  \caption{The 2-share DPF scheme of \cite{dpf}.
+  Let $\prg : \bits^\kappa \to \bits^\infty$ be a function,
+  let $\varphi : \bits^* \to \Z^+$ be the bijection between a string and the
+  positive integer it represents (according to some fixed encoding), and let
+  $\psi(\alpha,\beta) = \lceil 1/2 \cdot
+  \log({\beta\cdot2^{\alpha}}/{(\kappa+1)}) \rceil$.
+  }
+  \label{fig-two-dpf}
+\end{figure}

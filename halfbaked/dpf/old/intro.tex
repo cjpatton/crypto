@@ -1,0 +1,248 @@
+% intro.tex
+%
+% Introduction.
+\label{sec-intro}
+
+\hl{So here's where I wanna go with this.}
+I've written up the scheme of Gilboa+Ishai in Section~\ref{sec-twowriter}.
+Consider making this scheme ``verifiable''. Currently the idea is to add a
+$0^t$ tag to the message. The write servers MAC the last~$t$ bits of each row of
+their evaluated share; the auditor then checks to make sure the MACs are the same.
+\begin{itemize}
+  \item Give up on proofs for Riposte. What is the simplest, strongest notion
+    that captures the security of such a mechanism?
+
+  \item How to modify the Gilboa+Ishai construction? Does this require a
+    stronger assumption about PRGs? If so, could I add more crypto in key share
+    generation so that I don't need stronger assumptions?
+
+  \item Gilboa+Ishai scheme is more naturally expressed in terms of strings~$X$
+    and~$Y$ rather than table index~$\idx$ and message $\msg \in \ring
+    \setminus\{0\}$, where $\ring$ is a ring. The reason to use this is for
+    capturing the $(\sharect,\sharect-1)$-private Riposte scheme. Maybe just use
+    this notation for this special case?
+
+  \item Change \emph{write shares} to \emph{key shares}. Share verification
+    makes sense both in the read-from and write-to settings.
+
+  \item Frame the Riposte schemes as extensions of Gilboa+Ishai's level-1
+    scheme.
+\end{itemize}
+\hl{And now back to our featured presentation.}
+
+% PIR is the motivation for formalizing DPF schemes.
+Distributed point functions were first proposed by Niv Gilboa and Yuval Ishai
+\cite{dpf} as a building block for private information retrieval (PIR) systems,
+whose study was initiated by Benny Chor et al \cite{pir}. The goal of such
+systems is to allow a client to query a database without divulging to the
+service provider the query or the result of the query.
+%
+Traditionally the query is a predicate of the database modeled as a binary
+string~$D$. For example, the client might like to learn the~$\idx$-th bit of~$D$
+without revealing~$\idx$.
+%
+Keyword search~\cite{pir-kws} is another application whereby the database
+encodes a set of strings and the query is whether a particular string is in the
+set.
+%
+Closely related is the problem of private information storage (PIS) put forward
+by Rafail Ostrovsky and Victor Shoup~\cite{pis} where the goal is to write a bit
+to~$\idx$-th row of~$D$ without revealing to the service provider which bit was
+modified.
+
+% Communication and threat model of PIR systems.
+The most efficient PIR systems distribute the database among a set of servers.
+%
+The client maps its query to a sequence of shares and sends one to each
+of~$\sharect$ servers. Each evaluates its share on its local state and returns
+the result to the client. Combining the results of each of the servers yields
+the result of the query.
+%
+Privacy of the user's query is achieved under the assumption of non-collusion,
+meaning that honest servers do not communicate outside of the protocol.
+Correspondingly, we consider security with respect to a \emph{coalition} of
+malicious servers who may act arbitrarily to violate the privacy of the query.
+%
+The adversary is only given a partial view of the network. In particular, it
+sees only the messages sent to a server in the coalition.
+%
+Informally, we say a PIR system is $(\sharect,t)$-private if no coalition of at
+most~$t$ servers can deduce the query from their shares alone.
+
+% Syntax of DPF schemes.
+\heading{DPF schemes.}
+Each of the queries described above can be written as a point function.
+%
+The \emph{point function} of $(X,Y) \in (\bits^*)^2$ is defined by $P_{X,Y}(X) =
+Y$ and $P_{X,Y}(X^\prime) = 0^{|Y|}$ for every $X^\prime \ne X$.
+%
+Gilboa and Ishai define a \emph{distributed point function} (DPF) scheme as a
+pair of algorithms $(\gen, \eval)$ where $\gen$ probabilistically maps $(X,Y)$
+to a sequence of shares $(K_1, \ldots, K_\sharect)$ and $\eval$
+deterministically maps $(K_i, X^\prime)$ to a $|Y|$-bit string such that
+$P_{X,Y}(X^\prime) = \xor_{i=1}^s \eval(K_i, X^\prime)$ for every $X^\prime$.
+
+% Bandwidth is the main concern.
+A simple way to construct a DPF is to let $\eval(K_0, \cdot)$ be a random
+function and let $\eval(K_1, \cdot) = P_{X,Y}(\cdot) \xor \eval(K_0, \cdot)$.
+%
+This yields a 2-server PIR protocol that is information theoretically
+$(2,1)$-private, but the length of the shares is exponential in $|X|$. Indeed,
+one of the main goals of PIR systems is to minimize the communication bandwidth.
+%
+It is well known that polynomial-length encodings are possible. Even shorter
+encodings are possible in the computational setting; Gilboa and Ishai \cite{dpf}
+give the most bandwidth efficient, 2-share DPF scheme known, which achieves
+polylogarithmic bandwidth and is secure against polynomial-time adversaries.
+
+% Overview of Riposte.
+\heading{Riposte.}
+Distributed point function schemes are central to the design of Riposte
+\cite{riposte}, a cryptosystem recently proposed by Henry Corrigan-Gibbs, Dan
+Boneh, and David Mazi\`{e}res,
+which allows clients to anonymously write messages to a database. It can be used
+by a service provider to collect usage data, crash reports, and other metrics
+without revealing to the data collector who sent the report.\footnote{ This
+application assumes, crucially, that the report itself does not contain
+personally identifiable information about the sender.} It can also be used to
+facilitate anonymous communication by making the contents of the database
+public, with the advantage of being much more scalable than mix- or DC-nets
+\cite{mix-nets,dc-nets} while providing stronger defense against traffic analysis
+than onion routing networks \cite{tor}.
+
+A client initiates a \emph{write request} by mapping its message to a sequence
+of~$\sharect$ \emph{write shares} and sends each to one of~$\sharect$ distinct
+\emph{write servers}. When a write server receives a share, it updates its local
+state.  After processing the requests of~$\cohortct$ different clients, it
+outputs its state to the data consumer. Finally, the data consumer recovers the
+set of messages written to the database by combining the states of each of the
+write servers.
+
+% Overview of the security properties of Riposte.
+The designers specify two DPF schemes: one that is $(2,1)$-private and another
+that is $(\sharect, \sharect-1)$-private for any $\sharect$. Their use in the
+Riposte system is similar to PIS. Each server $i$ maintains a share of the
+database modeled as an $\dblen$-vector $\dbst_i$ of $n$-bit strings, each
+initially equal to $0^n$. To write a message $\msg \in \bits^n$ into the
+database, the client executes $(X_1, \ldots X_\sharect) \getsr \gen(\str{\idx},
+\msg)$, where $\str{\idx}$ is the encoding of a randomly chosen
+$\idx\in[\dblen]$. When it receives its share, server $i$ updates its state by
+letting $\dbst_i[\idx^\prime] = \dbst_i[\idx^\prime] \xor \eval(X_i,
+\str{\idx^\prime})$ for every $\idx^\prime\in[\dblen]$. (Recall that
+$P_{\str{\idx},\msg}(\str{\idx^\prime}) = \xor_{i=1}^\sharect \eval(X_i,
+\str{\idx^\prime})$.) Suppose client 1 writes $\msg_1$ into row $\idx_1$ and
+then client 2 writes $\msg_2$ into a different row $\idx_2$.  Given their shares
+and the final states of every server, no coalition of at most $\sharect-1$
+servers can link either message to its sender given only its key shares and the
+outputs of the servers. Intuitively, this is because the view of the adversary
+is identically distributed no matter what order the clients send their write
+requests.\cpnote{I'm being hand-wavy about this claim.  \cite{riposte} give a
+security notion for anonymity, but I don't think they show that security of the
+DPF implies anonymity. This could be interesting to show rigurously in our
+paper.}
+
+% The need for write share verification.
+\heading{Disruption resistance.}
+The fact that many users write to a single database poses a problem not
+considered in the PIS setting. By sending one or more of the write servers a
+mal-formed write share, a malicious client, or network adversary who intercepts
+the client's messages, can corrupt the database state.
+%
+For example, suppose we let $\eval(X_1, \cdot)$ be a random function and
+$\eval(X_2, \cdot) = P_{X,Y}(\cdot) \xor \eval(X_1, \cdot)$ as in the simple
+$(2,1)$-private scheme described above.
+%
+A malicious client could instead let $\eval(X_2, \cdot)$ be a random function
+independent of $\eval(X_2, \cdot)$.
+As a result, the combined state $\dbst[\idx^\prime] = \dbst_1[\idx^\prime] \xor
+\dbst_2[\idx^\prime]$ will be indistiguishable from a random string for every
+$\idx^\prime \in[\dblen]$, rendering the entire database unrecoverable.
+
+It is therefore crucial in this setting that the write servers be able to verify
+their shares are well-formed, meaning that they yield the point function of some
+index~$\idx$ and message~$\msg$. Roughly speaking, the system is
+\emph{disruption resistant} \cite{riposte} if the write servers engage in a
+protocol (possibly with a third party \emph{auditing server}), which allows them
+to detect malicious clients, but leaks no information about the inputs (even to
+the auditor). It is assumed that each server faithfully executes the protocol.
+Disrupting the protocol amounts to a denial-of-service attack \cite{riposte},
+which a malicious server can always do anyway by corrupting its own state.
+Since we cannot hope to defend against disrupting servers, we require only that
+disrupting the protocol does not violate privacy.
+The designers give protocols for verifying write requests for both the 2-server
+and $\sharect$-server variants of Riposte. The former involves a non-colluding
+auditor, thus achieving greater efficiency than the latter, which requires an
+expensive multiparty computation.
+
+% I'm not sure if this is what I want the paper to say.
+\if{0}
+% Security of their composed notions is unclear.
+Their proofs are modular in the sense that the privacy property of the DPF
+scheme is treated separately from the privacy property of the write share
+verification protocol. However, it is not clear that the respective security
+notions compose in a way that ensures end-to-end security of the client's write
+request. The DPF adversary is active in the sense that a coalition of
+malicious servers may act arbitrarily to violate security. On the other hand,
+the privacy adversary in the verification protocol is semi-honest in the sense
+that the servers execute the protocol faithfully. (In particular, they do not
+collude.) Since the latter adversary is weaker than the former, there might be
+share verification protocols that are private with respect to semi-honest
+adversaries, but not active, colluding ones.
+
+% Thesis.
+It is not our contention that the protocols of \cite{riposte} are not end-to-end
+secure; in fact, we find that they are. Rather, our thesis is that a unified
+analytical framework is needed in order to avoid proposing protocols that do not
+compose securely. In addition, we find that this approach yields simpler, more
+efficient designs.
+\fi
+
+\heading{Our contributions.}
+We endow DPF schemes with a property called \emph{verifiability}, which demands
+that the composition of the DPF scheme with a write request verification protocol
+be secure. We define the simulation-based notion of \cite{dpf,riposte} for
+standard DPF schemes, which models an active coalition of malicious write
+servers (PRIV1). We give a new notion, which extends this model to include
+the execution of the verification protocol (PRIV2). To accomplish this, we give
+the adversary access to oracles, which provide it with its view of the
+protocol's execution. In particular, we assume the adversary only has access to
+messages sent to colluding servers.
+
+\noindent\hl{Here's a list of things we can consider doing:}
+\begin{enumerate}
+  \item Prove the protocols of \cite{riposte} suffice for PRIV2, but show that
+    more efficient protocols are possible in our new framework. In particular,
+    we extend the execution model by allowing the write servers to have private
+    keys. This immediately yields a more efficient variant of their
+    2-server+auditor protocol by using a PRF with a shared key instead of
+    telephone coin-flipping to establish a shared set of pairwise independent
+    hash functions.
+
+  \item 1-round, 2-serer+auditor protocol in a weaker trust model. (An auditor
+    may collude with one write server.) What I'm thinking is that clients append
+    $0^t$ to their message before applying $\gen$. The write server computes the
+    ``tag'' from the write share by applying a PRF to the string resulting from
+    successively concatenating the last $t$ bits of $Y_\idx = \eval(X_i, \idx)$
+    for each $\idx$ from 1 to $\dblen$. The auditor just makes sure that the tags
+    match. I'm not sure what properties are required of the PRG. Using the
+    scheme of \cite{dpf}, this would yield a scheme that is much more efficient
+    than Riposte in terms of communication complexity and bandwidth, yet
+    functions in a weaker trust model. (Note that this answers two of their open
+    questions in the affirmative.)
+
+  \item 1-round, $2^t$-server+auditor protocol where the auditor is colluding,
+    using the methods of \cite{dpf-multi-server}? This yields $(2^t,
+    t)$-privacy.
+
+  \item Reduce the round complexity of their $\sharect$-server protocol? Theirs
+    is $(\sharect, \sharect-1)$-private. (This addresses one of their open
+    questions.)
+
+  \item The protocol in (1) actually achieves security against a stronger
+    adversary, one that intercepts all messages sent between servers in the
+    protocol. Consider the application where Google wants to collect crash
+    reports. It operates each of the servers, but is also likely on path between
+    each of the servers. (It probably operates the network infrastructure!)
+    The protocols of \cite{riposte} DO NOT achieve this stronger notion,
+    however.
+\end{enumerate}

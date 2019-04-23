@@ -1,0 +1,97 @@
+% macros.tex
+%
+% Macros for this paper. Include headers.tex, then this file.
+
+% Notions
+\newcommand{\privone}{\notionfont{PRIV1}}
+\newcommand{\privtwo}{\notionfont{PRIV2}}
+\newcommand{\disres}{\notionfont{DR}}
+\newcommand{\protosec}{\notionfont{PROTO}}
+
+% Formal languages
+\newcommand{\lang}{\mathcal{L}}
+
+% String operations
+\newcommand{\block}[3]{{#2[\hspace*{-1.1pt}[#3]\hspace*{-1.1pt}]_{#1}}}
+
+% Randomized algorithms
+\newcommand{\coins}{r}
+
+% Crypto primitives
+\newcommand{\prf}{\mathrm{F}}
+\newcommand{\prg}{\mathrm{G}}
+\newcommand{\hash}{\mathrm{H}}
+
+% - Security of PRGs
+\newcommand{\prggame}[2]{\game{prg}_{#1}(#2)}
+\newcommand{\prgadv}[2]{\adv{prg}_{#1}(#2)}
+
+% Adversaries
+\newcommand{\advA}{\adversaryfont{A}}
+\newcommand{\advB}{\adversaryfont{B}}
+\newcommand{\advS}{\adversaryfont{S}}
+
+% Queues
+\newcommand{\enqueue}{\schemefont{enqueue}}
+\newcommand{\dequeue}{\schemefont{dequeue}}
+
+% Protocols
+\newcommand{\protocol}{\mathrm{\Gamma}}
+\newcommand{\proto}{\schemefont{Proto}}
+\newcommand{\init}{\schemefont{Init}}
+
+% - Special symbols
+\renewcommand{\st}{\sigma}
+\newcommand{\verdict}{\delta}
+\newcommand{\accept}{1}
+\newcommand{\reject}{0}
+\newcommand{\sess}{*}
+
+% - Game oracles
+\newcommand{\ENQO}{\oraclefont{Push}}
+\newcommand{\DEQO}{\oraclefont{Pop}}
+
+% Point functions
+\newcommand{\ring}{R}
+\newcommand{\msgsp}{\mathcal{M}}
+\newcommand{\msg}{M}
+\newcommand{\idx}{\ell}
+
+% DPF schemes
+\newcommand{\dpf}{\mathrm{\Pi}}
+\newcommand{\gen}{\schemefont{Gen}}
+\newcommand{\eval}{\schemefont{Eval}}
+\newcommand{\dblen}{L}
+\newcommand{\sharect}{S}
+\newcommand{\shares}{X_1, \ldots, X_\sharect}
+\newcommand{\client}{u}
+\newcommand{\writer}{w}
+\newcommand{\auditor}{v}
+
+% - Game oracles
+\newcommand{\GENO}{\textsc{Gen}}
+\newcommand{\CORO}{\textsc{Cor}}
+
+% - Verifiable DPF schemes
+\newcommand{\reqvfy}{\mathrm{\Gamma}}
+\newcommand{\kg}{\schemefont{Kg}}
+\newcommand{\vfy}{\schemefont{Vfy}}
+
+% Riposte
+\newcommand{\cohortct}{N}
+\newcommand{\almosteq}{\schemefont{almosteq}}
+\newcommand{\verifykey}{\schemefont{verifykey}}
+
+% Miscellaneous variables
+\newcommand{\vecu}{\vectorfont{u}}
+\newcommand{\vecv}{\vectorfont{v}}
+\newcommand{\vecw}{\vectorfont{w}}
+\newcommand{\state}{\vectorfont{s}}
+\newcommand{\dbst}{\vectorfont{D}}
+\newcommand{\result}{\vectorfont{r}}
+\newcommand{\vecs}{\vectorfont{s}}
+\newcommand{\vece}{\vectorfont{e}}
+\newcommand{\vecx}{\vectorfont{x}}
+\newcommand{\vecy}{\vectorfont{y}}
+\newcommand{\vect}{\vectorfont{t}}
+\newcommand{\Y}{\vectorfont{Y}}

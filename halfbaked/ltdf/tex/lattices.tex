@@ -1,0 +1,70 @@
+We present Peikert and Water's lattice-based construction. First, we review the
+necessary background and state underlying assumptions.
+
+\subsection{Background}
+If $x \in \R$, then let $\nearint{x}=\lfloor x+1/2 \rfloor$.
+%
+Let~$\T$ denote the additive group of reals modulo~1.
+%
+Let $\vecx$ and $\vecy$ be vectors.  Then $\inprod{\vecx,\vecy} =
+x_1 y_1 + \ldots + x_n y_n$ where $|\vecx| = |\vecy| = n$.
+
+Let $x \getsdist{\chi} S$ denote sampling~$x$ from a set according to
+distribution to probability distribution $\chi : S \to [0,1]$.\footnote{Note
+that~$S$ may be \emph{uncountably infinite.} In contrast, the usual notation $x \getsr S$ means
+to sample~$x$ uniformly from a \emph{finite} set~$S$.  (Similarly, $x \getsr
+A(y_1, \ldots)$ means to a sample a sequence of uniform random coins~$r$ and run
+$A(y_1, \ldots \,;r)$.)}
+%
+\if{0}
+If~$X$ is normally distributed with mean~$0$ and variance~$\sigma_1^2$ and~$Y$
+is normally distributed with mean~$0$ and variance $\sigma_2^2$, then $X+Y$ is
+normally distributed with mean~$0$ and variance $\sigma_1^2 + \sigma_2^2$.
+%
+If $X$ is normally distributed with mean~$\mu$ and variance~$\sigma^2$,
+then
+\[
+  \prob{ |X-\mu| \leq t\sigma } \geq 1-1/t \cdot \exp(-t^2/2) \,.
+\]
+\fi
+%
+Let $\alpha \in\R$ be a positive number and let $\mathrm{\Psi}_\alpha$ denote
+normal distribution over~$\T$ with mean~$0$ and standard deviation
+$\alpha/\sqrt{2\pi}$.
+%
+Let $q$ be a positive integer.  For any probability distribution $\phi : \T \to
+[0,1]$, define its $q$-ary discretization as the discrete distribution
+$\bar{\phi} : \Z_q \to [0,1]$ of the random variable $\nearint{q \cdot X} \mod
+q$, where $X \getsdist{\phi} \T$.
+%
+Let $q,d$ be positive integers where $q \geq 2$,  let $\chi : \Z_q
+\to [0,1]$ be a probability distribution, and let $\vecz \in (\Z_q)^d$. Let
+$A_{\vecz,\chi}$ be the distribution over $(\Z_q)^d \cross \Z_q$ of the random
+variable $(\veca, \inprod{\veca,\vecz} + e)$ where $\veca \getsr (\Z_q)^d$ and
+$e \getsdist{\chi} \Z_q$. (Addition and multiplication are mod $q$.)
+
+\paragraph{The learning-with-errors (LWE) problem.} The \lwe assumption is that
+$A_{\vecz,\chi}$ is computationally indistinguishable from the uniform
+distribution on $(\Z_q)^d \cross \Z_q$. More formally, the following quantity is
+small for reasonable adversaries~$\advA$:
+\begin{eqnarray*}
+  \Adv{\lwe}_{\chi,q,d}(\advA) = 2\cdot \Pr\Big[&&
+    \vecx_1, \vecz \getsr (\Z_q)^d;
+    e \getsdist{\chi} \Z_q;
+    y_1 \gets \inprod{\vecx_1, \vecz} + e;\\
+  &&
+    (\vecx_0, y_0) \getsr (\Z_q)^d \cross \Z_q;\\
+  &&
+    b \getsr \bits: \advA(\vecx_b, y_b) \outputs b
+  \;\;\Big] - 1 \,.
+\end{eqnarray*}
+%
+Let $d$ be a positive integer, $\alpha \in (0,1)$, and $q$ be a prime number
+such that $\alpha q > 2\sqrt{d}$.
+%
+Oded Regev proved that \lwe is hard for $q$, $d$, and
+$\bar{\mathrm{\Psi}}_\alpha$ if standard shortest vector problems for lattices,
+i.e. SIVP and GapSVP, are hard \emph{in the worst case} for \emph{quantum
+algorithms} \cite{regev05} for these parameters.
+
+\note{To-Do: Detail the construction.}

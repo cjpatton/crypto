@@ -1,0 +1,135 @@
+% riposte.tex
+%
+% Specification of Riposte protocols.
+\label{sec-riposte}
+
+\subsection{The $2$-server+auditor protocol}
+\begin{figure}
+\twoColsNoDivide{0.45}
+{
+  \underline{algorithm $\gen(\idx, \msg)$}\\[2pt]
+  if $\msg \not\in \msgsp \OR \idx \not\in [\dblen]$ then return $\bot$\\
+  $(i, j) \gets (\lceil \idx/y \rceil, \idx - \lfloor \idx/y \rfloor)$\\
+  $r_A \getsr \bits^x$; $r_B \gets r_A \xor e_i$\\
+  $\vecs_A \getsr (\bits^k)^x$ \\
+  $\vecs_B \gets \vecs_A$; $\vecs_B[i] \getsr \bits^x$ \\
+  $\vecx_A \gets \prg(\vecs_A[i])$; $\vecx_B \gets \prg(\vecs_B[i])$ \\
+  $\vecv \gets \msg\cdot \vece_j + \vecx_A + \vecx_B$ \\
+  $X_A \gets \str{r_A, \vecs_A, \vecv}$; $X_B \gets \str(r_B, \vecs_B, \vecv)$\\
+  return $(X_A, X_B)$
+}
+{
+  \underline{algorithm $\eval(X, \idx)$}\\[2pt]
+  if $\idx \not\in [\dblen]$ then return $\bot$\\
+  $(i, j) \gets (\lceil \idx/y \rceil, \idx - \lfloor \idx/y \rfloor)$\\
+  $\str(r, \vecs, \vecv) \gets X$\\
+  $\vecx \gets \prg(\vecs[i])$\\
+  if $r[i] = 1$ then return $\vecv[j] + \vecx[j]$\\
+  else return $\vecx[j]$
+}
+\caption{The 2-share DPF scheme of \cite{riposte} constructed from a PRG
+  $\prg$.}
+\label{fig-riposte-2share}
+\end{figure}
+We specify the construction of \cite{riposte} of a 2-share DPF scheme from a
+PRG. Let $\dpf = (\gen, \eval)$ be the DPF scheme defined in
+figure~\ref{fig-riposte-2share} with parameters $(\ring, \sharect, \dblen, x,
+y)$ where $x$ and $y$ are positive powers of 2 and $xy \ge \dblen$.
+We fix some encoding of each abstract point in $\ring$ as an $n$-bit string for
+$n \in \N$.
+Let $\vece_i$ denote the
+$y$-vector over $\ring$ with $0$ in each position except for the $i$-th, which is 1.
+Let $e_i$ denote the $x$-bit string with 0's everyone except for the $i$-th bit.
+Let $\prg : \bits^x \to \bits^{yn}$ be a function.
+When we write $\vecx \gets w$ where $w \in \bits^{yn}$, we mean divide $w$ into
+a sequence of $n$-bit strings and map each string to its corresponding point in
+$\ring$.
+
+\heading{Optimal choice for $x$ and $y$.}
+According to \cite{riposte}, the length of the keys is $x(s+1) + yn$. The
+optimal values for $x$ and $y$ are $x = c\sqrt{\dblen}$ and $y =
+c^{-1}\sqrt{\dblen}$ where $c = \sqrt{n/(1+s)}$. Hence, the share size is
+$O(\sqrt{\dblen})$.
+
+\heading{Verifying the write shares.}
+\begin{figure}
+  \oneCol{0.90}{
+
+  \underline{proto $\verifykey(X_A, X_B)$}\\
+  \vspace{-2pt}
+  \begin{enumerate}[leftmargin=*]
+    \item Server $A$: $\str(r_A, \vecs_A, \vecv) \gets X_A$; for each $i \in [x]$,
+      do $\vect_A[i] \gets r_A[i] \cat \vecs_A[i]$. Server $B$ does the same
+      with its input. Execute $\almosteq(\vect_A, \vect_B)$. If the result is
+      $\reject$, then $A$ and $B$ output $\reject$.
+
+    \item Server $A$: $\vecu_A \gets \sum_{i=1}^x \prg(\vecs_A[i])$.
+      Server $B$: $\vecu_B \gets \vecv + \sum_{i=1}^x \prg(\vecs_B[i])$.
+      Execute $\almosteq(\vecu_A, \vecu_B)$. Both $A$ and $B$ output the result.
+  \end{enumerate}
+
+  \vspace{2pt}
+  \underline{proto $\almosteq(\vecv_A, \vecv_B)$}\\
+  \vspace{-2pt}
+  \begin{enumerate}[leftmargin=*]
+    \item Let $m = |\vecv_A| = |\vecv_B|$. Servers $A$ and $B$ engage in a
+      coin-flipping protocol \cite{telephone} in order to establish a shared
+      $(mk + \lg m)$-bit string $R$. Let $(K_1, \ldots, K_m)$ denote the first
+      $m$ $k$-bit chunks of $R$ and let $F$ denote the last $(\lg m)$-bit chunk.
+
+    \item Server $A$: for each $i \in [m]$, let $m_i = \hash(K_i, \vecv_A[i])$.
+      Let $f \in [m]$ denote the positive integer encoded by $F$. Send
+      $(m_f, m_{f+1}, \ldots,$ $m_1, \ldots m_{f-1})$ to $C$. Server $B$ does
+      the same.
+
+    \item Auditor $C$ checks that the sequence of messages received from $A$ and $B$
+      differ by exactly one element. Output $\accept$ if this holds and
+      $\reject$ otherwise.
+  \end{enumerate}
+  \vspace{1pt}
+  }
+  \caption{A 3-party protocol for verifying the write shares are well-formed. The
+  function $\hash$ is an $\epsilon$-almost-universal hash function with key
+  space $\bits^k$.}
+  \label{fig-riposte-2server+auditor}
+\end{figure}
+The request verification protocol for $\dpf$ suggested by \cite{riposte} is
+specified in figure~\ref{fig-riposte-2server+auditor}. The principals are $A$,
+$B$, and $C$ where the $A$ is the first write server, $B$ the second, and $C$ is
+the auditor.
+Our presentation differs from \cite{riposte} in two respects.
+One, a step of the protocol requires that the write servers perform a
+coin-flipping protocol in order sample from a family of pairwise-independent
+universal hash functions.  However, in their implementation, they instantiate
+this process by sharing keys for the Poly1305 almost-universal hash function
+designed by Dan Bernstein \cite{poly1305}. We make this explicit in the
+presentation.  Let $k,t \in \N$, $\epsilon \in (0,1]$, and $\hash : \bits^k \by
+\bits^* \to \bits^t$ be an $\epsilon$-almost universal hash function.
+Two, we require that $x$ and $y$ be powers of 2. This ensures that we always
+perform the coin flipping protocol \cite{telephone} a finite number of times.
+
+\heading{A complexity improvement.}
+Implementing the coin-flipping protocol would be prohibitively expensive. In
+practice, one would replace this protocol with a PRG, whose seed is shared by
+$A$ and $B$,\cpnote{This was suggested to me by Henry.} but this makes the
+analysis much more complex. Instead, we modify the protocol to use a PRF whose
+key is shared by $A$ and $B$.
+
+\noindent\hl{Things to do here:}
+\begin{itemize}
+  \item Specify the modified protocol $\reqvfy$. Show that it is complete.
+
+  \item Show that $\reqvfy$ is disruption resistant if the underlying PRF
+    satisfies its security notion.
+
+  \item Show that the composition of $\dpf$ and $\reqvfy$ is PRIV2 secure for
+    $t=1$ if the underlying primitives (a PRG and a PRF) satisfy their
+    respective security notions.
+\end{itemize}
+
+\subsection{The $s$-server protocol}
+\noindent\hl{Things to do here:}
+\begin{itemize}
+  \item Specify their $s$-share DPF scheme and $s$-server request verification
+    protocol. This involves something they call a seed-homomorphic PRG.
+\end{itemize}

@@ -1,0 +1,108 @@
+% macros.tex
+%
+% Macros for this paper. Include headers.tex, then this file.
+
+% Notions
+\newcommand{\priv}{\notionfont{PRIV}}
+\newcommand{\err}{\notionfont{ERR}}
+\newcommand{\prf}{\notionfont{PRF}}
+\newcommand{\prg}{\notionfont{PRG}}
+\newcommand{\privone}{\notionfont{PRIV1}}
+\newcommand{\privtwo}{\notionfont{PRIV2}}
+\newcommand{\disres}{\notionfont{DR}}
+\newcommand{\protosec}{\notionfont{PROTO}}
+
+% Queues
+\newcommand{\enqueue}{\schemefont{enqueue}}
+\newcommand{\dequeue}{\schemefont{dequeue}}
+
+% Protocols
+\newcommand{\protocol}{\mathrm{\Gamma}}
+\newcommand{\proto}{\schemefont{Proto}}
+\newcommand{\init}{\schemefont{Init}}
+
+% - Special symbols
+\renewcommand{\st}{\sigma}
+\newcommand{\verdict}{\delta}
+\newcommand{\accept}{1}
+\newcommand{\reject}{0}
+\newcommand{\sess}{*}
+
+% String operations
+\newcommand{\block}[3]{{#2[\hspace*{-1.1pt}[#3]\hspace*{-1.1pt}]_{#1}}}
+
+% - Security of PRGs
+\newcommand{\prggame}[2]{\game{prg}_{#1}(#2)}
+\newcommand{\prgadv}[2]{\adv{prg}_{#1}(#2)}
+
+% Adversaries
+\newcommand{\advA}{\adversaryfont{A}}
+\newcommand{\advB}{\adversaryfont{B}}
+\newcommand{\advS}{\adversaryfont{S}}
+\renewcommand{\sim}{\advS}
+
+% DPFs
+\def\pt[#1,#2,#3]{{#1}_{#2,#3}}
+\newcommand{\idxsp}{\setfont{I}}
+\newcommand{\msgsp}{\setfont{M}}
+\newcommand{\nil}{0}
+
+\newcommand{\ring}{R}
+\newcommand{\dblen}{L}
+\newcommand{\sharect}{S}
+
+% Formal languages
+\newcommand{\lang}{\mathcal{L}}
+
+% DPF schemes
+\newcommand{\dpf}{\mathrm{\Pi}}
+\newcommand{\gen}{\schemefont{Gen}}
+\newcommand{\eval}{\schemefont{Eval}}
+\newcommand{\comb}{\schemefont{Comb}}
+\newcommand{\key}{K}
+\newcommand{\keysp}{\setfont{K}}
+\newcommand{\shares}{\vectorfont{X}}
+\newcommand{\idx}{\ell}
+\newcommand{\msg}{M}
+\newcommand{\row}{Y} %FIXME better term?
+\newcommand{\rows}{\vectorfont{Y}}
+\newcommand{\share}{X}
+\renewcommand{\gid}{1}
+\newcommand{\gop}{\cdot}
+\newcommand{\client}{u}
+\newcommand{\writer}{w}
+\newcommand{\auditor}{v}
+
+% - Verifiable DPF schemes
+\newcommand{\reqvfy}{\mathrm{\Gamma}}
+\newcommand{\kg}{\schemefont{Kg}}
+\newcommand{\vfy}{\schemefont{Vfy}}
+
+% Riposte
+\newcommand{\cohortct}{N}
+\newcommand{\almosteq}{\schemefont{almosteq}}
+\newcommand{\verifykey}{\schemefont{verifykey}}
+
+% Game oracles
+\newcommand{\GENO}{\oraclefont{Gen}}
+\newcommand{\EVALO}{\oraclefont{Eval}}
+\newcommand{\REPO}{\oraclefont{Rep}}
+\newcommand{\TESTO}{\oraclefont{Test}}
+\newcommand{\ENQO}{\oraclefont{Push}}
+\newcommand{\DEQO}{\oraclefont{Pop}}
+\newcommand{\CORO}{\oraclefont{Cor}}
+
+% Miscellaneous variables
+\newcommand{\coins}{r}
+\newcommand{\ct}{\mathit{ct}}
+
+% - vectors
+\newcommand{\uu}{\vectorfont{u}}
+\newcommand{\vv}{\vectorfont{v}}
+\newcommand{\yy}{\vectorfont{y}}
+\newcommand{\dbst}{\vectorfont{D}}
+\newcommand{\result}{\vectorfont{r}}
+
+% - sets
+\newcommand{\setS}{\setfont{S}}
+\newcommand{\setC}{\setfont{C}}

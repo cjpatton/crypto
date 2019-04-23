@@ -1,0 +1,103 @@
+% syntax.tex
+%
+% Syntax of DPF schemes and verifiable DPF schemes, definitions of correctness,
+% completeness, and soundness.
+\label{sec-syntax}
+
+A \emph{distributed point function} (DPF) scheme is a pair of probabilistic
+algorithms $\dpf = (\gen, \eval)$ with associated parameters $(\ring, \sharect,
+\dblen)$ where~$\ring$ is a finite ring and $\sharect, \dblen \in \N$.
+%
+We call $\msgsp = \ring \setminus \{0\}$ the \emph{message space},
+$\sharect$ the \emph{share count},and $\dblen$ the \emph{database length}.
+%
+On input of integer $\idx \in [\dblen]$, called the \emph{database index}, and
+message $\msg \in \msgsp$, the share generation algorithm~$\gen$ outputs a
+sequence of strings $(X_1, \ldots, X_\sharect)$ called \emph{write shares}.
+%
+On input of
+write share~$X$ and index~$\idx$, algorithm~$\eval$ deterministically
+outputs an element of~$\ring$.
+%
+A DPF scheme is \emph{correct} if for every $\idx, \idx^\prime \in [\dblen]$ and
+$\msg \in \msgsp$, it holds that
+\[
+  \Prob{ (X_1, \ldots, X_s) \getsr \gen(\idx,\msg):
+       \sum_{i=1}^S \eval(X_i, \idx^\prime) = P_{\idx,\msg}(\idx^\prime)} = 1.
+\]
+where $P_{\idx,\msg}$ denotes the point function of $(\idx, \msg)$.\cpnote{One
+might consider endowing the write share generator with a key. This would admit
+deterministic constructions, which would be more efficient. They write share
+generator of Riposte uses \emph{a lot} of random bits.}
+
+To initiate a write request, the client runs $(X_1, \ldots X_\sharect) \getsr
+\gen(\idx,\msg)$ and transmits each share to one of the write servers. Upon
+receiving their shares, the write servers engage in a write share verification
+protocol in order to ensure the request is well-formed.  We say that $\dpf$ is
+\emph{verifiable} if there exists a protocol $\reqvfy$ executed by principals
+$P$ satisfying the following properties.
+%
+First, it holds that $\{\client, \writer_1, \ldots, \writer_{\sharect}\}
+\subseteq P$ where $\client$ denotes the client making the write request and
+$\writer_i$ denotes the $i$-th write server.
+%
+Second, let $\lang_\dpf$ be the language comprised of strings $\str{\shares}$
+where $(\shares) \in [\gen(\idx, \msg)]$ for some $\msg \in \msgsp$ and $\idx
+\in [L]$. There exists an adversary $\advB$ called the \textit{benign adversary}
+such that the following conditions hold:
+\begin{itemize}
+  \item \textit{Completeness.}
+    For every $\str{\shares} \in \lang_\dpf$, it holds that
+    $
+      \Pr[\game{proto}_{\reqvfy,I,P}(\advB) \outputs \accept] = 1
+    $
+  where $I(\writer_i) = (X_i, \client)$ for each $i\in[\sharect]$.
+  \item \textit{Disruption resistance} \cite[def. 3]{riposte}.
+    For every probabilistic, polynomial-time (in the implicit security
+    parameter) adversary $\advA$, it holds that
+    \[
+      \Prob{ (\shares) \getsr \advA:
+             \str{X_1, \ldots, X_\sharect} \not\in \lang_\dpf \AND
+             \game{proto}_{\reqvfy,I,P}(\advB) \outputs \accept } \le \epsilon
+    \]
+    where $\epsilon$ is negligible (in the implicit security parameter) and
+    $I(\writer_i) = (X_i, \client)$ for each $i\in[\sharect]$. (We leave the
+    security parameter implicit because we will give concrete security results.)
+    \cpnote{This is actually a security property.}
+\end{itemize}
+
+\heading{Discussion.}
+The disruption resistance property resembles the collision resistance property
+of cryptographiic hash functions~\cite{collision-resistance}. We will show that
+our schemes achieve this under standard assumptions.
+%
+We could pull out a soundness property for~$\reqvfy$ similar to
+that of interactive proof systems \cite[def. 4.2.10]{oded}: for every
+$\str{\shares} \not\in \lang_\dpf$ and every PPT adversary~$\advA$, it
+holds that $\Pr[\game{proto}_{\reqvfy,I,P}(\advA) = 1] \le \epsilon$.
+%
+However, this is stronger than needed in our setting, since we only expect the
+system to detect mal-formed requests when all the servers are honest.  Recall
+that a malicious server can always corrupt its own state, thereby disrupting the
+system; nevertheless, we require that doing so does not violate privacy of
+honest clients. This is captured by our privacy notions below.
+
+\noindent\hl{Disruption resistance is a pretty weak notion}, but this is indeed
+the property that the authors intend. (Actually, the adversary can try to $n$
+times to forge a bad request, but a simple hybrid argument shows that our notion
+implies theirs.) The following is a stronger, if not uglier target:
+\begin{figure}[h]
+  \oneCol{0.50}{
+    \underline{$\game{\disres}_\reqvfy(\advA, \advB)$}\\[2pt]
+      $(K_u)_{u\in P} \getsr \protocol.\init$;
+      $O \gets P$\\
+      $(X_1, \ldots, X_\sharect) \getsr \advA^{\ENQO,\DEQO}$\\
+      \foreach{j}{1}{S} $Q_{\writer_j}^\sess \gets Q_{\writer_j}^\sess.\enqueue(X_j, \client)$\\
+      $\advB^{\ENQO,\DEQO}$\\
+      if $\sess$ accepts and $\str{X_1, \ldots, X_\sharect} \not\in \lang_\dpf$
+      then return $\true$\\
+      else return $\false$
+    \vspace{4pt}
+  }
+  \caption{$\advB$ is the benign adversary.}
+\end{figure}

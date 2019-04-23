@@ -1,0 +1,54 @@
+% anon.tex
+%
+% Application of verifiable DPF schemes to anonymous communication.
+\label{sec-anonymity}
+
+We describe the application of verifiable DPF schemes to anonymous communication
+as specified by the Riposte system~\cite{riposte}. We parameterize the protocol
+by a positive integer~$\cohortct$, called the \emph{cohort size}, which
+determines the number of valid write requests the servers process before
+outputting their state. The time interval in which each of the requests are
+processed is referred to as an \emph{epoch}. Let~$\dpf$ be a DPF scheme with
+parameters~$(\ring, \sharect, \dblen)$ and~$\reqvfy$ be a write request
+verification protocol for~$\dpf$ with benign adversary~$\advB$ and principals $P
+\supseteq \{\client, \writer_1, \ldots \writer_{\sharect}\}$ and let $\msgsp =
+\ring \setminus \{0\}$.
+
+\begin{itemize}
+  \item To initiate a write request for $\msg \in \msgsp$, the client samples
+    $\idx \getsr [\dblen]$, executes the share generation algorithm $(X_1,
+    \ldots, X_{\sharect}) \getsr \gen(\idx, \msg)$, and sends~$X_i$
+    to~$\writer_i$ for each $i \in [\sharect]$.
+
+  \item Next, the request verification protocol is executed. This means that the
+    \protosec~game is run with~$\reqvfy$, $I$, and~$\advB$ where for every $i
+    \in [\sharect]$, we have that $I(\writer_i) = (X_i, \client)$.
+
+  \item When server~$\writer_i$ accepts with private input~$X_i$, it updates its
+    local state as follows. Let~$\dbst_i$ be a $\dblen$-vector over
+    $\ring$ where each $\dbst_i[\idx]$ is initially equal to~$0$. Let
+    $\dbst_i[\idx^\prime] = \dbst_i[\idx^\prime] + \eval(X_i, \idx^\prime)$
+    for every~$\idx^\prime$.
+
+  \item Finally, once~$\cohortct$ valid write requests have been processed, each
+    write server its final state~$\dbst_i$ to the data consumer. The data
+    consumer recovers the database state (and thus the set of messages) by
+    computing $\dbst[\ell^\prime] = \sum_{i=1}^{\sharect}
+    \dbst_i[\ell^\prime]$ for every~$\ell^\prime$.
+\end{itemize}
+
+\heading{Dealing with collisions.} Because the clients choose their index into
+the database table randomly, there is a reasonable chance that two or more
+inadvertently choose the same index. However, it can be shown that if the
+database length is at least 20 times the cohort size, then average collision
+rate will not exceed $5\%$ \cite{riposte}. Moreover, if~$\ring$ is a field, then
+techniques based on error correcting codes can be used to further reduce the
+collision rate \cite{riposte}.
+
+\noindent\hl{Things we might do here:}
+\begin{itemize}
+  \item Formalize the security notion intended by this system (ANON). This was
+    already done in \cite{riposte}.
+  \item Show that PRIV1 implies ANON.  This was not done in \cite{riposte} as
+    far as I can tell.
+\end{itemize}

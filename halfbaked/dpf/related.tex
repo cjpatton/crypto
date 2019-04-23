@@ -1,0 +1,47 @@
+% related.tex
+%
+% Related work.
+\label{sec:related}
+
+\cpnote{Here's an outline:
+\begin{itemize}
+  % PIR
+  \item Remark that single-server PIR systems are possible
+    \cite{pir-single-server}, but at a higher computational cost. (OWFs are
+    essential for security: http://dl.acm.org/citation.cfm?id=301277.) According
+    to \cite{dpf}, PIS cannot be achieved with a single server \cite{dpf}.
+  \item There's an interesting paper (http://dl.acm.org/citation.cfm?id=276723)
+    that introduces symmetric PIR, designed to ensure that the reader learns
+    nothing more than the bit they query. Do DPF schemes suffice in this
+    setting?
+  \item Although \cite{dpf} focus on 2-server protocols, methods described in
+    \cite{dpf-multi-server} can be used to obtain $(2^t, t)$-private PIR from
+    any $(2,1)$-private PIR scheme.
+  % PIS
+  \item A side-effect of our work is that PIS is more useful, since it can now
+    support multiple writers while detecting malicious clients.
+  \item \cite{pis} does consider a stronger ``active adversary'', but not one
+    who tries to corrupt the database. This adversary may collude with users in
+    order to try to learn the data being read/written to the database by the
+    victim.
+  \item Oblivious RAM is a related problem.
+  % Riposte
+  \item Under the ``Disruption resistance'' heading in the intro of
+    \cite{riposte}, they list a bunch of AC systems in which malicious clients
+    must be dealt with.
+  \item Describe anonymous communication and the traffic analysis problem.
+    Compare Riposte to mix- and DC-nets.
+\end{itemize}
+}
+
+\ignore{ % This about anonymous communication generally.
+  \heading{Information leakage.} Information is said to be identifiable if it can
+  be used to link a client to their message. There are two things to remember
+  about personally identifiable information: one, any identity information
+  conveyed by the client's message is necessarily leaked in the output of the
+  system; and two, any information is potentially identifiable given auxiliary
+  information about the clients. For example, the number of messages sent by the
+  client might identify which messages they sent. Anonymous communication systems
+  can only address the problem of linking sensitive data to the identity of the
+  client.
+}

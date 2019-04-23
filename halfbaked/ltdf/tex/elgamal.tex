@@ -1,0 +1,71 @@
+\paragraph{The Decisional Diffie-Hellman Problem.}
+Let $G = \str{g}$ be a group of prime order~$p$. The DDH assumption is
+that $(g^a, g^b, g^{ab})$ and $(g^a, g^b, g^c)$ are computationally
+indistinguishable, where $a,b,b \getsr \Z_p$.
+
+\paragraph{Homomorphic ElGamal encryption.}
+The key generator chooses $\sk \getsr \Z_p$, computes $\pk \gets g^\sk$, and
+outputs $(\pk,\sk)$.
+%
+On input of $\pk$ and $\msg \in \Z_p$, the encryption algorithm chooses $\coins
+\getsr \Z_p$ and outputs $\ctxt = (g^\coins, \pk^\coins \cdot g^\msg)$.
+%
+On input of $\sk$ and $(x, y)$, the decryption algorithm outputs
+$\log_g(y/x^\sk)$.
+%
+Let $\msg, \msg^\prime, \coins, \coins^\prime \in \Z_p$,
+$(x,y) = \enc_\pk(\msg \,;\coins)$, and $(x^\prime,y^\prime) =
+\enc_\pk(\msg^\prime \,;\coins^\prime)$. Then $(x\cdot x^\prime, y \cdot
+y^\prime) = \enc_\pk(\msg + \msg^\prime \,; \coins+\coins^\prime)$.
+%
+Finally, let $\msg, \coins, v \in \Z_p$ and let $(x,y) = \enc_\pk(\msg \,;
+\coins)$. Then $(x, y\cdot g^v) = \enc_\pk(\msg + v \,;\coins)$.
+
+\subsection{The construction}
+We extend the homomorphic ElGamal scheme to encrypt matrices $\matm \in
+(\Z_p)^{n\cross n}$.
+%
+The key generation algorithm samples $\sk_i \getsr \Z_p$ and computes $\pk_i
+\gets g^{\sk_i}$ for each $i \in [n]$.
+%
+Next, on input $\str{\pk_1, \ldots, \pk_n}$ and $\matm$, encryption does as
+follows: sample $\coins_1, \ldots, \coins_n \getsr \Z_p$. For each $i,j \in
+[n]$, let $\matc_{i,j} = \enc_{\pk_j}(\matm_{i,j} \,; \coins_i)$ and output
+$\matc$.
+%
+Finally, on input $\str{\sk_1, \ldots, \sk_n}$ and $\matc$, decryption does as
+follows: for each $i,j \in [n]$, let $\matm_{i,j} = \dec_{\sk_j}(\matc_{i,j})$.
+Return $\matm$.
+%
+An $(n, n-\log p)$-lossy trapdoor function scheme constructed from this
+encryption algorithm is defined in Figure~\ref{fig-ddh-ltdf}.
+
+\begin{figure}
+  \newcommand{\vecpk}{\vecfont{pk}}
+  \newcommand{\vecsk}{\vecfont{sk}}
+  \newcommand{\veccoins}{\vecfont{r}}
+  \threeColsNoDivides{0.40}{0.26}{0.26}
+  {
+    \underline{$\losgen(b)$}\\[2pt]
+      $\vecsk, \veccoins \getsr (\Z_p)^n$\\
+      \foreach{i}{1}{n} $\vecpk_i \gets g^{\vecsk_i}$\\
+      if $b=1$ then $\matc \gets \enc_\vecpk(\matid \,; \veccoins)$\\
+      else $\matc \gets \enc_\vecpk(\matzero \,; \veccoins)$\\
+      return $(\matc, \vecsk)$
+  }
+  {
+    \underline{$\losf(\matc, x)$}\\[2pt]
+      \foreach{i}{1}{n}\\
+      \tab $\vecx_i \gets x_i$\\
+      return $\vecx \matc$
+  }
+  {
+    \underline{$\losfinv(\vecsk, \vecy)$}\\[2pt]
+    \foreach{j}{1}{n}\\
+    \tab $x_i \gets \dec_{\vecsk_j}(\vecy_j)$\\
+    return $x$
+  }
+  \caption{$(n,n-\log p)$-LTDF scheme constructed from DDH-hard group $G =
+  \str{g}$ where $|G| = p$ and $p$ is prime.}
+  \label{fig-ddh-ltdf}
+\end{figure}

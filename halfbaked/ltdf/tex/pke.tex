@@ -1,0 +1,619 @@
+\label{sec-pke}
+
+Here describe how to construct \indcca secure public-key encryption from lossy
+trapdoor functions. We present the scheme suggested by Peikert and Waters, which
+composes an LTDF scheme, an ABO TDF scheme, and a strongly-unforgeable, one-time
+digital signature scheme~\cite[Section 4.3]{pw08}.
+%
+First, we give the syntax and security for public-key encryption.
+
+A public-key encryption is a triple of algorithms $\pkescheme = (\kg, \enc, \dec)$,
+the first and second being probabilistic and the third being deterministic.
+%
+The key generation algorithm~$\kg$ outputs a pair of strings $(\pk, \sk)$.
+%
+The encryption algorithm takes as input the public key~$\pk$, a message~$\ptxt
+\in \bits^*$, and outputs a ciphertext~$\ctxt \in \bits^*$ or the distinguished
+symbol~$\bot$.
+%
+The decryption algorithm takes as input the secret key~$\sk$, a
+ciphertext~$\ctxt \in \bits^*$, and outputs the corresponding message~$\ptxt \in
+\bits^*$ or~$\bot$.
+%
+Correctness demands that for every $(\pk, \sk) \in [\kg]$, every message~$\ptxt
+\in\bits^*$, and every sequence of coins~$\coins\in\bits^*$, if $\enc_\pk(\ptxt
+\,;\coins) \ne \bot$, then $\dec_\sk(\enc_\pk(\ptxt \,;\coins)) = \ptxt$.
+
+The standard \indcca notion for public-key encryption is given in
+Figure~\ref{fig-indcca}. Let
+$
+  \Adv{\indcca}_\pkescheme(\advA) = 2\cdot
+  \prob{\Exp{\indcca}_\pkescheme(\advA)} - 1.
+$
+%
+\begin{figure}[t]
+  \threeColsNoDivides{0.28}{0.28}{0.28}
+  {
+    \underline{$\Exp{\indcca}_\pkescheme(\advA)$}\\[2pt]
+      $b \getsr \bits$; $Q \gets \emptyset$\\
+      $(\pk, \sk) \getsr \kg$\\
+      $b^\prime \getsr \advA^{\lro,\deco}(\pk)$\\
+      return $b=b^\prime$
+    }
+    {
+    \underline{$\lro(\ptxt_0, \ptxt_1)$}\\[2pt]
+      if $|\ptxt_0| \ne |\ptxt_1|$ then\\
+      \tab return $\bot$\\
+      $\ctxt \getsr \enc_\pk(\ptxt_b)$\\
+      $Q \gets Q \union \{\ctxt\}$\\
+      return $\ctxt$
+    }
+    {
+    \underline{$\deco(\ctxt)$}\\[2pt]
+      if $\ctxt \in Q$ then\\
+      \tab return $\bot$\\
+      return $\dec_\sk(\ctxt)$
+  }
+  \caption{Indistinguishibility under chosen-ciphertext attacks.}
+  \label{fig-indcca}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+
+\subsection{Hashing}
+\label{sec-extractors}
+
+A family of hash functions is given by a pair of algorithms $(\hashgen, \hashf)$
+with associated domain~$X$ and range $Y$.
+%
+The first algorithm is probabilistic and the second is deterministic.
+%
+Algorithm $\hashgen$ outputs a string~$h$, and $\hashf(h, \cdot) : X \to
+Y$ is a function for each such output.
+%
+We say that $(\hashgen, \hashf)$ induces a \emph{pairwise-independent} family of
+hash functions if for every distinct $x_0,x_1 \in X$ and every distinct $y_0,
+y_1 \in Y$, it holds that $ \prob{ h \getsr \hashgen : \hashf(h,x_0) =
+y_0 \AND \hashf(h,x_1) = y_1 } \leq {1}/{|Y|^2}.$
+%
+The family is \emph{universal} if for every distinct $x_0,x_1 \in X$, it holds
+that $ \prob{ h \getsr \hashgen : \hashf(h, x_0) = \hashf(h, x_1) }
+\leq {1}/{|Y|}.  $
+
+Note that being pairwise-independent implies that~$(\hashgen, \hashf)$ is
+universal, but the converse is not true.
+%
+Also, Peikert and Waters remark that that $\hashf(h,\cdot)$ is a hardcore
+function for an LTDF's injective mode~\cite{pw08}.
+
+A \emph{strong randomness extractor}~\cite{shaltiel02} is used to derive uniform
+random bits from a weak randomness source. For our purposes, a family of
+pairwise-independent hash functions will suffice. We give a couple lemmas
+from~\cite{drs04} that will be useful.
+%
+Let $X,Y$ be random variables over the same countable domain~$D$.
+%
+The \emph{statistical distance} between $X$ and $Y$, denoted $\statdist(X,Y)$,
+is
+\[
+  \frac{1}{2} \sum_{v\in D} | \prob{X=v} - \prob{Y=v}|.
+\]
+%
+The \emph{min-entropy} of $X$ is $\minent(X) = -\log(\max_{x\in D}
+\prob{X=x})$, where $\log$ is base-2 here and below.
+%
+The \emph{average min-entropy} of $X$ given $Y$ is, denoted $\avgminent(X
+\given Y)$, is
+\[
+  - \log \sum_{y\in D} \prob{Y = y} \cdot 2^{-\minent(X \given Y=y)}
+\]
+%
+Intuitively, average min-entropy corresponds to the optimal probability of
+guessing~$X$ given knowledge of $Y$.
+
+\begin{lemma}\label{lemma1}
+  Let $X,Y,Z$ be random variables where $Y$ has $2^r$ possible values.
+  Then $\avgminent(X \given Y,Z) \ge \minent(X \given Z) - r$.
+\end{lemma}
+
+\begin{lemma}\label{lemma2}
+  Let $X,Y$ be random variables where $X \in \bits^n$ and $\avgminent(X
+  \given Y) \ge k$.
+  %
+  Let $U_\ell$ denote a uniform-random, $\ell$-bit string.
+  %
+  Let $(\hashgen, \hashf)$ be hashing scheme inducing a family of
+  pairwise-independent hash functions with domain $\bits^n$ and range
+  $\bits^\ell$. Let $h \getsr \hashgen$. Then
+  \[
+    \statdist((Y, h, \hashf(h, X)), (Y, h, U_\ell)) \le \epsilon
+  \]
+  if $\ell \leq k - 2 \log(1/\epsilon)$.
+\end{lemma}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Signing}
+\begin{figure}[t]
+  \twoColsNoDivide{0.40}
+  {
+    \underline{$\Exp{\auth}_\sigscheme(\advA)$}\\[2pt]
+      $q \gets 0$; $(\vk, \xk) \getsr \siggen$\\
+      $(\msg^\prime, \sig^\prime) \getsr \advA^{\sigo}(\vk)$\\
+      $r \gets \verify_\vk(\msg^\prime, \sig^\prime)$\\
+      return $r \AND (\msg, \sig) \ne (\msg^\prime, \sig^\prime)$
+  }
+  {
+    \underline{$\sigo(\msg)$}\\[2pt]
+      if $q = 1$ then return $\bot$\\
+      $q \gets 1$;
+      $\sig \getsr \sign_\xk(\msg)$\\
+      return $\sig$
+  }
+  \caption{Strongly unforgeable, one-time signatures.}
+  \label{fig-auth}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+A signature scheme is a triple of algorithms $\sigscheme =
+(\siggen,\sign,\verify)$, the first and second being probabilistic and the
+third being deterministic.
+%
+The key generation algorithm $\siggen$ outputs a pair of strings $(\vk, \xk)$.
+%
+On input of signing key~$\xk$ and a string~$\msg$, the signing algorithm
+$\sign$ outputs a string~$\sig$, called the signature, or~$\bot$.
+%
+On input of verifying key~$\vk$, string~$\msg$, and signature~$\sig$, the
+verification algorithm outputs one of $\bits \union \{\bot\}$.
+%
+Correctness requires that for every $(\vk,\xk) \in [\siggen]$ and every $\msg
+\in \bits^*$ it holds that
+\[
+  \prob{ \sig \getsr \sign_\xk(\msg) : \sig \ne \bot \implies \verify_\vk(
+  \msg, \sig) =1 } = 1.
+\]
+The notion of a strongly unforgeable, one-time signature scheme is defined in
+Figure~\ref{fig-auth}. We define the advantage of adversary~$\advA$ in forging
+against~$\sigscheme$ as
+$
+  \Adv{\auth}_\sigscheme(\advA) = \prob{\Exp{\auth}_\sigscheme(\advA)}.
+$
+
+
+\subsection{The scheme}
+In Figure~\ref{fig-proto} we exhibit a public-key encryption scheme constructed
+from an LTDF scheme, an ABO TDF scheme, a pairwise-independent hashing scheme,
+and a strongly unforgeable, one-time signature scheme.
+%
+\begin{figure}[t]
+  \threeColsNoDivides{0.24}{0.32}{0.40}
+  {
+    \underline{$\kg$}\\[2pt]
+      $h \getsr \hashgen$\\
+      $(f, t) \getsr \losgen(1)$\\
+      $(g, u) \getsr \abogen(0^v)$\\
+      $\pk \gets \str{f, g, h}$\\
+      $\sk \gets \str{t, u, \pk}$\\
+      return $(\pk, \sk)$
+  }
+  {
+    \underline{$\enc_\pk(\ptxt)$}\\[2pt]
+      $\str{f, g, h} \gets \pk$\\
+      $(\vk, \xk) \getsr \siggen$\\
+      $\coins \getsr \bits^n$\\
+      $x \gets \losf(f,\coins)$\\
+      $y \gets \hashf(h,\coins) \xor \ptxt$\\
+      $z \gets \abof(g, \vk, \coins)$\\
+      $\sig \getsr \sign_\xk(\str{x,y,z})$\\
+      return $\str{x,y,z,\vk,\sig}$
+  }
+  {
+    \underline{$\dec_\sk(\str{x,y,z,\vk,\sig})$}\\[2pt]
+      $\str{t, u, \str{f, g, h}} \gets \sk$\\
+      if $\verify_\vk(\str{x,y,z},\sig) \ne 1$ then\\
+      \tab return $\bot$\\
+      $\coins^\prime \gets \losfinv(t, x)$\\
+      $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor y$\\
+      $z^\prime \gets \abof(g,\vk,\coins^\prime)$\\
+      if $z^\prime \ne z$ then
+        return $\bot$\\
+      return $\ptxt^\prime$
+  }
+  \caption{Public-key encryption scheme $\pkescheme$ with message
+  space~$\bits^\ell$ and constructed from:
+  %
+  $(n,k_\abo)$-ABO TDF scheme $\tdfscheme_\abo = (\abogen,\abof,\abofinv)$ with branch set $\bits^v$,
+  %
+  $(n,k_\los)$-LTDF scheme $\tdfscheme_\los = (\losgen,\losf,\losfinv)$,
+  %
+  hashing scheme $(\hashgen,\hashf)$ with domain~$\bits^n$ and range
+  $\bits^\ell$, and
+  %
+  signature scheme $\sigscheme = (\siggen, \sign, \verify)$ such that each
+  verifying key output by $\siggen$ is in $\bits^v$.
+  }
+  \label{fig-proto}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+%
+We show this composition is \indcca secure if each of its constituents meets its
+security goal.
+
+\begin{theorem}\label{thm-indcca}
+  Let $\pkescheme = (\kg,\enc,\dec)$ as specified in Figure~\ref{fig-indcca}.
+  %
+  Suppose there exists a positive, real number $\epsilon$ such that $\ell \leq k
+  - n - 2\log(1/\epsilon)$.
+  %
+  Let~$\advA$ be an \indcca adversary making one query to its~$\lro$ oracle.
+  %
+  There exist adversaries~$\advB$, $\advC$, and~$\advD$ such that for every
+  \indcca adversary~$\advA$, it holds that
+  \[
+    \Adv{\indcca}_\pkescheme(\advA) \leq
+      \Adv{\auth}_{\sigscheme}(\advB) +
+      \Adv{\abo}_{\tdfscheme_\abo}(\advC) +
+      \Adv{\los}_{\tdfscheme_\los}(\advD) +
+      \epsilon \,,
+  \]
+  where each has about the same runtime as~$\advA$.
+\end{theorem}
+
+\begin{proof}
+  We argue by game rewriting, beginning with the \indcca game instantiated
+  with~$\pkescheme$ and played by~$\advA$ and ending in a game in which~$\advA$
+  has no advantage. We bound the advantage of~$\advA$ in distinguishing
+  neighboring games after each revision.
+
+  % Game 0
+  We begin with game~$\G_0$ defined in the top panel of
+  Figure~\ref{fig-thm-indcca}. This is precisely the \indcca game instantiated
+  with $\pkescheme$, and hence $\Adv{\indcca}_\pkescheme(\advA) =
+  2\cdot\prob{\G_0(\advA)}-1$.
+  %
+  % Revision 0-1
+  Game~$\G_1$, defined in the same panel, is the same as $\G_0$, except the the
+  signing keys~$(\vk^*, \sk^*)$ corresponding to the~$\lro$ query are computed
+  beforehand. This is without loss of generality, since~$\advA$ makes just one
+  query to~$\advA$.
+  %
+  Then $\prob{\G_0(\advA)} = \prob{\G_1(\advA)}$.
+
+  % Revision 1-2
+  Next, game~$\G_2$ is defined by the revisions to the decryption oracle in the
+  first-middle-left panel.
+  %
+  It is identical to~$\G_1$ unless~$\advA$ ever asks $\deco(\ctxt)$ where $\ctxt
+  = \str{x,y,z,\vk,\sig}$ was not output by~$\lro$, but $y=y^*$. (In this case,
+  the revised oracle outputs~$\bot$.)
+  %
+  Hence, the difference $\prob{\G_1(\advA)} - \prob{\G_2(\advA)}$ is at most the
+  probability that~$\advA$ asks such a query.
+  %
+  Doing so implies a way to forge against the signature scheme $\sigscheme$.
+  %
+  On input $\vk^*$, \auth adversary~$\advB$ executes $(\pk, \sk) \getsr \kg$, chooses
+  a random bit~$b$, and executes~$\advA$ on input of~$\pk$, simulating its
+  oracle queries according to $\G_2$. When~$\advA$ queries its~$\lro$ oracle,
+  adversary~$\advB$ uses its own $\sigo$ oracle to sign the out-going ciphertext.
+  %
+  If ever~$\advA$ asks $\deco(\ctxt)$ such that $c = \str{x,y,z,\sig,\vk^*}$
+  where $c$ is not the output of $\lro$, but $\verify_{\vk^*}(\str{x,y,z},\sig)
+  = 1$, then~$\advB$ halts and outputs $(\str{x,y,z}, \sig)$.
+  %
+  Then the advantage of~$\advB$ is exactly the probability that~$\advA$ makes
+  such a query. It follows that
+  %
+  \begin{eqnarray}
+    \prob{\G_1(\advA)} - \prob{\G_2(\advA)} \leq
+    \Adv{\auth}_{\sigscheme}(\advB) \,.
+  \end{eqnarray}
+
+  % Revision 2-3
+  Next, game~$\G_3$ is revised so that~$\vk^*$ is chosen as the lossy branch for
+  generation of $(g,u)$ instead of~$0^v$. We construct an \abo adversary $\advC
+  = (\advC_1, \advC_2)$, which simulates~$\G_{3-a}(\advA)$, where $a$ denotes
+  the challenge bit in the \abo game.
+  %
+  The first stage, $\advC_1$, computes $(\vk^*,\xk^*) \getsr \siggen$ and outputs
+  $(\vk^*, 0^v, \str{\vk^*,\xk^*})$. (Recall that the first stage \abo adversary
+  outputs a pair of branches and some carry-over state.)
+  %
+  On input $(g, \str{\vk^*,\sk^*})$, the second stage, $\advC_2$, generates
+  the public and private key according to~$\kg$, using its input~$g$ for the
+  \abo function.
+  %
+  It then executes~$\advA$, simulating $\G_{3-a}$ in the natural way. (Note that
+  the trapdoor~$u$ corresponding to~$g$ is unknown to~$\advC_2$, but this value
+  is not used by any oracle.)
+  %
+  Finally, when~$\advA$ halts on $b^\prime$, adversary~$\advC_2$ outputs
+  $b^\prime$.
+  %
+  Since the simulation is perfect, a simple conditioning argument yields that
+  \begin{eqnarray}
+    \Adv{\abo}_{\tdfscheme_\abo}(\advC)=
+    \prob{\G_2(\advA)} - \prob{\G_3(\advA)} \,.
+  \end{eqnarray}
+
+  % Revision 3-4
+  Game~$\G_4$ is defined by the modifications to the decryption oracle in the
+  second-middle-left panel. Instead of recovering the coins~$r^\prime$ by inverting~$x$
+  under the LTDF, the revised oracle does so by inverting $z$ at branch $\vk$
+  under the ABO TDF. This branch is injective, since $\vk \ne \vk^*$ by definition
+  and $\vk^*$ is the lossy branch for $(g,u)$. It follows that $\prob{\G_3(\advA)}
+  = \prob{\G_4(\advA)}$.
+
+  % Revision 4-5
+  Game $\G_5$ revises $\G_4$ so that the LTDF is used in its lossy mode
+  rather than in its injective mode. Similarly as before, we may construct a
+  \los adversary~$\advD$ that simulates $\G_{5-b}(\advA)$ where $b$ denotes the
+  challenge bit in the \los game, and for which
+  \begin{eqnarray}
+    \Adv{\los}_{\tdfscheme_\los}(\advD)=
+    \prob{\G_4(\advA)} - \prob{\G_5(\advA)} \,.
+  \end{eqnarray}
+
+  % Revision 5-6
+  Finally, game~$\G_6$ is defined by the revisions in the bottom panel. Instead
+  of XOR-ing the hash of the coins with the message to get~$y$, the revised
+  oracle XORs a uniform random, $\ell$-bit string $y^*$ with the message.
+  %
+  Suppose that~$\advA$ asks $\lro(\ptxt_0, \ptxt_1)$ and gets
+  $\str{x,y,z,\vk^*,\sig}$ in response.
+  %
+  Recall that $k = k_\los + k_\abo$.
+  %
+  The string $\str{x,z}$ has at most $2^k$ values, since $x=\losf(f,r)$ and
+  $f$ is lossy, and $z = \abof(g,\vk^*,r)$ and $\vk^*$ is the lossy branch
+  of~$g$.
+  %
+  By Lemma~\ref{lemma1}, it follows that $\avgminent(r \given \str{x,z},h) \ge
+  \minent(r \given h) - 2n+k$.
+  %
+  Since~$r$ is a uniform string and~$r$ and~$h$ are independent, it follows that
+  $\avgminent(r \given \str{x,z},h) \ge n- 2n+k = k-n$.
+  %
+  By hypothesis, we have that $\ell \leq k - n - 2\log(1/\epsilon)$.
+  %
+  By Lemma~\ref{lemma2}, it follows that
+  $\statdist( (\str{x,z}, h, \hashf(h,r)), (\str{x,z}, h, y^*) ) \leq \epsilon$.
+  %
+  We conclude that
+  \begin{eqnarray}
+    \prob{\G_5(\advA)} - \prob{\G_6(\advA)} \leq \epsilon \,.
+  \end{eqnarray}
+  %
+  % Game 6
+  Noting that $\prob{\G_6(\advA)} = 1/2$ yields the claim.\qed
+
+  \begin{figure}
+    \superGame % Revision 0-1
+    {
+      \underline{$\G_0(\advA)$}\\[2pt]
+        $b \getsr \bits$; $Q \gets \emptyset$\\
+        \diffplus{$(\vk^*, \xk^*) \getsr \siggen$}\\
+        $h \getsr \hashgen$\\
+        $(f, t) \getsr \losgen(1)$\\
+        $(g, u) \getsr \abogen(0^v)$\\
+        $\pk \gets \str{f, g, h}$\\
+        $\sk \gets \str{t, u, \pk}$\\
+        $b^\prime \getsr \advA^{\lro,\deco}(\pk)$\\
+        return $b=b^\prime$
+    }
+    {
+      \underline{$\lro(\ptxt_0, \ptxt_1)$}\\[2pt]
+        if $|\ptxt_0| \ne |\ptxt_1|$ then\\
+          \tab return $\bot$\\
+        $\str{f, g, h} \gets \pk$\\
+        \diffminus{$(\vk^*, \xk^*) \getsr \siggen$}\\
+        $\coins \getsr \bits^n$;
+        $x \gets \losf(f,\coins)$\\
+        $y \gets \hashf(h,\coins) \xor \ptxt_b$\\
+        $z \gets \abof(g, \vk^*, \coins)$\\
+        $\sig \getsr \sign_{\xk^*}(\str{x,y,z})$\\
+        $\ctxt \gets \str{x,y,z,\vk^*,\sig}$\\
+        $Q \gets Q \union \{\ctxt\}$;
+        return $\ctxt$
+    }
+    {
+      \underline{$\dec_\sk(\str{x,y,z,\vk,\sig})$}
+          \hfill \diff{$\G_1(\advA)$}\\[2pt]
+        if $\ctxt \in Q$ then return $\bot$\\
+        $\str{t, u, \str{f, g, h}} \gets \sk$\\
+        if $\verify_\vk(\str{x,y,z},\sig) \ne 1$ then\\
+        \tab return $\bot$\\
+        $\coins^\prime \gets \losfinv(t, x)$\\
+        $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor y$\\
+        $z^\prime \gets \abof(g,\vk,\coins^\prime)$\\
+        if $z^\prime \ne z$ then
+          return $\bot$\\
+        return $\ptxt^\prime$
+    }
+    {
+      \underline{$\dec_\sk(\str{x,y,z,\vk,\sig})$}
+          \hfill \diff{$\G_2(\advA)$}\\[2pt]
+        if $\ctxt \in Q$ then return $\bot$\\
+        $\str{t, u, \str{f, g, h}} \gets \sk$\\
+        if $\verify_\vk(\str{x,y,z},\sig) \ne 1$ then\\
+        \tab return $\bot$\\
+        \diffplus{if $\vk = \vk^*$ then return $\bot$}\\
+        $\coins^\prime \gets \losfinv(t, x)$\\
+        $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor y$\\
+        $z^\prime \gets \abof(g,\vk,\coins^\prime)$\\
+        if $z^\prime \ne z$ then
+          return $\bot$\\
+        return $\ptxt^\prime$
+    }
+    {
+      \underline{$\G_2(\advA)$}
+          \hfill \diff{$\G_3(\advA)$}\\[2pt]
+        $b \getsr \bits$; $Q \gets \emptyset$\\
+        $(\vk^*, \xk^*) \getsr \siggen$\\
+        $h \getsr \hashgen$\\
+        $(f, t) \getsr \losgen(1)$\\
+        \diffminus{$(g, u) \getsr \abogen(0^v)$}\diffplus{$(g, u) \getsr \abogen(vk^*)$}\\
+        $\pk \gets \str{f, g, h}$\\
+        $\sk \gets \str{t, u, \pk}$\\
+        $b^\prime \getsr \advA^{\lro,\deco}(\pk)$\\
+        return $b=b^\prime$
+    }
+    {
+      \underline{$\dec_\sk(\str{x,y,z,\vk,\sig})$}
+          \hfill \diff{$\G_4(\advA)$}\\[2pt]
+        if $\ctxt \in Q$ then return $\bot$\\
+        $\str{t, u, \str{f, g, h}} \gets \sk$\\
+        if $\verify_\vk(\str{x,y,z},\sig) \ne 1$ then\\
+        \tab return $\bot$\\
+        if $\vk = \vk^*$ then return $\bot$\\
+        \diffminus{$\coins^\prime \gets \losfinv(t, x)$}\diffplus{$\coins^\prime \gets \abofinv(u, z)$}\\
+        $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor y$\\
+        $z^\prime \gets \abof(g,\vk,\coins^\prime)$\\
+        if $z^\prime \ne z$ then
+          return $\bot$\\
+        return $\ptxt^\prime$
+    }
+    {
+      \underline{$\G_4(\advA)$}
+          \hfill \diff{$\G_5(\advA)$}\\[2pt]
+        $b \getsr \bits$; $Q \gets \emptyset$\\
+        $(\vk^*, \xk^*) \getsr \siggen$\\
+        $h \getsr \hashgen$\\
+        \diffminus{$(f, t) \getsr \losgen(1)$}\diffplus{$(f, t) \getsr \losgen(0)$}\\
+        $(g, u) \getsr \abogen(vk^*)$\\
+        $\pk \gets \str{f, g, h}$\\
+        $\sk \gets \str{t, u, \pk}$\\
+        $b^\prime \getsr \advA^{\lro,\deco}(\pk)$\\
+        return $b=b^\prime$
+    }
+    \threeColsNoDivides{0.24}{0.35}{0.37} % Revision 0-1
+    {
+      \underline{$\G_5(\advA)$}\\[2pt]
+        $b \getsr \bits$; $Q \gets \emptyset$\\
+        $(\vk^*, \xk^*) \getsr \siggen$\\
+        $h \getsr \hashgen$\\
+        $(f, t) \getsr \losgen(0)$\\
+        $(g, u) \getsr \abogen(\vk^*)$\\
+        $\pk \gets \str{f, g, h}$\\
+        $\sk \gets \str{t, u, \pk}$\\
+        $b^\prime \getsr \advA^{\lro,\deco}(\pk)$\\
+        return $b=b^\prime$
+    }
+    {
+      \underline{$\lro(\ptxt_0, \ptxt_1)$}\\[2pt]
+        if $|\ptxt_0| \ne |\ptxt_1|$ then\\
+          \tab return $\bot$\\
+        $\str{f, g, h} \gets \pk$;
+        \diffplus{$y^* \getsr \bits^\ell$}\\
+        $\coins \getsr \bits^n$;
+        $x \gets \losf(f,\coins)$\\
+        $y \gets$\diffminus{$\hashf(h,\coins)$}\diffplus{$y^*$}$\xor \ptxt_b$\\
+        $z \gets \abof(g, \vk^*, \coins)$\\
+        $\sig \getsr \sign_{\xk^*}(\str{x,y,z})$\\
+        $\ctxt \gets \str{x,y,z,\vk^*,\sig}$\\
+        $Q \gets Q \union \{\ctxt\}$;
+        return $\ctxt$
+    }
+    {
+      \underline{$\dec_\sk(\str{x,y,z,\vk,\sig})$}
+          \hfill \diff{$\G_6(\advA)$}\\[2pt]
+        if $\ctxt \in Q$ then return $\bot$\\
+        $\str{t, u, \str{f, g, h}} \gets \sk$\\
+        if $\verify_\vk(\str{x,y,z},\sig) \ne 1$ then\\
+        \tab return $\bot$\\
+        if $\vk = \vk^*$ then return $\bot$\\
+        $\coins^\prime \gets \abofinv(u, z)$\\
+        $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor y$\\
+        $z^\prime \gets \abof(g,\vk,\coins^\prime)$\\
+        if $z^\prime \ne z$ then
+          return $\bot$\\
+        return $\ptxt^\prime$
+    }
+    \caption{Games for proof of Theorem~\ref{thm-indcca}. Adversary~$\advA$ makes
+    just one~$\lro$ query.}
+    \label{fig-thm-indcca}
+  \end{figure}
+\end{proof}
+
+\if{0}
+% Constructed based on target-collision hash instead of a signature. This don't
+% work!!! There's a simple distinguishing attack that uses just one decryption
+% query.
+\begin{figure}[t]
+  \threeColsNoDivides{0.32}{0.32}{0.32}
+  {
+    \underline{$\kg$}\\[2pt]
+      $h \getsr \hashgen$;
+      $i \getsr \hashgen_\tcr$\\
+      $(f, t) \getsr \losgen(1)$\\
+      $(g, u) \getsr \abogen(0^v)$\\
+      $\pk \gets \str{f, g, h, i}$\\
+      $\sk \gets \str{t, u, \pk}$\\
+      return $(\pk, \sk)$
+  }
+  {
+    \underline{$\enc_\pk(\ptxt)$}\\[2pt]
+      $\str{f, g, h, i} \gets \pk$\\
+      $\coins \getsr \bits^n$;
+      $w \gets \losf(f,\coins)$\\
+      $x \gets \hashf(h,\coins) \xor \ptxt$\\
+      $y \gets \hashf_\tcr(i,\coins)$\\
+      $z \gets \abof(g, y, \coins)$\\
+      return $\str{w,x,y,z}$
+  }
+  {
+    \underline{$\dec_\sk(\str{w,x,y,z})$}\\[2pt]
+      $\str{t, u, \str{f, g, h, i}} \gets \sk$\\
+      $\coins^\prime \gets \losfinv(t, w)$\\
+      $\ptxt^\prime \gets \hashf(h,\coins^\prime) \xor x$\\
+      $y^\prime \gets \hashf_\tcr(i,\coins^\prime)$\\
+      $z^\prime \gets \abof(g,y^\prime,\coins^\prime)$\\
+      if $z^\prime \ne z$ then
+        return $\bot$\\
+      return $\ptxt^\prime$
+  }
+  \caption{Public-key encryption scheme $\pkescheme$ constructed from:
+  %
+  $(n,k)$-ABO TDF scheme $\tdfscheme_\abo = (\abogen,\abof,\abofinv)$ with branch set $\bits^v$,
+  %
+  $(n,k^\prime)$-LTDF scheme $\tdfscheme_\los = (\losgen,\losf,\losfinv)$,
+  %
+  hashing scheme $\hashscheme = (\hashgen,\hashf)$ with domain~$\bits^n$ and range
+  $\bits^\ell$, and
+  %
+  hashing scheme $\hashscheme_\tcr = (\hashgen_\tcr,\hashf_\tcr)$ with domain~$\bits^n$ and range
+  $\bits^v$.
+  }
+  \label{fig-proto}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+\fi
+
+\if{0}
+% TCR notion
+A hashing scheme $\hashscheme = (\hashgen, \hashf)$ is \emph{target-collision
+resistant} (also called \emph{second-preimage resistant} \cite{rs04}) if the
+advantage of any reasonable adversary in the \tcr experiment defined in
+Figure~\ref{fig-tcr} is small, where the advantage of~$\advA$ in
+attacking~$\hashscheme$ is defined as
+$
+  \Adv{\tcr}_\hashscheme(\advA) = \prob{ \Exp{\tcr}_\hashscheme(\advA) }.
+$
+\begin{figure}
+  \oneCol{0.70}
+  {
+    \underline{$\Exp{\tcr}_\hashscheme(\advA)$}\\[2pt]
+      $(x_0, \st) \getsr \advA_1$;
+      $h \getsr \hashgen$;
+      $x_1 \getsr \advA_2(\st, h)$\\
+      if $\{x_0, x_1\} \not\subseteq X \OR x_0 = x_1$ then return $\bot$\\
+      return $\hashf(h, x_0) = \hashf(h, x_1)$
+  }
+  \caption{Target-collision resistance of hashing scheme $\hashscheme =
+  (\hashgen, \hashf)$ with domain~$X$.}
+  \label{fig-tcr}
+\end{figure}
+\fi

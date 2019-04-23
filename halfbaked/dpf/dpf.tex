@@ -1,0 +1,47 @@
+% dpf.tex
+%
+% Syntax, definitions, and applications of verifiable DPF schemes.
+
+In this section, we give syntax and security notions for distributed point
+functions. We diverge somewhat from the syntax of \cite{dpf} as it will be
+convenient in our setting to assume the domain have algebraic
+structure.\cpnote{Is this actually more convenient? Since our constructions are
+mostly based on pseudorandom generators, it might make more sense to think of
+the domain as strings. Yet there's the $\sharect$-server Riposte variant to
+consider.}
+Let~$\ring$ be a finite ring and let $\msgsp = \ring \setminus \{ 0 \}$
+where~$0$ denotes the additive identity. Let $\dblen \in \N$, $\idx \in
+[\dblen]$, and $\msg \in \msgsp$.
+%
+The \emph{point function} of $(\idx, \msg)$ is the map $P_{\idx,\msg} : [\dblen]
+\to \ring$ where $P_{\idx,\msg}(\idx) = \msg$ and for every $\idx^\prime \ne
+\idx$, it holds that $P_{\idx,\msg}(\idx^\prime) = 0$.
+%
+The notation~$\msgsp$ signifies that the set of non-zero elements of~$\ring$
+constitutes a message space and that~$\msg$ encodes the message to be written
+into the database. The value~$\idx$ indicates the row of the database to
+which~$\msg$ is to be written.
+
+We remark that the message space in the formalization of~\cite{riposte} is~$F
+\setminus \{0\}$ where~$F$ is a finite field. Each element having a
+multiplicative inverse is necessary in order to implement their error correcting
+code for dealing with collisions in the table, but this extra structure is not
+essential for formalizing the security properties of the scheme.\cpnote{Does the
+seed-homomorphic PRG need field structure? I don't think so.}
+
+Concretely, we may define a ring on $n$-bit strings as follows.  Addition of~$X$
+and~$Y$ is defined by $X \xor Y$. The all-zero string~$0^n$ is then the additive
+identity. To compute $Z = X\cdot Y$, we regard the $i$-th bit of~$X$ (resp.~$Y$)
+as the $i$-th coefficient of a polynomial~$p_X(x)$ (resp.~$p_Y(x)$), compute the
+polynomial~$p_Z(x)$ congruent to $p_X(x)\cdot p_Y(x) \mod x^{n+1}$, and
+let~$Z[i]$ be the $i$-th coefficient of~$p_Z(x)$ for each $i \in
+[n]$.
+
+\subsection{Syntax}
+\input{syntax.tex}
+
+\subsection{Security}
+\input{security.tex}
+
+\subsection{Application to anonymous reporting}
+\input{anon.tex}
