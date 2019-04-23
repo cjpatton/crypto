@@ -1,0 +1,52 @@
+% Includes for this paper.
+\usepackage{mathtools}
+
+% Macros for this paper.
+\newcommand{\thetitle}{Constructing signatures from the DL assumption}
+\newcommand{\rassert}{\rword{assert}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\dl}{\notionfont{DL}}
+\newcommand{\ufcma}{\notionfont{UF\mbox{-}CMA}}
+\newcommand{\A}{\algorithmfont{A}}
+\newcommand{\B}{\algorithmfont{B}}
+\newcommand{\I}{\algorithmfont{I}}
+\newcommand{\F}{\algorithmfont{F}}
+\newcommand{\prover}{\procfont{Prover}}
+\newcommand{\verifier}{\procfont{Verifier}}
+\newcommand{\challenge}{\procfont{Challenge}}
+\newcommand{\gen}{\procfont{Gen}}
+\newcommand{\sign}{\procfont{Sign}}
+\newcommand{\commit}{\procfont{Commit}}
+\newcommand{\prove}{\procfont{Prove}}
+\newcommand{\verify}{\procfont{Verify}}
+\newcommand{\pk}{\varfont{pk}}
+\newcommand{\sk}{\varfont{sk}}
+\newcommand{\pw}{\varfont{pw}}
+\newcommand{\win}{\varfont{win}}
+\newcommand{\Q}{\setfont{Q}}
+\newcommand{\C}{\setfont{C}}
+\newcommand{\X}{\setfont{X}}
+\newcommand{\Y}{\setfont{Y}}
+\newcommand{\SIGNO}{\oraclefont{Sign}}
+\newcommand{\VERIFYO}{\oraclefont{Verify}}
+\def\PROVE#1{\oraclefont{Prove#1}}
+\def\COMMIT#1{\oraclefont{Commit#1}}
+\newcommand{\RUN}{\oraclefont{Run}}
+\newcommand{\note}[3]{\basenote{#1}{#2}{\unskip}{#3}}
+\newcommand{\cp}[1]{\note{thedarkgreen}{CP}{#1}}
+\def\id#1{\mbox{\notionfont{ID#1}}}
+\newcommand{\Schnorr}{{\Sigma_{\mathrm{Schnorr}}}}
+\newcommand{\SSchnorr}{{\Pi_{\mathrm{Schnorr}}}}
+\newcommand{\FiatShamir}{\cryptofont{FS}}
+\renewcommand{\sim}{\procfont{Sim}}
+\renewcommand{\H}{\oraclefont{H}}
+\newcommand{\RO}{\oraclefont{R}}
+\newcommand{\bad}{\varfont{bad}}
+\newcommand{\sets}{\;\cryptofont{sets}\;}
+
+% THIS WILL BE USEFUL LATER
+\newlength{\arrow}
+\settowidth{\arrow}{\hspace{100pt}}
+\newcommand*{\sendright}[1]{\xrightarrow{\mathmakebox[\arrow]{#1}}}
+\newcommand*{\sendleft}[1]{\xleftarrow{\mathmakebox[\arrow]{#1}}}
